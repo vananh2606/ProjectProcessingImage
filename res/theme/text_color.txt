@@ -1,0 +1,21 @@
+Màu đỏ: 
+    #E74C3C (chính)
+    #C0392B (đậm)
+    #FADBD8 (nhạt)
+
+Màu xanh lá: 
+    #2ECC71 (chính)
+    #27AE60 (đậm)
+    #D5F5E3 (nhạt)
+
+Màu xanh dương: 
+    #3498DB (chính)
+    #2980B9 (đậm)
+    #D6EAF8 (nhạt)
+
+Màu vàng: 
+    #F1C40F (chính)
+    #F39C12 (đậm)
+    #FEF9E7 (nhạt)
+
+Default, Primary, Success, Info, Warning, Danger
