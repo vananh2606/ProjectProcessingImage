@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'gui\MainWindow.ui'
+# Form implementation generated from reading ui file '.\gui\MainWindow.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.11
 #
@@ -79,9 +79,11 @@ class Ui_MainWindow(object):
         self.gridLayoutDetail.setSpacing(10)
         self.gridLayoutDetail.setObjectName("gridLayoutDetail")
         self.label_text_total = QtWidgets.QLabel(self.groupBoxDetail)
+        self.label_text_total.setAlignment(QtCore.Qt.AlignCenter)
         self.label_text_total.setObjectName("label_text_total")
         self.gridLayoutDetail.addWidget(self.label_text_total, 4, 1, 1, 1)
         self.label_text_rate = QtWidgets.QLabel(self.groupBoxDetail)
+        self.label_text_rate.setAlignment(QtCore.Qt.AlignCenter)
         self.label_text_rate.setObjectName("label_text_rate")
         self.gridLayoutDetail.addWidget(self.label_text_rate, 5, 1, 1, 1)
         self.label_Rate = QtWidgets.QLabel(self.groupBoxDetail)
@@ -96,6 +98,7 @@ class Ui_MainWindow(object):
         self.label_Rate.setObjectName("label_Rate")
         self.gridLayoutDetail.addWidget(self.label_Rate, 5, 0, 1, 1)
         self.label_text_ng = QtWidgets.QLabel(self.groupBoxDetail)
+        self.label_text_ng.setAlignment(QtCore.Qt.AlignCenter)
         self.label_text_ng.setObjectName("label_text_ng")
         self.gridLayoutDetail.addWidget(self.label_text_ng, 3, 1, 1, 1)
         self.label_Total = QtWidgets.QLabel(self.groupBoxDetail)
@@ -110,6 +113,7 @@ class Ui_MainWindow(object):
         self.label_Total.setObjectName("label_Total")
         self.gridLayoutDetail.addWidget(self.label_Total, 4, 0, 1, 1)
         self.label_text_ok = QtWidgets.QLabel(self.groupBoxDetail)
+        self.label_text_ok.setAlignment(QtCore.Qt.AlignCenter)
         self.label_text_ok.setObjectName("label_text_ok")
         self.gridLayoutDetail.addWidget(self.label_text_ok, 0, 1, 1, 1)
         self.label_NG = QtWidgets.QLabel(self.groupBoxDetail)
@@ -251,15 +255,15 @@ class Ui_MainWindow(object):
         self.btn_load_image.setFont(font)
         self.btn_load_image.setObjectName("btn_load_image")
         self.gridLayoutBtnTeaching.addWidget(self.btn_load_image, 0, 0, 1, 1)
-        self.pushButton = QtWidgets.QPushButton(self.groupBoxBtnTeaching)
-        self.pushButton.setMinimumSize(QtCore.QSize(0, 40))
+        self.btn_start_teaching = QtWidgets.QPushButton(self.groupBoxBtnTeaching)
+        self.btn_start_teaching.setMinimumSize(QtCore.QSize(0, 40))
         font = QtGui.QFont()
         font.setPointSize(10)
         font.setBold(True)
         font.setWeight(75)
-        self.pushButton.setFont(font)
-        self.pushButton.setObjectName("pushButton")
-        self.gridLayoutBtnTeaching.addWidget(self.pushButton, 3, 0, 1, 2)
+        self.btn_start_teaching.setFont(font)
+        self.btn_start_teaching.setObjectName("btn_start_teaching")
+        self.gridLayoutBtnTeaching.addWidget(self.btn_start_teaching, 3, 0, 1, 2)
         self.gridLayoutTeaching.addWidget(self.groupBoxBtnTeaching, 3, 0, 1, 1)
         self.groupBoxScreenTeaching = QtWidgets.QGroupBox(self.tab_teaching)
         self.groupBoxScreenTeaching.setObjectName("groupBoxScreenTeaching")
@@ -657,8 +661,8 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuAbout.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.tabWidgetMain.setCurrentIndex(1)
-        self.tabWidgetModule.setCurrentIndex(3)
+        self.tabWidgetMain.setCurrentIndex(0)
+        self.tabWidgetModule.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -690,7 +694,7 @@ class Ui_MainWindow(object):
         self.btn_open_folder.setText(_translate("MainWindow", "Open Folder"))
         self.btn_capture.setText(_translate("MainWindow", "Capture"))
         self.btn_load_image.setText(_translate("MainWindow", "Load Image"))
-        self.pushButton.setText(_translate("MainWindow", "Start Teaching"))
+        self.btn_start_teaching.setText(_translate("MainWindow", "Start Teaching"))
         self.groupBoxScreenTeaching.setTitle(_translate("MainWindow", "Screen Teaching"))
         self.groupBoxModuleTeaching.setTitle(_translate("MainWindow", "Module Teaching"))
         self.label_feature.setText(_translate("MainWindow", "Feature"))

@@ -1,0 +1,524 @@
+/* Rainbow Theme (Simplified) for PyQt */
+
+/* Global Settings */
+* {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 13px;
+    color: #333333;
+}
+
+QWidget {
+    background-color: #FFFFFF;
+    color: #333333;
+}
+
+/* Main Window */
+QMainWindow {
+    background-color: #F8F9FA;
+}
+
+/* Menu Bar - Blue Extra */
+QMenuBar {
+    background-color: #3498DB;
+    border-bottom: 1px solid #3498DB;
+    padding: 2px;
+}
+
+QMenuBar::item {
+    background-color: transparent;
+    padding: 4px 8px;
+    border-radius: 4px;
+    color: white;
+}
+
+QMenuBar::item:selected {
+    background-color: #3498DB;
+    color: white;
+}
+
+QMenu {
+    background-color: #FFFFFF;
+    border: 1px solid #DEDEDE;
+    border-radius: 6px;
+    padding: 4px 0px;
+}
+
+QMenu::item {
+    padding: 4px 28px 4px 20px;
+}
+
+QMenu::item:selected {
+    background-color: #1ABC9C;
+    color: white;
+}
+
+QMenu::separator {
+    height: 1px;
+    background-color: #DEDEDE;
+    margin: 4px 12px;
+}
+
+/* Tool Bar - Blue */
+QToolBar {
+    background-color: #3498DB;
+    border-bottom: 1px solid #2980B9;
+    padding: 2px;
+    spacing: 2px;
+}
+
+QToolButton {
+    background-color: transparent;
+    border-radius: 4px;
+    padding: 4px;
+    color: white;
+}
+
+QToolButton:hover {
+    background-color: #2980B9;
+}
+
+/* Tab Widget */
+QTabWidget::pane {
+    border: 1px solid #DEDEDE;
+    border-radius: 4px;
+    background-color: #FFFFFF;
+}
+
+QTabBar::tab {
+    border: 1px solid #DEDEDE;
+    border-bottom: none;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    padding: 6px 12px;
+    margin-right: 2px;
+    color: white;
+    background-color: #3498DB;
+}
+
+QTabBar::tab:selected {
+    background-color: #1ABC9C;
+}
+
+/* Push Button Styles */
+QPushButton {
+    border-radius: 6px;
+    padding: 4px 8px;
+    min-height: 24px;
+    font-weight: 500;
+    border: none;
+}
+
+/* Default Button Style */
+QPushButton.default {
+    background-color: #F8F9FA;
+    color: #333333;
+    border: 1px solid #DEDEDE;
+}
+
+QPushButton.default:hover {
+    background-color: #ECEDEF;
+}
+
+/* Primary Button Style - Blue */
+QPushButton.primary {
+    background-color: #3498DB;
+    color: #FFFFFF;
+}
+
+QPushButton.primary:hover {
+    background-color: #2980B9;
+}
+
+/* Success Button Style - Green */
+QPushButton.success {
+    background-color: #2ECC71;
+    color: #FFFFFF;
+}
+
+QPushButton.success:hover {
+    background-color: #27AE60;
+}
+
+/* Info Button Style - Green Jade */
+QPushButton.info {
+    background-color: #1ABC9C;
+    color: #FFFFFF;
+}
+
+QPushButton.info:hover {
+    background-color: #0AAC8C;
+}
+
+/* Warning Button Style - Orange */
+QPushButton.warning {
+    background-color: #E67E22;
+    color: #FFFFFF;
+}
+
+QPushButton.warning:hover {
+    background-color: #D35400;
+}
+
+/* Danger Button Style - Red */
+QPushButton.danger {
+    background-color: #E74C3C;
+    color: #FFFFFF;
+}
+
+QPushButton.danger:hover {
+    background-color: #C0392B;
+}
+
+/* Check Box and Radio Button - Blue Extra */
+QCheckBox, QRadioButton {
+    spacing: 8px;
+    color: #333333;
+}
+
+QCheckBox::indicator, QRadioButton::indicator {
+    width: 16px;
+    height: 16px;
+}
+
+QCheckBox::indicator:unchecked {
+    border: 1px solid #AAAAAA;
+    border-radius: 3px;
+    background-color: #FFFFFF;
+}
+
+QCheckBox::indicator:checked {
+    border: 1px solid #2980B9;
+    border-radius: 3px;
+    background-color: #2980B9;
+}
+
+QRadioButton::indicator:unchecked {
+    border: 1px solid #AAAAAA;
+    border-radius: 8px;
+    background-color: #FFFFFF;
+}
+
+QRadioButton::indicator:checked {
+    border: 1px solid #3498DB;
+    border-radius: 8px;
+    background-color: #FFFFFF;
+}
+
+/* Line Edit & Text Edit - Blue border */
+QLineEdit, QTextEdit, QPlainTextEdit {
+    background-color: #FFFFFF;
+    border: 1px solid #DEDEDE;
+    border-radius: 6px;
+    padding: 4px;
+    selection-background-color: #3498DB;
+    selection-color: #FFFFFF;
+}
+
+QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {
+    border: 1px solid #3498DB;
+}
+
+/* Combo Box - Green accent */
+QComboBox {
+    background-color: #FFFFFF;
+    border: 1px solid #DEDEDE;
+    border-radius: 6px;
+    min-height: 24px;
+    padding: 0px 10px;
+}
+
+QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: right center;
+    width: 20px;
+    border-left: 1px solid #DEDEDE;
+    background-color: #1ABC9C;
+}
+
+QComboBox QAbstractItemView {
+    background-color: #FFFFFF;
+    border: 1px solid #DEDEDE;
+    selection-background-color: #1ABC9C;
+    selection-color: #FFFFFF;
+}
+
+/* Progress Bar */
+QProgressBar {
+    border: none;
+    border-radius: 3px;
+    background-color: #DEDEDE;
+    text-align: center;
+    color: #333333;
+}
+
+QProgressBar::chunk {
+    border-radius: 3px;
+    background-color: #3498DB;
+}
+
+/* Scroll Bar */
+QScrollBar:horizontal {
+    border: none;
+    background-color: #F0F0F0;
+    height: 16px;
+}
+
+QScrollBar::handle:horizontal {
+    background-color: #1ABC9C;
+    min-width: 20px;
+    border-radius: 8px;
+}
+
+QScrollBar:vertical {
+    border: none;
+    background-color: #F0F0F0;
+    width: 16px;
+}
+
+QScrollBar::handle:vertical {
+    background-color: #1ABC9C;
+    min-height: 20px;
+    border-radius: 8px;
+}
+
+/* Group Box - Yellow accent */
+QGroupBox {
+    border: 1px solid #F1C40F;
+    border-radius: 6px;
+    margin-top: 12px;
+    padding-top: 14px;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    left: 8px;
+    padding: 0 5px;
+    color: #F1C40F;
+    background-color: #FFFFFF;
+}
+
+/* List View, Tree View & Table View */
+QListView, QTreeView, QTableView {
+    background-color: #FFFFFF;
+    border: 1px solid #DEDEDE;
+    border-radius: 6px;
+    alternate-background-color: #F8F9FA;
+    selection-background-color: #3498DB;
+    selection-color: #FFFFFF;
+    outline: none;
+}
+
+QListView::item, QTreeView::item, QTableView::item {
+    padding: 4px;
+}
+
+QHeaderView::section {
+    background-color: #3498DB;
+    padding: 4px;
+    border: 1px solid #2980B9;
+    color: white;
+}
+
+/* Status Bar - Blue accent */
+QStatusBar {
+    background-color: #3498DB;
+    border-top: 1px solid #2980B9;
+    color: white;
+}
+
+/* Dock Widget - Green accent */
+QDockWidget {
+    border: 1px solid #DEDEDE;
+}
+
+QDockWidget::title {
+    background-color: #1ABC9C;
+    padding: 4px;
+    color: white;
+}
+
+/* Dialog - White background */
+QDialog {
+    background-color: #FFFFFF;
+}
+
+/* Tool Tip - Teal accent */
+QToolTip {
+    background-color: #1ABC9C;
+    border: 1px solid #16A085;
+    border-radius: 4px;
+    padding: 4px;
+    color: white;
+}
+
+/* QListWidget - Red accent */
+QListWidget {
+    background-color: #FFFFFF;
+    border: 1px solid #E74C3C;
+    border-radius: 6px;
+    padding: 4px;
+    outline: none;
+    selection-background-color: #E74C3C;
+    selection-color: #FFFFFF;
+}
+
+QListWidget::item {
+    border-radius: 4px;
+    padding: 6px 8px;
+    margin: 2px 0px;
+}
+
+QListWidget::item:hover {
+    background-color: #FADBD8;
+}
+
+QListWidget::item:selected {
+    background-color: #E74C3C;
+    color: #FFFFFF;
+}
+
+/* QDateTimeEdit */
+
+QDateTimeEdit {
+    background-color: #FFFFFF;
+    border: 1px solid #DEDEDE;
+    border-radius: 6px;
+    padding: 4px 6px;
+    min-height: 24px;
+    selection-background-color: #F1C40F;
+    selection-color: #FFFFFF;
+}
+
+QDateTimeEdit:hover {
+    border-color: #F1C40F;
+}
+
+QDateTimeEdit:focus {
+    border-color: #F39C12;
+    border-width: 1px;
+}
+
+QDateTimeEdit:disabled {
+    background-color: #F5F5F5;
+    color: #AAAAAA;
+    border-color: #E0E0E0;
+}
+
+QDateTimeEdit::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: center right;
+    width: 20px;
+    border-left: 1px solid #DEDEDE;
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+    background-color: #F39C12;
+}
+
+QDateTimeEdit::drop-down:hover {
+    background-color: #E67E22;
+}
+
+QDateTimeEdit::up-button {
+    subcontrol-origin: border;
+    subcontrol-position: top right;
+    width: 20px;
+    border-left: 1px solid #DEDEDE;
+    border-bottom: 1px solid #DEDEDE;
+    border-top-right-radius: 4px;
+    background-color: #F1C40F;
+}
+
+QDateTimeEdit::up-button:hover {
+    background-color: #F39C12;
+}
+
+QDateTimeEdit::down-button {
+    subcontrol-origin: border;
+    subcontrol-position: bottom right;
+    width: 20px;
+    border-left: 1px solid #DEDEDE;
+    border-bottom-right-radius: 4px;
+    background-color: #F1C40F;
+}
+
+QDateTimeEdit::down-button:hover {
+    background-color: #F39C12;
+}
+
+/* Calendar popup styling */
+QCalendarWidget {
+    background-color: #FFFFFF;
+    border: 1px solid #DEDEDE;
+}
+
+QCalendarWidget QToolButton {
+    background-color: #F1C40F;
+    color: #FFFFFF;
+    border-radius: 4px;
+    padding: 4px;
+    margin: 2px;
+}
+
+QCalendarWidget QToolButton:hover {
+    background-color: #F39C12;
+}
+
+QCalendarWidget QMenu {
+    background-color: #FFFFFF;
+    border: 1px solid #DEDEDE;
+}
+
+QCalendarWidget QMenu::item:selected {
+    background-color: #F1C40F;
+    color: #FFFFFF;
+}
+
+QCalendarWidget QSpinBox {
+    background-color: #FFFFFF;
+    border: 1px solid #DEDEDE;
+    border-radius: 4px;
+    padding: 2px;
+}
+
+QCalendarWidget QAbstractItemView {
+    background-color: #FFFFFF;
+    selection-background-color: #F1C40F;
+    selection-color: #FFFFFF;
+    alternate-background-color: #F8F9FA;
+}
+
+QCalendarWidget QAbstractItemView:enabled {
+    color: #333333;
+}
+
+QCalendarWidget QAbstractItemView:disabled {
+    color: #AAAAAA;
+}
+
+QCalendarWidget QWidget#qt_calendar_navigationbar {
+    background-color: #F5F5F7;
+    border-bottom: 1px solid #DEDEDE;
+}
+
+/* Time section styling */
+QTimeEdit {
+    background-color: #FFFFFF;
+    border: 1px solid #DEDEDE;
+    border-radius: 6px;
+    padding: 4px 6px;
+    min-height: 24px;
+    selection-background-color: #F1C40F;
+    selection-color: #FFFFFF;
+}
+
+/* Date section styling */
+QDateEdit {
+    background-color: #FFFFFF;
+    border: 1px solid #DEDEDE;
+    border-radius: 6px;
+    padding: 4px 6px;
+    min-height: 24px;
+    selection-background-color: #F1C40F;
+    selection-color: #FFFFFF;
+}
