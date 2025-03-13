@@ -822,24 +822,18 @@ QTimeEdit {
 
 /* QDialogButtonBox */
 
-QDialogButtonBox {
-    background-color: #FFFFFF;
-    color: #333333;
-    font-weight: normal;
+QDialogButtonBox QPushButton {
+    background-color: #E5E5E5;
+    border: 1px solid #CCCCCC;
+    padding: 6px 12px;
+    border-radius: 6px;
+    color: #333;
 }
 
-QDialogButtonBox:hover {
-    background-color: #F0F0F0;
-    border-color: #BBBBBB;
+QDialogButtonBox QPushButton:hover {
+    background-color: #D5D5D5;
 }
 
-QDialogButtonBox:pressed {
-    background-color: #E0E0E0;
-    border-color: #AAAAAA;
-}
-
-QDialogButtonBox:disabled {
-    background-color: #F8F8F8;
-    border-color: #DDDDDD;
-    color: #AAAAAA;
+QDialogButtonBox QPushButton:pressed {
+    background-color: #C5C5C5;
 }

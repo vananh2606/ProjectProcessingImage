@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
+    <width>1000</width>
     <height>750</height>
    </rect>
   </property>
@@ -486,7 +486,7 @@
              <property name="tabPosition">
               <enum>QTabWidget::North</enum>
              </property>
-             <widget class="QWidget" name="ImageSRC" native="true">
+             <widget class="QWidget" name="ImageSRC">
               <property name="font">
                <font>
                 <weight>75</weight>
@@ -1059,7 +1059,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>800</width>
+     <width>1000</width>
      <height>21</height>
     </rect>
    </property>

@@ -821,3 +821,21 @@ QTimeEdit {
     padding: 4px 6px;
     color: #FFFFFF;
 }
+
+/* QDialogButtonBox */
+
+QDialogButtonBox QPushButton {
+    background-color: #3A3A3A;
+    border: 1px solid #555;
+    padding: 6px 12px;
+    border-radius: 6px;
+    color: white;
+}
+
+QDialogButtonBox QPushButton:hover {
+    background-color: #4A4A4A;
+}
+
+QDialogButtonBox QPushButton:pressed {
+    background-color: #5A5A5A;
+}

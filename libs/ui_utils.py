@@ -133,7 +133,6 @@ def newDialogButtonBox(parent):
     """Tạo QDialogButtonBox với nút OK và Cancel."""
     BB = QDialogButtonBox
     bb = BB(BB.Ok | BB.Cancel)
-    bb.setProperty("class", "default")
     bb.rejected.connect(parent.reject)
     bb.accepted.connect(parent.accept)
     return bb
