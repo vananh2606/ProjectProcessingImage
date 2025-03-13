@@ -103,7 +103,6 @@ QTabBar::tab:selected {
 QPushButton {
     border-radius: 6px;
     padding: 4px 8px;
-    min-height: 24px;
     font-weight: 500;
     border: none;
 }
@@ -223,7 +222,6 @@ QComboBox {
     background-color: #FFFFFF;
     border: 1px solid #DEDEDE;
     border-radius: 6px;
-    min-height: 24px;
     padding: 0px 10px;
 }
 
@@ -260,25 +258,23 @@ QProgressBar::chunk {
 QScrollBar:horizontal {
     border: none;
     background-color: #F0F0F0;
-    height: 16px;
+    height: 8px;
 }
 
 QScrollBar::handle:horizontal {
     background-color: #1ABC9C;
-    min-width: 20px;
-    border-radius: 8px;
+    border-radius: 4px;
 }
 
 QScrollBar:vertical {
     border: none;
     background-color: #F0F0F0;
-    width: 16px;
+    width: 8px;
 }
 
 QScrollBar::handle:vertical {
     background-color: #1ABC9C;
-    min-height: 20px;
-    border-radius: 8px;
+    border-radius: 4px;
 }
 
 /* Group Box - Yellow accent */
@@ -385,7 +381,6 @@ QDateTimeEdit {
     border: 1px solid #DEDEDE;
     border-radius: 6px;
     padding: 4px 6px;
-    min-height: 24px;
     selection-background-color: #F1C40F;
     selection-color: #FFFFFF;
 }
@@ -507,7 +502,6 @@ QTimeEdit {
     border: 1px solid #DEDEDE;
     border-radius: 6px;
     padding: 4px 6px;
-    min-height: 24px;
     selection-background-color: #F1C40F;
     selection-color: #FFFFFF;
 }
@@ -518,7 +512,6 @@ QDateEdit {
     border: 1px solid #DEDEDE;
     border-radius: 6px;
     padding: 4px 6px;
-    min-height: 24px;
     selection-background-color: #F1C40F;
     selection-color: #FFFFFF;
 }

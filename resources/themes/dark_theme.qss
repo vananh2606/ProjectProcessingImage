@@ -116,7 +116,6 @@ QTabBar::tab:hover:!selected {
 QPushButton {
     border-radius: 6px;
     padding: 4px 8px;
-    min-height: 24px;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     font-size: 13px;
     font-weight: 500;
@@ -144,6 +143,29 @@ QPushButton.default:disabled {
     background-color: #2C2C2E;
     border-color: #3A3A3C;
     color: #68686A;
+}
+
+/* Icon Button Style */
+QPushButton.icon {
+    background-color: #DDDDDD;
+    color: #555555;
+    border: 1px solid #D1D1D6;
+}
+
+QPushButton.icon:hover {
+    background-color: #F5F5F7;
+    border-color: #505052;
+}
+
+QPushButton.icon:pressed {
+    background-color: #EBEBEB;
+    border-color: #48484A;
+}
+
+QPushButton.icon:disabled {
+    background-color: #FCFCFC;
+    border-color: #3A3A3C;
+    color: #ABABAB;
 }
 
 /* Primary Button Style */
@@ -303,7 +325,6 @@ QSpinBox, QDoubleSpinBox {
     border: 1px solid #505050;
     border-radius: 6px;
     padding: 2px;
-    min-height: 24px;
 }
 
 QSpinBox::up-button, QDoubleSpinBox::up-button {
@@ -328,7 +349,6 @@ QComboBox {
     background-color: #292A2D;
     border: 1px solid #505050;
     border-radius: 6px;
-    min-height: 24px;
 }
 
 QComboBox::drop-down {
@@ -400,14 +420,14 @@ QProgressBar::chunk {
 /* Scroll Bar */
 QScrollBar:horizontal {
     border: none;
-    background-color: #2A2A2A;
-    height: 16px;
+    background-color:rgba(10, 132, 255, 0.25);
+    height: 8px;
+    border-radius: 4px;
 }
 
 QScrollBar::handle:horizontal {
-    background-color: #505050;
-    min-width: 20px;
-    border-radius: 8px;
+    background-color:rgba(9, 116, 224, 0.25);
+    border-radius: 4px;
 }
 
 QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
@@ -417,14 +437,14 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
 
 QScrollBar:vertical {
     border: none;
-    background-color: #2A2A2A;
-    width: 16px;
+    background-color:rgba(10, 132, 255, 0.25);
+    width: 8px;
+    border-radius: 4px;
 }
 
 QScrollBar::handle:vertical {
-    background-color: #505050;
-    min-height: 20px;
-    border-radius: 8px;
+    background-color:rgba(9, 116, 224, 0.25);
+    border-radius: 4px;
 }
 
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
@@ -561,7 +581,6 @@ QListWidget QScrollBar:vertical {
 
 QListWidget QScrollBar::handle:vertical {
     background-color: #5A5A5C;
-    min-height: 20px;
     border-radius: 7px;
 }
 
@@ -583,7 +602,6 @@ QListWidget QScrollBar:horizontal {
 
 QListWidget QScrollBar::handle:horizontal {
     background-color: #5A5A5C;
-    min-width: 20px;
     border-radius: 7px;
 }
 
@@ -664,7 +682,6 @@ QDateTimeEdit {
     border: 1px solid #555555;
     border-radius: 6px;
     padding: 4px 6px;
-    min-height: 24px;
     color: #FFFFFF;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     font-size: 13px;
@@ -802,6 +819,5 @@ QTimeEdit {
     border: 1px solid #555555;
     border-radius: 6px;
     padding: 4px 6px;
-    min-height: 24px;
     color: #FFFFFF;
 }

@@ -1,0 +1,14 @@
+<RCC>
+    <qresource>
+        <file alias="export">icons/export.png</file>
+        <file alias="import">icons/import.png</file>
+        <file alias="save">icons/save.png</file>
+        <file alias="fit_window">icons/fit_window.png</file>
+        <file alias="zoom_in">icons/zoom_in.png</file>
+        <file alias="zoom_out">icons/zoom_out.png</file>
+        <file alias="full_screen">icons/full_screen.png</file>
+        <file alias="full_screen_off">icons/full_screen_off.png</file>
+        <file alias="draw">icons/draw.png</file>
+        <!-- Add more icon files here with alias names -->
+    </qresource>
+</RCC>

@@ -1,0 +1,546 @@
+
+7d93cf56-39fb-424b-94d0-1d10f6057f2f
+00E50418825
+34be7aa9-f6a1-4a50-9edf-8205286ad0c9
+<?xml version="1.0" encoding="UTF-8"?>
+<FeaturesFile version="3.2.1">
+<DeviceFirmwareVersion>V1.4.9 191101,19103101</DeviceFirmwareVersion>
+<DeviceModelName>MV-CE120-10UC</DeviceModelName>
+<BoardDeviceType>4145</BoardDeviceType>
+<Features>
+<Feature>
+<Name>AcquisitionBurstFrameCount</Name>
+<Type>Integer</Type>
+<Value>1</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<ComplexFeature name="AcquisitionFrameCount" len="4" reg="AcquisitionFrameCount_Reg">
+<RegValue address="198676" variables="">1</RegValue>
+</ComplexFeature>
+<Feature>
+<Name>AcquisitionFrameRate</Name>
+<Type>Float</Type>
+<Value>25.327999</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<Feature>
+<Name>AcquisitionFrameRateEnable</Name>
+<Type>Boolean</Type>
+<Value>0</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<Feature>
+<Name>AcquisitionMode</Name>
+<Type>Enumeration</Type>
+<Value>2</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<ComplexFeature name="AirspaceNoiseReduction" len="4" reg="AirspaceNoiseReduction_Reg">
+<RegValue address="201904" variables="">0</RegValue>
+</ComplexFeature>
+<Feature>
+<Name>AutoExposureTimeLowerLimit</Name>
+<Type>Integer</Type>
+<Value>10</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<Feature>
+<Name>AutoExposureTimeUpperLimit</Name>
+<Type>Integer</Type>
+<Value>31585</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<ComplexFeature name="AutoFunctionAOIHeight" len="4" reg="AutoAOIHeight_Reg">
+<RegValue address="201600" variables="[AutoAOISelector_Int:0]">3036</RegValue>
+<RegValue address="201604" variables="[AutoAOISelector_Int:1]">3036</RegValue>
+</ComplexFeature>
+<ComplexFeature name="AutoFunctionAOIOffsetX" len="4" reg="AutoAOIOffsetX_Reg">
+<RegValue address="201632" variables="[AutoAOISelector_Int:0]">0</RegValue>
+<RegValue address="201636" variables="[AutoAOISelector_Int:1]">0</RegValue>
+</ComplexFeature>
+<ComplexFeature name="AutoFunctionAOIOffsetY" len="4" reg="AutoAOIOffsetY_Reg">
+<RegValue address="201664" variables="[AutoAOISelector_Int:0]">0</RegValue>
+<RegValue address="201668" variables="[AutoAOISelector_Int:1]">0</RegValue>
+</ComplexFeature>
+<Feature>
+<Name>AutoFunctionAOISelector</Name>
+<Type>Enumeration</Type>
+<Value>0</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<ComplexFeature name="AutoFunctionAOIUsageIntensity" len="4" reg="">
+<RegValue address="201712" variables="[AutoAOISelector_Int:0]">0</RegValue>
+<RegValue address="201716" variables="[AutoAOISelector_Int:1]">0</RegValue>
+</ComplexFeature>
+<ComplexFeature name="AutoFunctionAOIUsageRedLightCorrection" len="4" reg="">
+<RegValue address="201712" variables="[AutoAOISelector_Int:0]">0</RegValue>
+<RegValue address="201716" variables="[AutoAOISelector_Int:1]">0</RegValue>
+</ComplexFeature>
+<ComplexFeature name="AutoFunctionAOIUsageWhiteBalance" len="4" reg="">
+<RegValue address="201712" variables="[AutoAOISelector_Int:0]">0</RegValue>
+<RegValue address="201716" variables="[AutoAOISelector_Int:1]">0</RegValue>
+</ComplexFeature>
+<ComplexFeature name="AutoFunctionAOIWidth" len="4" reg="AutoAOIWidth_Reg">
+<RegValue address="201568" variables="[AutoAOISelector_Int:0]">4000</RegValue>
+<RegValue address="201572" variables="[AutoAOISelector_Int:1]">4000</RegValue>
+</ComplexFeature>
+<Feature>
+<Name>AutoGainLowerLimit</Name>
+<Type>Float</Type>
+<Value>0.000000</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<Feature>
+<Name>AutoGainUpperLimit</Name>
+<Type>Float</Type>
+<Value>26.996799</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<ComplexFeature name="BalanceColorTempMode" len="4" reg="BalanceColorTempMode_Reg">
+<RegValue address="201444" variables="">0</RegValue>
+</ComplexFeature>
+<ComplexFeature name="BalanceRatio" len="4" reg="BalanceRatio_Reg">
+<RegValue address="201408" variables="[BalanceRatioSelector_Int:0]">1748</RegValue>
+<RegValue address="201412" variables="[BalanceRatioSelector_Int:1]">1024</RegValue>
+<RegValue address="201416" variables="[BalanceRatioSelector_Int:2]">1836</RegValue>
+</ComplexFeature>
+<Feature>
+<Name>BalanceRatioSelector</Name>
+<Type>Enumeration</Type>
+<Value>0</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<Feature>
+<Name>BalanceWhiteAuto</Name>
+<Type>Enumeration</Type>
+<Value>0</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<ComplexFeature name="BinningHorizontal" len="4" reg="Binning_Reg">
+<RegValue address="197792" variables="" to="65537" from="TO &amp; 0x0000ffff">1.000000</RegValue>
+</ComplexFeature>
+<ComplexFeature name="BinningVertical" len="4" reg="Binning_Reg">
+<RegValue address="197792" variables="" to="65537" from="TO  &gt;&gt; 16">1.000000</RegValue>
+</ComplexFeature>
+<Feature>
+<Name>BlackLevel</Name>
+<Type>Integer</Type>
+<Value>200</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<ComplexFeature name="BlackLevelAuto" len="4" reg="BlackLevelAuto_Reg">
+<RegValue address="201328" variables="">0</RegValue>
+</ComplexFeature>
+<Feature>
+<Name>BlackLevelEnable</Name>
+<Type>Boolean</Type>
+<Value>1</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<ComplexFeature name="Brightness" len="4" reg="Brightness_Reg">
+<RegValue address="201532" variables="">64</RegValue>
+</ComplexFeature>
+<ComplexFeature name="CounterEventSource" len="4" reg="CounterEventSource_Reg">
+<RegValue address="204800" variables="[CounterSelector_Int:0]">0</RegValue>
+</ComplexFeature>
+<ComplexFeature name="CounterResetSource" len="4" reg="CounterResetSource_Reg">
+<RegValue address="205056" variables="[CounterSelector_Int:0]">0</RegValue>
+</ComplexFeature>
+<Feature>
+<Name>CounterSelector</Name>
+<Type>Enumeration</Type>
+<Value>0</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<ComplexFeature name="CounterValue" len="4" reg="CounterValue_Reg">
+<RegValue address="205568" variables="[CounterSelector_Int:0]">1</RegValue>
+</ComplexFeature>
+<ComplexFeature name="DecimationHorizontal" len="4" reg="Decimation_Reg">
+<RegValue address="198144" variables="" to="65537" from="TO &amp; 0x0000ffff">1.000000</RegValue>
+</ComplexFeature>
+<ComplexFeature name="DecimationVertical" len="4" reg="Decimation_Reg">
+<RegValue address="198144" variables="" to="65537" from="TO  &gt;&gt; 16">1.000000</RegValue>
+</ComplexFeature>
+<ComplexFeature name="Deinterlacing" len="4" reg="Deinterlacing_Reg">
+<RegValue address="198340" variables="">0</RegValue>
+</ComplexFeature>
+<ComplexFeature name="DeviceLinkThroughputLimit" len="4" reg="DeviceLinkThroughputLimit_Reg">
+<RegValue address="196880" variables="">387500000</RegValue>
+</ComplexFeature>
+<ComplexFeature name="DeviceLinkThroughputLimitMode" len="4" reg="DeviceLinkThroughputLimitMode_Reg">
+<RegValue address="196864" variables="">0</RegValue>
+</ComplexFeature>
+<Feature>
+<Name>DevicePJNumber</Name>
+<Type>StringReg</Type>
+<Value></Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<ComplexFeature name="DeviceSensorThroughputLimit" len="4" reg="DeviceSensorThroughputLimit_Reg">
+<RegValue address="197404" variables="">0</RegValue>
+</ComplexFeature>
+<ComplexFeature name="DigitalNoiseReductionMode" len="4" reg="DigitalNoiseReductionMode_Reg">
+<RegValue address="201896" variables="">0</RegValue>
+</ComplexFeature>
+<Feature>
+<Name>DigitalShift</Name>
+<Type>Float</Type>
+<Value>0.011742</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<Feature>
+<Name>DigitalShiftEnable</Name>
+<Type>Boolean</Type>
+<Value>0</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<ComplexFeature name="EventAcquisitionEnd" len="2" reg="EventAcquisitionEnd_Reg">
+<RegValue address="2" variables="">92488</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventAcquisitionEndTimestamp" len="8" reg="EventAcquisitionEndTimestamp_Reg">
+<RegValue address="4" variables="">1986750792,1869181801</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventAcquisitionStart" len="2" reg="EventAcquisitionStart_Reg">
+<RegValue address="2" variables="">92488</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventAcquisitionStartTimestamp" len="8" reg="EventAcquisitionStartTimestamp_Reg">
+<RegValue address="4" variables="">1986750792,1869181801</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventError" len="2" reg="EventError_Reg">
+<RegValue address="2" variables="">92488</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventErrorTimestamp" len="8" reg="EventErrorTimestamp_Reg">
+<RegValue address="4" variables="">1986750792,1869181801</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventExposureEnd" len="2" reg="EventExposureEnd_Reg">
+<RegValue address="2" variables="">92488</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventExposureEndTimestamp" len="8" reg="EventExposureEndTimestamp_Reg">
+<RegValue address="4" variables="">1986750792,1869181801</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventExposureStart" len="2" reg="EventExposureStart_Reg">
+<RegValue address="2" variables="">92488</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventExposureStartTimestamp" len="8" reg="EventExposureStartTimestamp_Reg">
+<RegValue address="4" variables="">1986750792,1869181801</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventFrameBurstEnd" len="2" reg="EventFrameBurstEnd_Reg">
+<RegValue address="2" variables="">92488</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventFrameBurstEndTimestamp" len="8" reg="EventFrameBurstEndTimestamp_Reg">
+<RegValue address="4" variables="">1986750792,1869181801</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventFrameBurstStart" len="2" reg="EventFrameBurstStart_Reg">
+<RegValue address="2" variables="">92488</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventFrameBurstStartTimestamp" len="8" reg="EventFrameBurstStartTimestamp_Reg">
+<RegValue address="4" variables="">1986750792,1869181801</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventFrameEnd" len="2" reg="EventFrameEnd_Reg">
+<RegValue address="2" variables="">92488</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventFrameEndTimestamp" len="8" reg="EventFrameEndTimestamp_Reg">
+<RegValue address="4" variables="">1986750792,1869181801</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventFrameStart" len="2" reg="EventFrameStart_Reg">
+<RegValue address="2" variables="">92488</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventFrameStartOverTrigger" len="2" reg="EventFrameStartOverTrigger_Reg">
+<RegValue address="2" variables="">92488</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventFrameStartOverTriggerTimestamp" len="8" reg="EventFrameStartOverTriggerTimestamp_Reg">
+<RegValue address="4" variables="">1986750792,1869181801</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventFrameStartTimestamp" len="8" reg="EventFrameStartTimestamp_Reg">
+<RegValue address="4" variables="">1986750792,1869181801</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventLine0FallingEdge" len="2" reg="EventLine0FallingEdge_Reg">
+<RegValue address="2" variables="">92488</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventLine0FallingEdgeTimestamp" len="8" reg="EventLine0FallingEdgeTimestamp_Reg">
+<RegValue address="4" variables="">1986750792,1869181801</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventLine0RisingEdge" len="2" reg="EventLine0RisingEdge_Reg">
+<RegValue address="2" variables="">92488</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventLine0RisingEdgeTimestamp" len="8" reg="EventLine0RisingEdgeTimestamp_Reg">
+<RegValue address="4" variables="">1986750792,1869181801</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventNotification" len="4" reg="EventNotification_Reg">
+<RegValue address="211712" variables="" to="0" from="(TO &gt;&gt; 8) &amp; 1">0.000000</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventOverRun" len="2" reg="EventOverRun_Reg">
+<RegValue address="2" variables="">92488</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventOverRunTimestamp" len="8" reg="EventOverRunTimestamp_Reg">
+<RegValue address="4" variables="">1986750792,1869181801</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventOverTemperature" len="2" reg="EventOverTemperature_Reg">
+<RegValue address="2" variables="">92488</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventOverTemperatureTimestamp" len="8" reg="EventOverTemperatureTimestamp_Reg">
+<RegValue address="4" variables="">1986750792,1869181801</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventSelector" len="4" reg="EventSelector_Reg">
+<RegValue address="211716" variables="">0</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventTest" len="2" reg="EventTest_Reg">
+<RegValue address="2" variables="">92488</RegValue>
+</ComplexFeature>
+<ComplexFeature name="EventTestTimestamp" len="8" reg="EventTestTimestamp_Reg">
+<RegValue address="4" variables="">1986750792,1869181801</RegValue>
+</ComplexFeature>
+<Feature>
+<Name>ExposureAuto</Name>
+<Type>Enumeration</Type>
+<Value>0</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<Feature>
+<Name>ExposureMode</Name>
+<Type>Enumeration</Type>
+<Value>0</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<Feature>
+<Name>ExposureTime</Name>
+<Type>Float</Type>
+<Value>31585.000000</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<ComplexFeature name="FrameSpecInfo" len="4" reg="FrameSpecInfo_Reg">
+<RegValue address="198364" variables="" to="0" from="(TO &gt;&gt; 0)&amp; 1">0.000000</RegValue>
+</ComplexFeature>
+<Feature>
+<Name>FrameSpecInfoSelector</Name>
+<Type>Enumeration</Type>
+<Value>0</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<ComplexFeature name="FrameTimeoutEnable" len="4" reg="FrameTimeoutEnable_Reg">
+<RegValue address="199444" variables="">0</RegValue>
+</ComplexFeature>
+<Feature>
+<Name>Gain</Name>
+<Type>Float</Type>
+<Value>25.058201</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<Feature>
+<Name>GainAuto</Name>
+<Type>Enumeration</Type>
+<Value>0</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<ComplexFeature name="Gamma" len="4" reg="GammaAbsVal_Reg">
+<RegValue address="201472" variables="" to="65606" from="(TO &amp; 0x0000FFFF)">70.000000</RegValue>
+</ComplexFeature>
+<ComplexFeature name="GammaEnable" len="4" reg="GammaCtrl_Reg">
+<RegValue address="201480" variables="">0</RegValue>
+</ComplexFeature>
+<ComplexFeature name="GammaSelector" len="4" reg="GammaAbsVal_Reg">
+<RegValue address="201472" variables="" to="65606" from="((TO &amp; 0xFFFF0000) &gt;&gt; 16)">1.000000</RegValue>
+</ComplexFeature>
+<Feature>
+<Name>HDREnable</Name>
+<Type>Boolean</Type>
+<Value>0</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<ComplexFeature name="HDRGain" len="4" reg="HDRGain_Reg">
+<RegValue address="201844" variables="[HDRSelector:0]" to="64" from="( 0.0359 * (TO - 64))">0.000000</RegValue>
+<RegValue address="201848" variables="[HDRSelector:1]" to="64" from="( 0.0359 * (TO - 64))">0.000000</RegValue>
+<RegValue address="201852" variables="[HDRSelector:2]" to="64" from="( 0.0359 * (TO - 64))">0.000000</RegValue>
+<RegValue address="201856" variables="[HDRSelector:3]" to="64" from="( 0.0359 * (TO - 64))">0.000000</RegValue>
+</ComplexFeature>
+<Feature>
+<Name>HDRSelector</Name>
+<Type>Integer</Type>
+<Value>0</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<ComplexFeature name="HDRShutter" len="4" reg="HDRShuter_Reg">
+<RegValue address="201812" variables="[HDRSelector:0]">10</RegValue>
+<RegValue address="201816" variables="[HDRSelector:1]">10</RegValue>
+<RegValue address="201820" variables="[HDRSelector:2]">10</RegValue>
+<RegValue address="201824" variables="[HDRSelector:3]">10</RegValue>
+</ComplexFeature>
+<ComplexFeature name="Height" len="4" reg="Height_Reg">
+<RegValue address="197536" variables="[RegionSelector_Int:0]">3036</RegValue>
+</ComplexFeature>
+<ComplexFeature name="Hue" len="4" reg="HueAbsVal_Reg">
+<RegValue address="201504" variables="">128</RegValue>
+</ComplexFeature>
+<ComplexFeature name="HueAuto" len="4" reg="HueCtrl_Reg">
+<RegValue address="201508" variables="" to="0" from="((TO | 0xFCFFFFFF)=0xFFFFFFFF)?2:0">0.000000</RegValue>
+</ComplexFeature>
+<ComplexFeature name="HueEnable" len="4" reg="HueCtrl_Reg">
+<RegValue address="201508" variables="" to="0" from="( ( TO &amp; 0xfffff0000 ) = 0x00000000 ) ? 0 : 1">0.000000</RegValue>
+</ComplexFeature>
+<ComplexFeature name="InputSource" len="4" reg="InputSource_Reg">
+<RegValue address="209664" variables="">0</RegValue>
+</ComplexFeature>
+<ComplexFeature name="LineDebouncerTime" len="4" reg="LineDebouncerTime_Reg">
+<RegValue address="200480" variables="[LineSelected_Int:0]">50</RegValue>
+<RegValue address="200484" variables="[LineSelected_Int:1]">50</RegValue>
+<RegValue address="200488" variables="[LineSelected_Int:2]">50</RegValue>
+</ComplexFeature>
+<ComplexFeature name="LineInverter" len="4" reg="LineInverter_Reg">
+<RegValue address="200064" variables="" to="0" from="(TO &gt;&gt; 0)&amp; 1">0.000000</RegValue>
+</ComplexFeature>
+<ComplexFeature name="LineMode" len="4" reg="LineMode_Reg">
+<RegValue address="199936" variables="[LineSelected_Int:0]" to="0" from="( TO &amp; 0x0000ffff  )">0.000000</RegValue>
+<RegValue address="199940" variables="[LineSelected_Int:1]" to="8" from="( TO &amp; 0x0000ffff  )">8.000000</RegValue>
+<RegValue address="199944" variables="[LineSelected_Int:2]" to="0" from="( TO &amp; 0x0000ffff  )">0.000000</RegValue>
+</ComplexFeature>
+<ComplexFeature name="LinePitch" len="4" reg="LinePitch_Reg">
+<RegValue address="197728" variables="[RegionSelector_Int:0]">0</RegValue>
+</ComplexFeature>
+<Feature>
+<Name>LineSelector</Name>
+<Type>Enumeration</Type>
+<Value>1</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<ComplexFeature name="LineSource" len="4" reg="LineSource_Reg">
+<RegValue address="200096" variables="[LineSelected_Int:0]" to="0" from="( TO &amp; 0x80000000 ) ? 1 : 0">0.000000</RegValue>
+<RegValue address="200100" variables="[LineSelected_Int:1]" to="0" from="( TO &amp; 0x80000000 ) ? 1 : 0">0.000000</RegValue>
+<RegValue address="200104" variables="[LineSelected_Int:2]" to="0" from="( TO &amp; 0x80000000 ) ? 1 : 0">0.000000</RegValue>
+</ComplexFeature>
+<ComplexFeature name="Multiplier" len="4" reg="Multiplier_Reg">
+<RegValue address="209676" variables="">0</RegValue>
+</ComplexFeature>
+<ComplexFeature name="NUCEnable" len="4" reg="NUCEnable_Reg">
+<RegValue address="201888" variables="">0</RegValue>
+</ComplexFeature>
+<ComplexFeature name="NoiseReduction" len="4" reg="NoiseReduction_Reg">
+<RegValue address="201908" variables="">0</RegValue>
+</ComplexFeature>
+<ComplexFeature name="OffsetX" len="4" reg="OffsetX_Reg">
+<RegValue address="197600" variables="[RegionSelector_Int:0]">0</RegValue>
+</ComplexFeature>
+<ComplexFeature name="OffsetY" len="4" reg="OffsetY_Reg">
+<RegValue address="197664" variables="[RegionSelector_Int:0]">0</RegValue>
+</ComplexFeature>
+<Feature>
+<Name>PixelFormat</Name>
+<Type>Enumeration</Type>
+<Value>17301513</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<ComplexFeature name="PostDivider" len="4" reg="PostDivider_Reg">
+<RegValue address="209680" variables="">0</RegValue>
+</ComplexFeature>
+<ComplexFeature name="PreDivider" len="4" reg="PreDivider_Reg">
+<RegValue address="209672" variables="">0</RegValue>
+</ComplexFeature>
+<ComplexFeature name="PreventOvertrigger" len="4" reg="PreventOvertrigger_Reg">
+<RegValue address="209684" variables="">0</RegValue>
+</ComplexFeature>
+<ComplexFeature name="RegionMode" len="4" reg="RegionMode_Reg">
+<RegValue address="197400" variables="">1</RegValue>
+</ComplexFeature>
+<Feature>
+<Name>ReverseX</Name>
+<Type>Boolean</Type>
+<Value>0</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<Feature>
+<Name>ReverseY</Name>
+<Type>Boolean</Type>
+<Value>0</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<ComplexFeature name="Saturation" len="4" reg="SaturationAbsVal_Reg">
+<RegValue address="201520" variables="">128</RegValue>
+</ComplexFeature>
+<ComplexFeature name="SaturationAuto" len="4" reg="SaturationCtrl_Reg">
+<RegValue address="201524" variables="" to="0" from="((TO | 0xFCFFFFFF)=0xFFFFFFFF)?2:0">0.000000</RegValue>
+</ComplexFeature>
+<ComplexFeature name="SaturationEnable" len="4" reg="SaturationCtrl_Reg">
+<RegValue address="201524" variables="" to="0" from="( ( TO &amp; 0xffff0000 ) = 0x00000000 ) ? 0 : 1">0.000000</RegValue>
+</ComplexFeature>
+<ComplexFeature name="SensorDigitizationTaps" len="4" reg="SensorDigitizationTaps_Reg">
+<RegValue address="197388" variables="">0</RegValue>
+</ComplexFeature>
+<ComplexFeature name="SensorShutterMode" len="4" reg="SensorShutterMode_Reg">
+<RegValue address="199464" variables="">0</RegValue>
+</ComplexFeature>
+<ComplexFeature name="SensorTaps" len="4" reg="SensorTaps_Reg">
+<RegValue address="197384" variables="">0</RegValue>
+</ComplexFeature>
+<ComplexFeature name="Sharpness" len="4" reg="SharpnessVal_Reg">
+<RegValue address="201488" variables="">10</RegValue>
+</ComplexFeature>
+<ComplexFeature name="SharpnessAuto" len="4" reg="SharpnessCtrl_Reg">
+<RegValue address="201492" variables="" to="0" from="((TO | 0xBCFFFFFF)=0xBFFFFFFF)?2:0">0.000000</RegValue>
+</ComplexFeature>
+<ComplexFeature name="SharpnessEnable" len="4" reg="SharpnessCtrl_Reg">
+<RegValue address="201492" variables="" to="0" from="( ( TO &amp; 0xffff0000 ) = 0x00000000 ) ? 0 : 1">0.000000</RegValue>
+</ComplexFeature>
+<ComplexFeature name="SignalAlignment" len="4" reg="SignalAlignment_Reg">
+<RegValue address="209668" variables="">0</RegValue>
+</ComplexFeature>
+<ComplexFeature name="StrobeEnable" len="4" reg="LineStrobe_Reg">
+<RegValue address="200068" variables="" to="0" from="(TO &gt;&gt; 0)&amp; 1">0.000000</RegValue>
+</ComplexFeature>
+<ComplexFeature name="StrobeLineDelay" len="4" reg="StrobeLineDelay_Reg">
+<RegValue address="200736" variables="[LineSelected_Int:0]">0</RegValue>
+<RegValue address="200740" variables="[LineSelected_Int:1]">0</RegValue>
+<RegValue address="200744" variables="[LineSelected_Int:2]">0</RegValue>
+</ComplexFeature>
+<ComplexFeature name="StrobeLineDuration" len="4" reg="StrobeLineDuration_Reg">
+<RegValue address="200608" variables="[LineSelected_Int:0]">0</RegValue>
+<RegValue address="200612" variables="[LineSelected_Int:1]">0</RegValue>
+<RegValue address="200616" variables="[LineSelected_Int:2]">0</RegValue>
+</ComplexFeature>
+<ComplexFeature name="StrobeLinePreDelay" len="4" reg="StrobeLinePreDelay_Reg">
+<RegValue address="200864" variables="">0</RegValue>
+</ComplexFeature>
+<ComplexFeature name="TemporalNoiseReduction" len="4" reg="TemporalNoiseReduction_Reg">
+<RegValue address="201900" variables="">0</RegValue>
+</ComplexFeature>
+<ComplexFeature name="TestPattern" len="4" reg="TestPattern_Reg">
+<RegValue address="198272" variables="">0</RegValue>
+</ComplexFeature>
+<Feature>
+<Name>TestPatternGeneratorSelector</Name>
+<Type>Enumeration</Type>
+<Value>0</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<ComplexFeature name="TriggerActivation" len="4" reg="TriggerActivation_Reg">
+<RegValue address="198936" variables="[TriggerSelector_Int:6]">0</RegValue>
+</ComplexFeature>
+<Feature>
+<Name>TriggerCacheEnable</Name>
+<Type>Boolean</Type>
+<Value>0</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<ComplexFeature name="TriggerDelay" len="4" reg="TriggerDelayAbsVal_Reg">
+<RegValue address="199064" variables="[TriggerSelector_Int:6]">0</RegValue>
+</ComplexFeature>
+<ComplexFeature name="TriggerMode" len="4" reg="TriggerMode_Reg">
+<RegValue address="198720" variables="" to="0" from="(TO &gt;&gt; 6)&amp; 1">0.000000</RegValue>
+</ComplexFeature>
+<Feature>
+<Name>TriggerSelector</Name>
+<Type>Enumeration</Type>
+<Value>6</Value>
+<Streamable>Yes</Streamable>
+</Feature>
+<ComplexFeature name="TriggerSource" len="4" reg="TriggerSource_Reg">
+<RegValue address="198872" variables="[TriggerSelector_Int:6]">7</RegValue>
+</ComplexFeature>
+<ComplexFeature name="UserOutputValue" len="4" reg="LineMode_Reg">
+<RegValue address="199936" variables="[LineSelected_Int:0]" to="0" from="((TO &amp; 0xffff0000) &gt;&gt; 16)">0.000000</RegValue>
+<RegValue address="199940" variables="[LineSelected_Int:1]" to="8" from="((TO &amp; 0xffff0000) &gt;&gt; 16)">0.000000</RegValue>
+<RegValue address="199944" variables="[LineSelected_Int:2]" to="0" from="((TO &amp; 0xffff0000) &gt;&gt; 16)">0.000000</RegValue>
+</ComplexFeature>
+<ComplexFeature name="Width" len="4" reg="Width_Reg">
+<RegValue address="197472" variables="[RegionSelector_Int:0]">4000</RegValue>
+</ComplexFeature>
+</Features>
+</FeaturesFile>

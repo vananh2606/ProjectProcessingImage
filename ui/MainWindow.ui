@@ -476,7 +476,29 @@
           </property>
           <layout class="QVBoxLayout" name="verticalLayoutScreensTeaching">
            <item>
-            <layout class="QVBoxLayout" name="verticalLayoutScreen"/>
+            <widget class="QTabWidget" name="tabWidgetScreensTeaching">
+             <property name="font">
+              <font>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="tabPosition">
+              <enum>QTabWidget::North</enum>
+             </property>
+             <widget class="QWidget" name="ImageSRC" native="true">
+              <property name="font">
+               <font>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <attribute name="title">
+               <string>Image SRC</string>
+              </attribute>
+              <layout class="QVBoxLayout" name="verticalLayoutImageSRC"/>
+             </widget>
+            </widget>
            </item>
           </layout>
          </widget>
@@ -672,17 +694,37 @@
                <property name="verticalSpacing">
                 <number>5</number>
                </property>
+               <item row="2" column="1" colspan="2">
+                <widget class="QSpinBox" name="spin_delay">
+                 <property name="maximum">
+                  <number>1000000000</number>
+                 </property>
+                 <property name="value">
+                  <number>100</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="1" colspan="2">
+                <widget class="QSpinBox" name="spin_channel_1">
+                 <property name="maximum">
+                  <number>1000</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="2">
+                <widget class="QComboBox" name="combo_comrx"/>
+               </item>
+               <item row="6" column="0">
+                <widget class="QLabel" name="label_channel_2">
+                 <property name="text">
+                  <string>Channel 2</string>
+                 </property>
+                </widget>
+               </item>
                <item row="0" column="0">
                 <widget class="QLabel" name="label_controller">
                  <property name="text">
                   <string>Controller</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="0">
-                <widget class="QLabel" name="label_com">
-                 <property name="text">
-                  <string>COM</string>
                  </property>
                 </widget>
                </item>
@@ -696,30 +738,13 @@
                  </property>
                 </widget>
                </item>
-               <item row="1" column="2">
-                <widget class="QComboBox" name="combo_comrx"/>
-               </item>
-               <item row="2" column="0">
-                <widget class="QLabel" name="label_delay">
-                 <property name="text">
-                  <string>Delay(ms)</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="2" column="1" colspan="2">
-                <widget class="QSpinBox" name="spin_delay">
-                 <property name="maximum">
-                  <number>1000000000</number>
-                 </property>
-                 <property name="value">
-                  <number>100</number>
-                 </property>
-                </widget>
-               </item>
-               <item row="4" column="0">
-                <widget class="QLabel" name="label_channel_0">
-                 <property name="text">
-                  <string>Channel 0</string>
+               <item row="0" column="1" colspan="2">
+                <widget class="QComboBox" name="combo_controller">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>25</height>
+                  </size>
                  </property>
                 </widget>
                </item>
@@ -730,10 +755,31 @@
                  </property>
                 </widget>
                </item>
-               <item row="6" column="0">
-                <widget class="QLabel" name="label_channel_2">
+               <item row="7" column="1" colspan="2">
+                <widget class="QSpinBox" name="spin_channel_3">
+                 <property name="maximum">
+                  <number>1000</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="0">
+                <widget class="QLabel" name="label_delay">
                  <property name="text">
-                  <string>Channel 2</string>
+                  <string>Delay(ms)</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="6" column="1" colspan="2">
+                <widget class="QSpinBox" name="spin_channel_2">
+                 <property name="maximum">
+                  <number>1000</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="0">
+                <widget class="QLabel" name="label_channel_0">
+                 <property name="text">
+                  <string>Channel 0</string>
                  </property>
                 </widget>
                </item>
@@ -744,7 +790,21 @@
                  </property>
                 </widget>
                </item>
-               <item row="3" column="0" colspan="3">
+               <item row="4" column="1" colspan="2">
+                <widget class="QSpinBox" name="spin_channel_0">
+                 <property name="maximum">
+                  <number>1000</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="0">
+                <widget class="QLabel" name="label_com">
+                 <property name="text">
+                  <string>COM</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="8" column="1" colspan="2">
                 <widget class="QPushButton" name="btn_open_light">
                  <property name="minimumSize">
                   <size>
@@ -756,28 +816,6 @@
                   <string>Open</string>
                  </property>
                 </widget>
-               </item>
-               <item row="0" column="1" colspan="2">
-                <widget class="QComboBox" name="combo_controller">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>25</height>
-                  </size>
-                 </property>
-                </widget>
-               </item>
-               <item row="4" column="1" colspan="2">
-                <widget class="QSpinBox" name="spin_channel_0"/>
-               </item>
-               <item row="5" column="1" colspan="2">
-                <widget class="QSpinBox" name="spin_channel_1"/>
-               </item>
-               <item row="6" column="1" colspan="2">
-                <widget class="QSpinBox" name="spin_channel_2"/>
-               </item>
-               <item row="7" column="1" colspan="2">
-                <widget class="QSpinBox" name="spin_channel_3"/>
                </item>
               </layout>
              </widget>
@@ -985,6 +1023,21 @@
                <height>25</height>
               </size>
              </property>
+             <item>
+              <property name="text">
+               <string>White</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Gray</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Black</string>
+              </property>
+             </item>
             </widget>
            </item>
           </layout>
@@ -1132,6 +1185,48 @@
     <layout class="QVBoxLayout" name="verticalLayoutListImage">
      <item>
       <widget class="QListWidget" name="list_widget_image"/>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QDockWidget" name="dockWidgetImageBinary">
+   <property name="font">
+    <font>
+     <weight>75</weight>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="windowTitle">
+    <string>Image Binary</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>1</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContentsImageBinary">
+    <layout class="QVBoxLayout" name="verticalLayout_2">
+     <item>
+      <layout class="QVBoxLayout" name="verticalLayoutImageBinary"/>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QDockWidget" name="dockWidgetImageDST">
+   <property name="font">
+    <font>
+     <weight>75</weight>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="windowTitle">
+    <string>Image DST</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>1</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContentsImageDST">
+    <layout class="QVBoxLayout" name="verticalLayout_4">
+     <item>
+      <layout class="QVBoxLayout" name="verticalLayoutImageDST"/>
      </item>
     </layout>
    </widget>
