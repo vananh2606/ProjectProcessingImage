@@ -1,86 +1,196 @@
+import os
+import sys
+import csv
 import logging
-from logging import FileHandler, Formatter, StreamHandler
-from logging.handlers import RotatingFileHandler
-
-from colorama import init
+import logging.handlers
+from datetime import datetime
+from colorama import init, Fore, Style
 from termcolor import colored
 
+# Khởi tạo colorama
 init()
 
 
-class CustomFormatter(logging.Formatter):
-    fmt = "%(asctime)s - [%(name)s] - [%(levelname)s] - [in %(pathname)s:%(lineno)d] : %(message)s"
+class ColoredFormatter(logging.Formatter):
+    """
+    Custom formatter để hiển thị màu sắc trong terminal
+    """
+
+    COLORS = {
+        "black": Fore.BLACK,
+        "red": Fore.RED,
+        "green": Fore.GREEN,
+        "yellow": Fore.YELLOW,
+        "blue": Fore.BLUE,
+        "magenta": Fore.MAGENTA,
+        "cyan": Fore.CYAN,
+        "white": Fore.WHITE,
+        "reset": Fore.RESET,
+    }
+
+    ATTRIBUTES = {
+        "reset": "reset",
+        "bold": "bold",
+        "dark": "dark",
+        "underline": "underline",
+        "blink": "blink",
+        "reverse": "reverse",
+        "concealed": "concealed",
+    }
+
+    log_format = "%(asctime)s - [%(name)s] - [%(levelname)s] - [in %(pathname)s:%(lineno)d] : %(message)s"
 
     FORMATS = {
-        logging.DEBUG: colored(fmt, "white"),
-        logging.INFO: colored(fmt, "green"),
-        logging.WARNING: colored(fmt, "yellow"),
-        logging.ERROR: colored(fmt, "red", attrs=["bold", "blink"]),
-        logging.CRITICAL: colored(fmt, "red", "on_red", ["bold", "blink"]),
+        logging.NOTSET: log_format,
+        logging.DEBUG: colored(log_format, "cyan"),
+        logging.INFO: colored(log_format, "green"),
+        logging.WARNING: colored(log_format, "yellow"),
+        logging.ERROR: colored(log_format, "red", attrs=["bold", "blink"]),
+        logging.CRITICAL: colored(
+            log_format, "red", on_color="on_red", attrs=["bold", "blink"]
+        ),
     }
 
     def format(self, record):
         log_fmt = self.FORMATS.get(record.levelno)
         formatter = logging.Formatter(log_fmt)
-        return formatter.format(record)
+        msg = formatter.format(record)
+        return msg
 
 
 class Logger(logging.Logger):
+    """
+    Logger class kế thừa từ logging.Logger
+    Hỗ trợ lưu log vào file với nhiều định dạng và hiển thị màu sắc trên terminal
+    """
+
     def __init__(
         self,
-        name="",
-        file_name=None,
-        maxBytes=10000,
+        name,
+        log_file="logs\logfile.log",
+        level=logging.DEBUG,
+        enable_console=True,
+        enable_file=True,
+        maxBytes=1024 * 1024 * 10,  # 10MB
         backupCount=10,
-        file_level=logging.DEBUG,
-        stream_level=logging.DEBUG,
-    ) -> None:
+    ):
         """
-        name: name of logger
-        file_name: path of log file, if file_name is None logger don't add file_handler
-        file_level: level of file_handler
-        stream_level: level of stream_handler(DEBUG -> CRITICAL)
-        """
-        super(Logger, self).__init__(name)
-        # if no logger to console
-        self.propagate = False
-        # self.disabled = True
+        Khởi tạo Logger
 
-        if file_name is not None:
-            fmt = "%(asctime)s - [%(name)s] - [%(levelname)s] - [in %(pathname)s:%(lineno)d] : %(message)s"
-            formatter = Formatter(fmt)
-            file_handler = RotatingFileHandler(
-                file_name, maxBytes=maxBytes, backupCount=backupCount
+        Args:
+            name (str): Tên của logger
+            file_name (str): Tên file log
+            log_dir (str): Thư mục lưu file log
+            level (int): Mức độ log (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+            enable_console (bool): Bật/tắt log trên console
+            enable_file (bool): Bật/tắt log vào file
+            maxBytes (int): Kích thước tối đa của file log trước khi xoay vòng (bytes)
+            backupCount (int): Số lượng file backup tối đa
+        """
+        # Gọi constructor của lớp cha (logging.Logger)
+        super(Logger, self).__init__(name)
+
+        self.propagate = False
+        self.log_file = log_file
+        self.maxBytes = maxBytes
+        self.backupCount = backupCount
+
+        # Format string cho log
+        self.log_format = "%(asctime)s - [%(name)s] - [%(levelname)s] - [in %(pathname)s:%(lineno)d] : %(message)s"
+        self.date_format = "%Y-%m-%d %H:%M:%S"
+
+        # Thêm console handler nếu được yêu cầu
+        if enable_console:
+            console_handler = logging.StreamHandler()
+            console_handler.setLevel(level)
+            console_formatter = ColoredFormatter(self.log_format, self.date_format)
+            console_handler.setFormatter(console_formatter)
+            self.addHandler(console_handler)
+
+        # Thêm file handlers nếu được yêu cầu
+        if enable_file:
+            formatter = logging.Formatter(self.log_format)
+            file_handler = logging.handlers.RotatingFileHandler(
+                self.log_file,
+                maxBytes=self.maxBytes,
+                backupCount=self.backupCount,
+                encoding="utf-8",
             )
-            file_handler.setLevel(file_level)
+            file_handler.setLevel(level)
             file_handler.setFormatter(formatter)
             self.addHandler(file_handler)
 
-        formatter = CustomFormatter()
-        stream_handler = StreamHandler()
-        stream_handler.setLevel(stream_level)
-        stream_handler.setFormatter(formatter)
-        self.addHandler(stream_handler)
+    def convert_log2txt(self, log_path, txt_path, encoding="utf-8"):
+        """
+        Chuyển log file sang file txt
+
+        Args:
+            log_path (str): Tên file log
+            txt_path (str): Tên file txt
+            encoding (str): Mã hoá
+        """
+        if not os.path.exists(txt_path):
+            os.mkdir(txt_path)
+        with open(log_path, encoding=encoding) as log_file:
+            with open(txt_path, "w", encoding=encoding) as txt_file:
+                txt_file.write(log_file.read())
+
+    def convert_log2csv(self, log_path, csv_path, encoding="utf-8"):
+        """
+        Chuyển log file sang file csv
+
+        Args:
+            log_path (str): Tên file log
+            csv_path (str): Tên file csv
+            encoding (str): Mã hoá
+        """
+        if not os.path.exists(csv_path):
+            os.mkdir(csv_path)
+        with open(log_path, encoding=encoding) as log_file:
+            with open(csv_path, "w", encoding=encoding) as csv_file:
+                csv_writer = csv.writer(csv_file)
+                for line in log_file:
+                    csv_writer.writerow(line.strip().split(" - "))
+
+    def exception(self, msg, *args, exc_info=True, include_traceback=False, **kwargs):
+        """
+        Log một exception với tùy chọn bỏ qua traceback
+
+        Args:
+            msg (str): Thông điệp lỗi
+            exc_info (bool/Exception): Thông tin exception
+            include_traceback (bool): Có bao gồm traceback hay không
+            *args: Các tham số bổ sung cho msg
+            **kwargs: Các tham số bổ sung
+        """
+        if not include_traceback:
+            # Nếu không bao gồm traceback, ghi log error với exception nhưng không có stack trace
+            if exc_info:
+                import sys
+
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                if exc_value:
+                    msg = f"{msg}: {exc_value}"
+            self.error(msg, *args, **kwargs)
+        else:
+            # Nếu bao gồm traceback, gọi phương thức exception gốc
+            super().exception(msg, *args, **kwargs)
 
 
-def test():
-    logger = Logger(
-        name="mylog",
-        file_name="logfile.log",
-        file_level=logging.INFO,
-        stream_level=logging.INFO,
-    )
+def test_write_log():
+    # Ví dụ sử dụng
+    logger = Logger(name="test_logger", file_name="test.log", log_dir="logs")
+    logger.debug("Đây là thông báo DEBUG")
+    logger.info("Đây là thông báo INFO")
+    logger.warning("Đây là thông báo WARNING")
+    logger.error("Đây là thông báo ERROR")
+    logger.critical("Đây là thông báo CRITICAL")
 
     try:
-        1 / 0
-    except Exception as e:
-        logger.error(e)
-
-    logger.info("this is info")
-    logger.warning("this is warning")
-    logger.error("this is error")
-    logger.critical("this is critical")
+        x = 1 / 0
+    except Exception:
+        logger.exception("Có lỗi xảy ra")
 
 
 if __name__ == "__main__":
-    test()
+    test_write_log()

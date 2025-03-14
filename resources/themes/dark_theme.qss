@@ -288,8 +288,8 @@ QCheckBox::indicator:unchecked {
 QCheckBox::indicator:checked {
     border: 1px solid #0A84FF;
     border-radius: 3px;
-    background-color: #0A84FF;
-    image: url(:/icons/check_white.png);
+    background-color: #292A2D;
+    image: url(resources/icons/check_light.png);
 }
 
 QRadioButton::indicator:unchecked {
@@ -503,13 +503,26 @@ QStatusBar {
 /* Dock Widget */
 QDockWidget {
     border: 1px solid #505050;
-    titlebar-close-icon: url(:/icons/close_dark.png);
-    titlebar-normal-icon: url(:/icons/undock_dark.png);
+}
+
+QDockWidget::close-button, QDockWidget::float-button {
+    border: none;
+    padding: 0px;
+    icon-size: 32px; /* Tăng kích thước của icon */
+}
+
+QDockWidget::close-button:hover {
+    background: rgba(255, 0, 0, 100);
+}
+
+QDockWidget::float-button:hover {
+    background: rgba(0, 255, 0, 100);
 }
 
 QDockWidget::title {
     background-color: #0058D1;
-    padding: 4px;
+    padding-top: 5px;
+    padding-bottom: 5px;
 }
 
 /* Dialog */
@@ -543,9 +556,9 @@ QListWidget {
 }
 
 QListWidget::item {
-    border-radius: 4px;
-    padding: 6px 8px;
-    margin: 2px 0px;
+    border-radius: 2px;
+    padding: 3px 4px;
+    margin: 1px 0px;
 }
 
 QListWidget::item:hover {

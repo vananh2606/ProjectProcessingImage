@@ -1,0 +1,17 @@
+"2025-03-14 13:00:39,643",[my_app],[DEBUG],[in E:\github\ProjectProcessingImage\libs\logger.py:197] : Đây là thông báo DEBUG
+"2025-03-14 13:00:39,644",[my_app],[INFO],[in E:\github\ProjectProcessingImage\libs\logger.py:198] : Đây là thông báo INFO
+"2025-03-14 13:00:39,645",[my_app],[WARNING],[in E:\github\ProjectProcessingImage\libs\logger.py:199] : Đây là thông báo WARNING
+"2025-03-14 13:00:39,645",[my_app],[ERROR],[in E:\github\ProjectProcessingImage\libs\logger.py:200] : Đây là thông báo ERROR
+"2025-03-14 13:00:39,646",[my_app],[CRITICAL],[in E:\github\ProjectProcessingImage\libs\logger.py:201] : Đây là thông báo CRITICAL
+"2025-03-14 13:00:39,646",[my_app],[ERROR],[in E:\github\ProjectProcessingImage\libs\logger.py:188] : Có lỗi xảy ra: division by zero
+"2025-03-14 13:01:40,388",[my_app],[DEBUG],[in E:\github\ProjectProcessingImage\libs\logger.py:197] : Đây là thông báo DEBUG
+"2025-03-14 13:01:40,389",[my_app],[INFO],[in E:\github\ProjectProcessingImage\libs\logger.py:198] : Đây là thông báo INFO
+"2025-03-14 13:01:40,389",[my_app],[WARNING],[in E:\github\ProjectProcessingImage\libs\logger.py:199] : Đây là thông báo WARNING
+"2025-03-14 13:01:40,390",[my_app],[ERROR],[in E:\github\ProjectProcessingImage\libs\logger.py:200] : Đây là thông báo ERROR
+"2025-03-14 13:01:40,390",[my_app],[CRITICAL],[in E:\github\ProjectProcessingImage\libs\logger.py:201] : Đây là thông báo CRITICAL
+"2025-03-14 13:01:40,390",[my_app],[ERROR],[in E:\github\ProjectProcessingImage\libs\logger.py:188] : Có lỗi xảy ra: division by zero
+"2025-03-14 13:02:21,674",[my_app],[ERROR],[in E:\github\ProjectProcessingImage\libs\logger.py:188] : Có lỗi xảy ra: division by zero
+"2025-03-14 13:03:18,018",[my_app],[ERROR],[in E:\github\ProjectProcessingImage\libs\logger.py:194] : Có lỗi xảy ra: division by zero
+"2025-03-14 13:04:12,607",[my_app],[ERROR],[in E:\github\ProjectProcessingImage\libs\logger.py:194] : Có lỗi xảy ra: division by zero
+"2025-03-14 13:05:26,415",[my_app],[ERROR],[in E:\github\ProjectProcessingImage\libs\logger.py:195] : Có lỗi xảy ra: division by zero
+"2025-03-14 13:06:00,600",[my_app],[ERROR],[in E:\github\ProjectProcessingImage\libs\logger.py:195] : Có lỗi xảy ra: division by zero

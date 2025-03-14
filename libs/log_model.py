@@ -1,81 +1,55 @@
-from PyQt5.QtCore import QAbstractListModel, Qt, QModelIndex, QDateTime, pyqtSignal
-from PyQt5.QtGui import QColor, QBrush
+import os
+import logging
+from PyQt5.QtWidgets import QListWidgetItem
+from PyQt5.QtGui import QColor
+from logger import Logger  # Import logger tuỳ chỉnh từ logger.py
 
 
-class LogEntry:
-    def __init__(self, message, level="INFO"):
-        self.timestamp = QDateTime.currentDateTime()
-        self.message = message
-        self.level = level  # INFO, WARNING, ERROR, SUCCESS
+class QListWidgetLogger(logging.Handler):
+    """
+    Custom logging handler để hiển thị log trong QListWidget của PyQt5.
+    """
 
-    def __str__(self):
-        time_str = self.timestamp.toString("yyyy-MM-dd hh:mm:ss")
-        return f"[{time_str}] [{self.level}] {self.message}"
-
-
-class LogModel(QAbstractListModel):
-    layoutChangedLog = pyqtSignal()
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.log_entries = []
-
-        # Định nghĩa màu cho các loại log bằng QColor thay vì GlobalColor
-        self.level_colors = {
-            "INFO": QColor(0, 0, 0),  # Đen
-            "WARNING": QColor(184, 134, 11),  # DarkGoldenrod
-            "ERROR": QColor(178, 34, 34),  # Firebrick
-            "SUCCESS": QColor(0, 100, 0),  # DarkGreen
-        }
-
-    def rowCount(self, parent=QModelIndex()):
-        return len(self.log_entries)
-
-    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
-        if not index.isValid() or index.row() >= len(self.log_entries):
-            return None
-
-        entry = self.log_entries[index.row()]
-
-        if role == Qt.ItemDataRole.DisplayRole:
-            return str(entry)
-        elif role == Qt.ItemDataRole.ForegroundRole:
-            # Trả về QBrush với màu sắc phù hợp
-            color = self.level_colors.get(entry.level, QColor(0, 0, 0))
-            return QBrush(color)
-        elif role == Qt.ItemDataRole.ToolTipRole:
-            # Thêm tooltip hiển thị khi hover
-            return f"Level: {entry.level}\nTime: {entry.timestamp.toString()}\nMessage: {entry.message}"
-
-        return None
-
-    def add_log(self, message, level="INFO"):
-        """Thêm log mới vào model"""
-        self.beginInsertRows(
-            QModelIndex(), len(self.log_entries), len(self.log_entries)
+    def __init__(self, widget):
+        super().__init__()
+        self.widget = widget  # QListWidget nơi log sẽ hiển thị
+        self.setFormatter(
+            logging.Formatter("%(asctime)s - [%(levelname)s] : %(message)s")
         )
-        self.log_entries.append(LogEntry(message, level))
-        self.endInsertRows()
-        self.layoutChangedLog.emit()
 
-    def add_info(self, message):
-        """Thêm log thông tin"""
-        self.add_log(message, "INFO")
+    def emit(self, record):
+        """Gửi log đến QListWidget."""
+        msg = self.format(record)
+        list_item = QListWidgetItem(msg)
 
-    def add_warning(self, message):
-        """Thêm log cảnh báo"""
-        self.add_log(message, "WARNING")
+        # Thay đổi màu sắc theo level
+        if record.levelno == logging.NOTSET:
+            pass
+        elif record.levelno == logging.DEBUG:
+            list_item.setForeground(QColor("blue"))
+        elif record.levelno == logging.INFO:
+            list_item.setForeground(QColor("green"))
+        elif record.levelno == logging.WARNING:
+            list_item.setForeground(QColor("orange"))
+        elif record.levelno == logging.ERROR:
+            list_item.setForeground(QColor("red"))
+        elif record.levelno == logging.CRITICAL:
+            list_item.setForeground(QColor("darkred"))
 
-    def add_error(self, message):
-        """Thêm log lỗi"""
-        self.add_log(message, "ERROR")
+        self.widget.addItem(list_item)
+        self.widget.scrollToBottom()  # Tự động cuộn xuống log mới nhất
 
-    def add_success(self, message):
-        """Thêm log thành công"""
-        self.add_log(message, "SUCCESS")
 
-    def clear(self):
-        """Xóa tất cả logs"""
-        self.beginResetModel()
-        self.log_entries.clear()
-        self.endResetModel()
+# Hàm thiết lập logger cho giao diện PyQt5
+def setup_logger(list_widget, name="PyQtLogger", log_file="logs\logfile.log"):
+    """
+    Thiết lập logger để hiển thị log trong QListWidget.
+    Args:
+        list_widget (QListWidget): Widget hiển thị log.
+        log_file (str): File lưu log.
+    """
+
+    logger = Logger(name=name, log_file=log_file)
+    qt_handler = QListWidgetLogger(list_widget)
+    logger.addHandler(qt_handler)
+    return logger

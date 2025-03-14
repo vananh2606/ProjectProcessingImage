@@ -1,5 +1,6 @@
 import os
 import sys
+import logging
 from PyQt5.QtWidgets import (
     QMainWindow,
     QApplication,
@@ -9,8 +10,8 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QScrollArea,
 )
-from PyQt5.QtCore import Qt, QFile, pyqtSignal
-from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtCore import Qt, QFile, pyqtSignal, QSize
+from PyQt5.QtGui import QImage, QPixmap, QIcon
 from functools import partial
 
 from ui.MainWindowUI import Ui_MainWindow
@@ -18,6 +19,8 @@ from ui.MainWindowUI import Ui_MainWindow
 sys.path.append("libs")
 from libs.canvas import WindowCanvas, Canvas
 from libs.ui_utils import load_style_sheet
+from libs.logger import Logger
+from libs.log_model import setup_logger
 
 
 class MainWindow(QMainWindow):
@@ -26,7 +29,14 @@ class MainWindow(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
+        self.initParameters()
         self.initUi()
+        self.connectUi()
+
+    def initParameters(self):
+        self.project_name = "Project name"
+        self.log_path = "logs/logfile.log"
+        self.logger = Logger(self.project_name, self.log_path)
 
     def initUi(self):
         # Theme
@@ -63,9 +73,20 @@ class MainWindow(QMainWindow):
         self.canvas_auto = Canvas()
         self.ui.verticalLayoutScreensAuto.addWidget(WindowCanvas(self.canvas_auto))
 
+        # Add Log in ListWidget
+        self.ui_logger = setup_logger(
+            self.ui.list_widget_log,
+            self.project_name,
+            self.log_path,
+        )
+
         # # ScrollBar
         # scroll_bar = self.add_scrollable_tab(self.ui.tabWidgetModule) # Tạo scroll trong tabWidget
         # self.ui.verticalLayoutModuleTeaching.addWidget(scroll_bar) # Thêm scroll vào layout
+
+    def connectUi(self):
+        # Button
+        self.ui.btn_start.clicked.connect(self.write_log)
 
     def load_theme(self):
         self.ui.actionLight.triggered.connect(partial(self.set_theme, "light"))
@@ -83,10 +104,20 @@ class MainWindow(QMainWindow):
             path = "resources/themes/rainbow_theme.qss"
             load_style_sheet(path, QApplication.instance())
 
+    def write_log(self):
+        """Ghi thử một số log"""
+        self.ui_logger.debug("Đây là log DEBUG")
+        self.ui_logger.info("Đây là log INFO")
+        self.ui_logger.warning("Đây là log WARNING")
+        self.ui_logger.error("Đây là log ERROR")
+        self.ui_logger.critical("Đây là log CRITICAL")
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = MainWindow()
+    window.setWindowTitle("Project Name")
+    window.setWindowIcon(QIcon("resources/icons/cyber-eye.png"))
     load_style_sheet("resources/themes/light_theme.qss", QApplication.instance())
     window.show()
     sys.exit(app.exec_())
