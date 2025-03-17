@@ -11,7 +11,7 @@ from cameras.base_camera import NO_ERROR
 class CameraThread(QThread):
     frameCaptured = pyqtSignal(object)
 
-    def __init__(self, camera, config: dict, parent=None):
+    def __init__(self, camera, config: dict = {"id": "0", "feature": ""}, parent=None):
         super().__init__(parent)
 
         if camera == "HIK":
