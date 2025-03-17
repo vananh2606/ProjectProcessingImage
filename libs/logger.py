@@ -41,7 +41,6 @@ class ColoredFormatter(logging.Formatter):
     log_format = "%(asctime)s - [%(name)s] - [%(levelname)s] - [in %(pathname)s:%(lineno)d] : %(message)s"
 
     FORMATS = {
-        logging.NOTSET: log_format,
         logging.DEBUG: colored(log_format, "cyan"),
         logging.INFO: colored(log_format, "green"),
         logging.WARNING: colored(log_format, "yellow"),
@@ -97,21 +96,21 @@ class Logger(logging.Logger):
 
         # Format string cho log
         self.log_format = "%(asctime)s - [%(name)s] - [%(levelname)s] - [in %(pathname)s:%(lineno)d] : %(message)s"
-        self.date_format = "%Y-%m-%d %H:%M:%S"
 
         # Thêm console handler nếu được yêu cầu
         if enable_console:
             console_handler = logging.StreamHandler()
             console_handler.setLevel(level)
-            console_formatter = ColoredFormatter(self.log_format, self.date_format)
+            console_formatter = ColoredFormatter(self.log_format)
             console_handler.setFormatter(console_formatter)
             self.addHandler(console_handler)
 
         # Thêm file handlers nếu được yêu cầu
+        log_file_date = log_file + "_" + datetime.now().strftime("%Y_%m_%d") + ".log"
         if enable_file:
             formatter = logging.Formatter(self.log_format)
             file_handler = logging.handlers.RotatingFileHandler(
-                self.log_file,
+                log_file_date,
                 maxBytes=self.maxBytes,
                 backupCount=self.backupCount,
                 encoding="utf-8",
@@ -179,7 +178,7 @@ class Logger(logging.Logger):
 
 def test_write_log():
     # Ví dụ sử dụng
-    logger = Logger(name="test_logger", file_name="test.log", log_dir="logs")
+    logger = Logger(name="test_logger", log_file="logs/test")
     logger.debug("Đây là thông báo DEBUG")
     logger.info("Đây là thông báo INFO")
     logger.warning("Đây là thông báo WARNING")
