@@ -215,7 +215,7 @@ class MainWindow(QMainWindow):
                 self.ui.list_widget_image.clear()  # Xóa mục cũ trong QListWidget
                 image_extensions = [".png", ".jpg", ".jpeg", ".bmp", ".gif"]
 
-                self.ui_logger.info(f"Loading images from: {folder_path}")
+                self.ui_logger.debug(f"Loading images from: {folder_path}")
 
                 image_count = 0
                 for file_name in os.listdir(folder_path):
@@ -228,7 +228,7 @@ class MainWindow(QMainWindow):
                         self.ui.list_widget_image.addItem(list_item)
                         image_count += 1
 
-                self.ui_logger.info(f"Loaded {image_count} images from folder")
+                self.ui_logger.debug(f"Loaded {image_count} images from folder")
         except Exception as e:
             self.ui_logger.error(f"Error Load Folder: {e}")
 
@@ -243,7 +243,7 @@ class MainWindow(QMainWindow):
                 self.current_image = cv.imread(file_path)
 
                 # Cập nhật log
-                self.ui_logger.info(f"Displaying image: {os.path.basename(file_path)}")
+                self.ui_logger.debug(f"Displaying image: {os.path.basename(file_path)}")
 
                 self.canvas_src.load_pixmap(ndarray2pixmap(self.current_image))
 
@@ -260,7 +260,7 @@ class MainWindow(QMainWindow):
                 self.current_image = cv.imread(file_path)
 
                 # Cập nhật log
-                self.ui_logger.info(f"Loaded image: {os.path.basename(file_path)}")
+                self.ui_logger.debug(f"Loaded image: {os.path.basename(file_path)}")
 
                 self.canvas_src.load_pixmap(ndarray2pixmap(self.current_image))
 
