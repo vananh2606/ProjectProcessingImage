@@ -170,8 +170,8 @@ class Canvas(QLabel):
                 self.on_show_full_screen,
             ],
             icons=["draw", "zoom_in", "zoom_out", "fit_window", "full_screen"],
-            # orient=Qt.Vertical,
-            orient=Qt.Horizontal,
+            orient=Qt.Vertical,
+            # orient=Qt.Horizontal,
         ).buttons()
 
         # Thiết lập style cho buttons
@@ -764,10 +764,10 @@ class Canvas(QLabel):
         r: QRect = self.geometry()
         self.label_pos.setGeometry(0, r.height() - 30, r.width(), 30)
 
-        # toolbar_width = 50
-        # self.tool_bar.setGeometry(0, 0, toolbar_width, r.height())
-        toolbar_height = 30
-        self.tool_bar.setGeometry(0, 0, r.width(), toolbar_height)
+        toolbar_width = 55
+        self.tool_bar.setGeometry(0, 0, toolbar_width, r.height())
+        # toolbar_height = 35
+        # self.tool_bar.setGeometry(0, 0, r.width(), toolbar_height)
 
         if self.picture is None:
             return super(Canvas, self).paintEvent(event)

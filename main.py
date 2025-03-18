@@ -21,7 +21,7 @@ from ui.MainWindowUI import Ui_MainWindow
 
 sys.path.append("libs")
 from libs.canvas import WindowCanvas, Canvas
-from libs.ui_utils import load_style_sheet, ndarray2pixmap
+from libs.ui_utils import load_style_sheet, add_scroll, ndarray2pixmap
 from libs.logger import Logger
 from libs.log_model import setup_logger
 from libs.image_converter import ImageConverter
@@ -90,6 +90,7 @@ class MainWindow(QMainWindow):
         self.ui.btn_open_light.setProperty("class", "success")
         self.ui.btn_connect_server.setProperty("class", "success")
         self.ui.btn_send_client.setProperty("class", "primary")
+        self.ui.btn_connect_database.setProperty("class", "success")
 
         # Canvas
         self.canvas_src = Canvas()
@@ -99,11 +100,11 @@ class MainWindow(QMainWindow):
         self.canvas_dst = Canvas()
         self.ui.verticalLayoutImageDST.addWidget(WindowCanvas(self.canvas_dst))
         self.canvas_auto = Canvas()
-        self.ui.verticalLayoutScreensAuto.addWidget(WindowCanvas(self.canvas_auto))
+        self.ui.verticalLayoutScreenAuto.addWidget(WindowCanvas(self.canvas_auto))
 
         # # ScrollBar
-        # scroll_bar = self.add_scrollable_tab(self.ui.tabWidgetModule) # Tạo scroll trong tabWidget
-        # self.ui.verticalLayoutModuleTeaching.addWidget(scroll_bar) # Thêm scroll vào layout
+        # scroll_bar_database = add_scroll(self.ui.table_widget_database)
+        # self.ui.verticalLayoutDatabase.addWidget(scroll_bar_database)
 
     def connectUi(self):
         # Button
@@ -124,6 +125,7 @@ class MainWindow(QMainWindow):
         self.ui.btn_open_light.clicked.connect(self.on_click_open_light)
         self.ui.btn_connect_server.clicked.connect(self.on_click_connect_server)
         self.ui.btn_send_client.clicked.connect(self.on_click_send_client)
+        self.ui.btn_connect_database.clicked.connect(self.on_click_connect_database)
 
         self.ui.list_widget_image.itemSelectionChanged.connect(
             self.display_list_widget_image
@@ -243,7 +245,7 @@ class MainWindow(QMainWindow):
                 self.current_image = cv.imread(file_path)
 
                 # Cập nhật log
-                self.ui_logger.debug(f"Displaying image: {os.path.basename(file_path)}")
+                self.ui_logger.debug(f"Loaded image: {os.path.basename(file_path)}")
 
                 self.canvas_src.load_pixmap(ndarray2pixmap(self.current_image))
 
@@ -402,20 +404,49 @@ class MainWindow(QMainWindow):
 
     def connect_server(self):
         try:
-            self.ui.btn_connect_server.setText("Disconnect")
             self.tcp_server.start()
-        except Exception as ex:
-            self.ui_logger.error(str(ex))
+            self.ui.btn_connect_server.setText("Disconnect")
+            self.ui.btn_connect_server.setProperty("class", "danger")
+            self.ui.btn_connect_server.style().polish(self.ui.btn_connect_server)
+        except Exception as e:
+            self.ui_logger.error(f"Error Connect Server: {e}")
 
     def disconnect_server(self):
         try:
             self.tcp_server.stop()
             self.ui.btn_connect_server.setText("Connect")
-        except Exception as ex:
-            self.ui_logger.error(str(ex))
+            self.ui.btn_connect_server.setProperty("class", "success")
+            self.ui.btn_connect_server.style().polish(self.ui.btn_connect_server)
+        except Exception as e:
+            self.ui_logger.error(f"Error Disconnect Server: {e}")
 
     def on_click_send_client(self):
-        self.tcp_server.send_to_all("Hello")
+        try:
+            self.tcp_server.send_to_all("Hello")
+        except Exception as e:
+            self.ui_logger.error(f"Error Send Client: {e}")
+
+    def on_click_connect_database(self):
+        if self.ui.btn_connect_database.text() == "Connect":
+            self.connect_database()
+        else:
+            self.disconnect_database()
+
+    def connect_database(self):
+        try:
+            self.ui.btn_connect_database.setText("Disconnect")
+            self.ui.btn_connect_database.setProperty("class", "danger")
+            self.ui.btn_connect_database.style().polish(self.ui.btn_connect_database)
+        except Exception as e:
+            self.ui_logger.error(f"Error Connect Database: {e}")
+
+    def disconnect_database(self):
+        try:
+            self.ui.btn_connect_database.setText("Connect")
+            self.ui.btn_connect_database.setProperty("class", "success")
+            self.ui.btn_connect_database.style().polish(self.ui.btn_connect_database)
+        except Exception as e:
+            self.ui_logger.error(f"Error Disconnect Database: {e}")
 
     def closeEvent(self, event):
         return super().closeEvent(event)

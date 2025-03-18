@@ -329,6 +329,10 @@ QSpinBox, QDoubleSpinBox {
     padding: 2px;
 }
 
+QSpinBox:hover, QDoubleSpinBox:hover {
+    background-color: #EBEBEB;
+}
+
 QSpinBox::up-button, QDoubleSpinBox::up-button {
     subcontrol-origin: border;
     subcontrol-position: top right;
@@ -351,6 +355,11 @@ QComboBox {
     background-color: #FFFFFF;
     border: 1px solid #CCCCCC;
     border-radius: 6px;
+    padding: 0px 10px;
+}
+
+QComboBox:hover {
+    background-color: #EBEBEB;
 }
 
 QComboBox::drop-down {
@@ -849,4 +858,36 @@ QDialogButtonBox QPushButton:hover {
 
 QDialogButtonBox QPushButton:pressed {
     background-color: #C5C5C5;
+}
+
+/* QTableWidget */
+
+QTableWidget {
+    background-color: #FFFFFF;
+    alternate-background-color: #F5F5F7;
+    color: #000000;
+    border: 2px solid #D1D1D1;
+    gridline-color: #D1D1D1;
+}
+
+QHeaderView::section {
+    background-color: #EAEAEA;
+    color: #000000;
+    padding: 4px;
+    border: 1px solid #D1D1D1;
+}
+
+QTableWidget::item {
+    padding: 4px;
+    border: none;
+}
+
+QTableWidget::item:selected {
+    background-color: #007AFF;
+    color: #FFFFFF;
+}
+
+QTableCornerButton::section {
+    background-color: #EAEAEA;
+    border: 1px solid #D1D1D1;
 }
