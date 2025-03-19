@@ -1,0 +1,13 @@
+colorama==0.4.6
+GPUtil==1.4.0
+numpy==2.2.3
+opencv-python==4.11.0.86
+psutil==7.0.0
+pypylon==4.1.0
+PyQt5==5.15.11
+PyQt5-Qt5==5.15.2
+PyQt5_sip==12.17.0
+pyserial==3.5
+PyYAML==6.0.2
+setuptools==76.0.0
+termcolor==2.5.0
