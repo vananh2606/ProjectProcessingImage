@@ -366,6 +366,10 @@ class MainWindow(QMainWindow):
 
     def on_click_capture(self):
         try:
+            if self.current_image is None:
+                self.ui_logger.error("Failed to capture image")
+                return
+
             # Create default filename with timestamp
             timestamp = time.strftime("%Y%m%d-%H%M%S")
             default_filename = f"Image_{timestamp}.jpg"
