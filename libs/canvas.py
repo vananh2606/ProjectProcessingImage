@@ -764,9 +764,9 @@ class Canvas(QLabel):
         r: QRect = self.geometry()
         self.label_pos.setGeometry(0, r.height() - 30, r.width(), 30)
 
-        # toolbar_width = 50
+        # toolbar_width = 55
         # self.tool_bar.setGeometry(0, 0, toolbar_width, r.height())
-        toolbar_height = 30
+        toolbar_height = 35
         self.tool_bar.setGeometry(0, 0, r.width(), toolbar_height)
 
         if self.picture is None:
