@@ -275,7 +275,8 @@ class MainWindow(QMainWindow):
 
     def open_camera(self):
         try:
-            self.camera_thread = CameraThread("Webcam", {"id": "0", "feature": ""})
+            # self.camera_thread = CameraThread("Webcam", {"id": "0", "feature": ""})
+            self.camera_thread = CameraThread()
             self.camera_thread.open_camera()
             self.ui.btn_start_camera.setEnabled(True)
             self.ui.btn_test_camera.setEnabled(True)
