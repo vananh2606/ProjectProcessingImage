@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import logging
+import threading
 import cv2 as cv
 from PyQt5.QtWidgets import (
     QMainWindow,
@@ -16,20 +17,41 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QFile, pyqtSignal, QSize
 from PyQt5.QtGui import QImage, QPixmap, QIcon
 from functools import partial
+from collections import namedtuple
 
 from ui.MainWindowUI import Ui_MainWindow
 
 sys.path.append("libs")
 from libs.canvas import WindowCanvas, Canvas
 from libs.ui_utils import load_style_sheet, add_scroll, ndarray2pixmap
-from libs.logger import Logger
 from libs.log_model import setup_logger
 from libs.image_converter import ImageConverter
 from libs.tcp_server import Server
 from libs.camera_thread import CameraThread
+from libs.light_controller import LCPController, DCPController
+
+RESULT = namedtuple(
+    "result",
+    [
+        "camera",
+        "model",
+        "code",
+        "src",
+        "dst",
+        "bin",
+        "result",
+        "time_check",
+        "error_type",
+        "config",
+    ],
+    defaults=10 * [None],
+)
 
 
 class MainWindow(QMainWindow):
+    signalResultAuto = pyqtSignal(object)
+    signalResultTeaching = pyqtSignal(object)
+
     def __init__(self):
         super(MainWindow, self).__init__()
         self.ui = Ui_MainWindow()
@@ -42,7 +64,7 @@ class MainWindow(QMainWindow):
     def initParameters(self):
         # Logger and Log Signals
         self.project_name = "Project Name"
-        self.log_path = "logs/logfile"
+        self.log_path = "logs\\logfile.log"
         self.ui_logger, self.ui_logger_text = setup_logger(
             self.ui.list_widget_log,
             self.project_name,
@@ -64,6 +86,23 @@ class MainWindow(QMainWindow):
         # Image
         self.current_image = None
         self.file_paths = []
+
+        # Lighting
+        self.controller = LCPController(com="COM9")
+
+        # Threading
+        self.b_trigger_auto = False
+        self.b_trigger_teaching = False
+        self.b_stop_auto = False
+        self.b_stop_teaching = False
+        self.b_fisrt_show = True
+        self.b_fisrt_live = True
+        self.t_start = 0.0
+        self.event_stop_live = threading.Event()
+        self.event_show_result = threading.Event()
+
+        # Result
+        self.final_result: RESULT = None
 
     def initUi(self):
         # Theme
@@ -126,6 +165,12 @@ class MainWindow(QMainWindow):
         self.ui.btn_connect_server.clicked.connect(self.on_click_connect_server)
         self.ui.btn_send_client.clicked.connect(self.on_click_send_client)
         self.ui.btn_connect_database.clicked.connect(self.on_click_connect_database)
+
+        # Combobox
+        self.ui.combo_model.currentIndexChanged.connect(self.on_change_model)
+        self.ui.combo_model_setting.currentIndexChanged.connect(
+            self.on_change_model_setting
+        )
 
         self.ui.list_widget_image.itemSelectionChanged.connect(
             self.display_list_widget_image
@@ -198,6 +243,27 @@ class MainWindow(QMainWindow):
     def on_click_reset(self):
         pass
 
+    def on_click_start_teaching(self):
+        pass
+
+    def get_config(self):
+        pass
+
+    def set_config(self, config):
+        pass
+
+    def add_model(self, config):
+        pass
+
+    def load_model(self, config):
+        pass
+
+    def delete_model(self, config):
+        pass
+
+    def save_model(self, config):
+        pass
+
     def on_click_add(self):
         pass
 
@@ -205,6 +271,12 @@ class MainWindow(QMainWindow):
         pass
 
     def on_click_save(self):
+        pass
+
+    def on_change_model(self):
+        pass
+
+    def on_change_model_setting(self):
         pass
 
     def on_click_open_folder(self):
@@ -277,8 +349,8 @@ class MainWindow(QMainWindow):
 
     def open_camera(self):
         try:
-            # self.camera_thread = CameraThread("Webcam", {"id": "0", "feature": ""})
-            self.camera_thread = CameraThread()
+            self.camera_thread = CameraThread("Webcam", {"id": "0", "feature": ""})
+            # self.camera_thread = CameraThread()
             self.camera_thread.open_camera()
             self.ui.btn_start_camera.setEnabled(True)
             self.ui.btn_test_camera.setEnabled(True)
@@ -393,9 +465,6 @@ class MainWindow(QMainWindow):
             self.ui_logger.error(f"Error Capture: {e}")
 
     def on_click_refesh(self):
-        pass
-
-    def on_click_start_teaching(self):
         pass
 
     def on_click_open_light(self):

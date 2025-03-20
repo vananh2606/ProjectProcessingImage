@@ -16,6 +16,8 @@ class Server(QObject):
     dataReceived = pyqtSignal(str, str, str)  # (host, address, data)
     serverStarted = pyqtSignal(str, int)  # (host, port)
     serverStopped = pyqtSignal()
+    clientLocked = pyqtSignal(str, str)  # (host, address)
+    clientUnlocked = pyqtSignal()
 
     def __init__(self, host="127.0.0.1", port=8080, logger=None, log_signals=None):
         """
@@ -36,6 +38,8 @@ class Server(QObject):
         self.threads = []
         self.logger = logger
         self.log_signals = log_signals
+        self.locked_client = None  # Client được khóa để giao tiếp độc quyền
+        self.is_locked = False  # Trạng thái khóa server
 
     def start(self):
         """
@@ -75,6 +79,8 @@ class Server(QObject):
             return
 
         self.running = False
+        self.is_locked = False
+        self.locked_client = None
 
         # Đóng tất cả các kết nối client
         for client_info, client_socket in list(self.clients.items()):
@@ -99,6 +105,74 @@ class Server(QObject):
         self._log("Server đã dừng.", "INFO")
         self.serverStopped.emit()
 
+    def lock_to_client(self, client_info):
+        """
+        Khóa server để chỉ giao tiếp với một client được chọn.
+
+        Args:
+            client_info (tuple): (host, address) của client cần khóa
+
+        Returns:
+            bool: True nếu khóa thành công, False nếu không
+        """
+        if not self.running:
+            self._log("Server không chạy", "WARNING")
+            return False
+
+        if client_info not in self.clients:
+            self._log(
+                f"Client HOST:{client_info[0]} - ADDRESS: {client_info[1]} không tồn tại",
+                "WARNING",
+            )
+            return False
+
+        # Ngắt kết nối với tất cả client khác
+        for other_client in list(self.clients.keys()):
+            if other_client != client_info:
+                try:
+                    self.clients[other_client].close()
+                    self._log(
+                        f"Ngắt kết nối với HOST: {other_client[0]} - ADDRESS: {other_client[1]} do khóa server",
+                        "INFO",
+                    )
+                    del self.clients[other_client]
+                    self.clientDisconnected.emit(other_client[0], str(other_client[1]))
+                except Exception as e:
+                    self._log(
+                        f"Lỗi ngắt kết nối với HOST: {other_client[0]} - ADDRESS: {other_client[1]}: {str(e)}",
+                        "ERROR",
+                    )
+
+        self.locked_client = client_info
+        self.is_locked = True
+        self._log(
+            f"Server đã khóa kết nối với HOST: {client_info[0]} - ADDRESS: {client_info[1]}",
+            "INFO",
+        )
+        self.clientLocked.emit(client_info[0], str(client_info[1]))
+        return True
+
+    def unlock_client(self):
+        """
+        Mở khóa server để cho phép kết nối từ nhiều client.
+
+        Returns:
+            bool: True nếu mở khóa thành công, False nếu không
+        """
+        if not self.running:
+            self._log("Server không chạy", "WARNING")
+            return False
+
+        if not self.is_locked:
+            self._log("Server chưa bị khóa", "WARNING")
+            return False
+
+        self.locked_client = None
+        self.is_locked = False
+        self._log("Server đã mở khóa, cho phép nhiều kết nối", "INFO")
+        self.clientUnlocked.emit()
+        return True
+
     def send_to_all(self, data):
         """
         Gửi dữ liệu tới tất cả các client.
@@ -109,6 +183,10 @@ class Server(QObject):
         if not self.running:
             self._log("Server không chạy", "WARNING")
             return
+
+        # Nếu server đang khóa, chỉ gửi cho client được khóa
+        if self.is_locked and self.locked_client:
+            return self.send_to_client(self.locked_client, data)
 
         disconnected = []
         data_bytes = data.encode("utf-8")
@@ -139,6 +217,14 @@ class Server(QObject):
         """
         if not self.running:
             self._log("Server không chạy", "WARNING")
+            return False
+
+        # Nếu server đang khóa và client không phải là client được khóa
+        if self.is_locked and client_info != self.locked_client:
+            self._log(
+                f"Server đang khóa kết nối với client khác, không thể gửi tới HOST: {client_info[0]} - ADDRESS: {client_info[1]}",
+                "WARNING",
+            )
             return False
 
         if client_info not in self.clients:
@@ -174,6 +260,15 @@ class Server(QObject):
             try:
                 client_socket, addr = self.server_socket.accept()
                 client_info = (addr[0], addr[1])
+
+                # Nếu server đang khóa, từ chối kết nối mới
+                if self.is_locked:
+                    self._log(
+                        f"Từ chối kết nối từ HOST: {client_info[0]} - ADDRESS: {client_info[1]} do server đang khóa",
+                        "INFO",
+                    )
+                    client_socket.close()
+                    continue
 
                 # Thêm client vào danh sách
                 self.clients[client_info] = client_socket
@@ -211,6 +306,14 @@ class Server(QObject):
 
         while self.running:
             try:
+                # Nếu server đang khóa và client không phải là client được khóa
+                if self.is_locked and client_info != self.locked_client:
+                    self._log(
+                        f"Ngắt kết nối với HOST: {client_info[0]} - ADDRESS: {client_info[1]} do server đang khóa với client khác",
+                        "INFO",
+                    )
+                    break
+
                 # Nhận dữ liệu
                 data = self._receive_data(client_socket)
 
@@ -253,6 +356,13 @@ class Server(QObject):
                 "INFO",
             )
             self.clientDisconnected.emit(client_info[0], str(client_info[1]))
+
+            # Nếu client ngắt kết nối là client đang được khóa, mở khóa server
+            if self.is_locked and client_info == self.locked_client:
+                self.is_locked = False
+                self.locked_client = None
+                self._log(f"Mở khóa server do client được khóa đã ngắt kết nối", "INFO")
+                self.clientUnlocked.emit()
 
     # Phương thức gửi dữ liệu (sửa đổi) - tương thích với Hercules
     def _send_data(self, sock, data_bytes):
@@ -313,3 +423,21 @@ class Server(QObject):
         # Nếu không có logger nhưng có log_signals, sử dụng signal
         elif self.log_signals:
             self.log_signals.textSignal.emit(message, level)
+
+    def get_locked_client(self):
+        """
+        Lấy thông tin client đang được khóa.
+
+        Returns:
+            tuple: (host, address) của client đang khóa hoặc None nếu không có
+        """
+        return self.locked_client
+
+    def is_server_locked(self):
+        """
+        Kiểm tra xem server có đang bị khóa không.
+
+        Returns:
+            bool: True nếu server đang bị khóa, False nếu không
+        """
+        return self.is_locked

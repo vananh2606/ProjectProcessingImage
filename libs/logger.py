@@ -105,12 +105,10 @@ class Logger(logging.Logger):
             console_handler.setFormatter(console_formatter)
             self.addHandler(console_handler)
 
-        # Thêm file handlers nếu được yêu cầu
-        log_file_date = log_file + "_" + datetime.now().strftime("%Y_%m_%d") + ".log"
         if enable_file:
             formatter = logging.Formatter(self.log_format)
             file_handler = logging.handlers.RotatingFileHandler(
-                log_file_date,
+                self.log_file,
                 maxBytes=self.maxBytes,
                 backupCount=self.backupCount,
                 encoding="utf-8",
@@ -118,38 +116,6 @@ class Logger(logging.Logger):
             file_handler.setLevel(level)
             file_handler.setFormatter(formatter)
             self.addHandler(file_handler)
-
-    def convert_log2txt(self, log_path, txt_path, encoding="utf-8"):
-        """
-        Chuyển log file sang file txt
-
-        Args:
-            log_path (str): Tên file log
-            txt_path (str): Tên file txt
-            encoding (str): Mã hoá
-        """
-        if not os.path.exists(txt_path):
-            os.mkdir(txt_path)
-        with open(log_path, encoding=encoding) as log_file:
-            with open(txt_path, "w", encoding=encoding) as txt_file:
-                txt_file.write(log_file.read())
-
-    def convert_log2csv(self, log_path, csv_path, encoding="utf-8"):
-        """
-        Chuyển log file sang file csv
-
-        Args:
-            log_path (str): Tên file log
-            csv_path (str): Tên file csv
-            encoding (str): Mã hoá
-        """
-        if not os.path.exists(csv_path):
-            os.mkdir(csv_path)
-        with open(log_path, encoding=encoding) as log_file:
-            with open(csv_path, "w", encoding=encoding) as csv_file:
-                csv_writer = csv.writer(csv_file)
-                for line in log_file:
-                    csv_writer.writerow(line.strip().split(" - "))
 
     def exception(self, msg, *args, exc_info=True, include_traceback=False, **kwargs):
         """

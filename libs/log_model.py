@@ -4,6 +4,7 @@ import logging
 from PyQt5.QtWidgets import QListWidgetItem
 from PyQt5.QtCore import pyqtSignal, QObject
 from PyQt5.QtGui import QColor
+
 from logger import Logger  # Import logger tuỳ chỉnh từ logger.py
 
 
@@ -91,7 +92,7 @@ class QListWidgetLogger(logging.Handler):
 
 
 # Hàm thiết lập logger cho giao diện PyQt5
-def setup_logger(list_widget, name="PyQtLogger", log_file="logs\\logfile"):
+def setup_logger(list_widget, name="LogModel", log_file="logs\\logfile.log"):
     """
     Thiết lập logger để hiển thị log trong QListWidget.
 
