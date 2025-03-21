@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import json
 import logging
 import threading
 import cv2 as cv
@@ -11,6 +12,11 @@ from PyQt5.QtWidgets import (
     QTabWidget,
     QFileDialog,
     QPushButton,
+    QLineEdit,
+    QCheckBox,
+    QComboBox,
+    QSpinBox,
+    QDoubleSpinBox,
     QScrollArea,
     QListWidgetItem,
 )
@@ -22,8 +28,10 @@ from collections import namedtuple
 from ui.MainWindowUI import Ui_MainWindow
 
 sys.path.append("libs")
+from libs.constants import *
 from libs.canvas import WindowCanvas, Canvas
-from libs.ui_utils import load_style_sheet, add_scroll, ndarray2pixmap
+from libs.shape import Shape
+from libs.ui_utils import load_style_sheet, update_style, add_scroll, ndarray2pixmap
 from libs.log_model import setup_logger
 from libs.image_converter import ImageConverter
 from libs.tcp_server import Server
@@ -80,6 +88,7 @@ class MainWindow(QMainWindow):
             logger=self.ui_logger,
             log_signals=self.ui_logger_text,
         )
+
         # Camera
         self.camera_thread = None
 
@@ -88,18 +97,20 @@ class MainWindow(QMainWindow):
         self.file_paths = []
 
         # Lighting
-        self.controller = LCPController(com="COM9")
+        self.com_light = "COM9"
+        # self.baud_light = 9600
+        self.baud_light = 19200
+        # self.light_controller = LCPController(com=self.com_light, baud=self.baud_light)
+        self.light_controller = DCPController(com=self.com_light, baud=self.baud_light)
 
         # Threading
-        self.b_trigger_auto = False
-        self.b_trigger_teaching = False
-        self.b_stop_auto = False
-        self.b_stop_teaching = False
-        self.b_fisrt_show = True
-        self.b_fisrt_live = True
+        self._b_trigger_auto = False
+        self._b_trigger_teaching = False
+        self._b_stop_auto = False
+        self._b_stop_teaching = False
+
+        # Time
         self.t_start = 0.0
-        self.event_stop_live = threading.Event()
-        self.event_show_result = threading.Event()
 
         # Result
         self.final_result: RESULT = None
@@ -124,7 +135,7 @@ class MainWindow(QMainWindow):
         self.ui.btn_load_image.setProperty("class", "default")
         self.ui.btn_open_folder.setProperty("class", "default")
         self.ui.btn_capture.setProperty("class", "default")
-        self.ui.btn_refesh.setProperty("class", "default")
+        self.ui.btn_refesh.setProperty("class", "primary")
         self.ui.btn_start_teaching.setProperty("class", "success")
         self.ui.btn_open_light.setProperty("class", "success")
         self.ui.btn_connect_server.setProperty("class", "success")
@@ -234,8 +245,63 @@ class MainWindow(QMainWindow):
                 (host, int(address)), "Đã nhận dữ liệu của bạn"
             )
 
+    def start_elappsed_time(self):
+        self.t_start = time.time()
+
+    def get_elappsed_time(self):
+        self.ui_logger.debug(f"Get elappsed_time: {time.time() - self.t_start}")
+        return time.time() - self.t_start
+
+    @property
+    def b_trigger_auto(self):
+        self.ui_logger.debug(f"Get b_trigger_auto: {self._b_trigger_auto}")
+        return self._b_trigger_auto
+
+    @b_trigger_auto.setter
+    def b_trigger_auto(self, boolean):
+        if not isinstance(boolean, bool):
+            raise self.ui_logger.error("Biến phải là kiểu bool!")
+        self._b_trigger_auto = boolean
+        self.ui_logger.debug(f"Set b_trigger_auto: {self._b_trigger_auto}")
+
+    @property
+    def b_trigger_teaching(self):
+        self.ui_logger.debug(f"Get b_trigger_teaching: {self._b_trigger_teaching}")
+        return self._b_trigger_teaching
+
+    @b_trigger_teaching.setter
+    def b_trigger_teaching(self, boolean):
+        if not isinstance(boolean, bool):
+            raise self.ui_logger.error("Biến phải là kiểu bool!")
+        self._b_trigger_teaching = boolean
+        self.ui_logger.debug(f"Set b_trigger_teaching: {self._b_trigger_teaching}")
+
+    @property
+    def b_stop_auto(self):
+        self.ui_logger.debug(f"Get b_stop_auto: {self._b_stop_auto}")
+        return self._b_stop_auto
+
+    @b_stop_auto.setter
+    def b_stop_auto(self, boolean):
+        if not isinstance(boolean, bool):
+            raise self.ui_logger.error("Biến phải là kiểu bool!")
+        self._b_stop_auto = boolean
+        self.ui_logger.debug(f"Set b_stop_auto: {self._b_stop_auto}")
+
+    @property
+    def b_stop_teaching(self):
+        self.ui_logger.debug(f"Get b_stop_teaching: {self._b_stop_teaching}")
+        return self._b_stop_teaching
+
+    @b_stop_teaching.setter
+    def b_stop_teaching(self, boolean):
+        if not isinstance(boolean, bool):
+            raise self.ui_logger.error("Biến phải là kiểu bool!")
+        self._b_stop_teaching = boolean
+        self.ui_logger.debug(f"Set b_stop_teaching: {self._b_stop_teaching}")
+
     def on_click_start(self):
-        pass
+        self.get_config()
 
     def on_click_stop(self):
         pass
@@ -246,16 +312,209 @@ class MainWindow(QMainWindow):
     def on_click_start_teaching(self):
         pass
 
-    def get_config(self):
+    def on_click_refesh(self):
         pass
 
+    def get_config(self):
+        """
+        Gets the current configuration of the application.
+        This includes shapes on the canvas, module settings, and font configuration.
+
+        Returns:
+            dict: Dictionary containing the current configuration
+        """
+        config = {}
+
+        # Get shapes from canvas
+        config["shapes"] = {
+            shape.label: shape.cvBox for shape in self.canvas_auto.shapes
+        }
+
+        # Get module configurations
+        config["modules"] = {
+            "camera": {
+                "type": self.ui.combo_type_camera.currentText(),
+                "id": self.ui.combo_id_camera.currentText(),
+                "feature": self.ui.combo_feature.currentText(),
+            },
+            "lighting": {
+                "controller": self.ui.combo_controller.currentText(),
+                "com": self.ui.combo_comport.currentText(),
+                "baudrate": self.ui.combo_baudrate.currentText(),
+                "delay": self.ui.spin_delay.value(),
+                "channels": [
+                    self.ui.spin_channel_0.value(),
+                    self.ui.spin_channel_1.value(),
+                    self.ui.spin_channel_2.value(),
+                    self.ui.spin_channel_3.value(),
+                ],
+            },
+            "system": {
+                "log_dir": self.ui.line_log_dir.text(),
+                "log_size": self.ui.line_log_size.text(),
+                "database_path": self.ui.line_database_path.text(),
+                "auto_start": self.ui.check_auto_start.isChecked(),
+            },
+            "server": {
+                "host": self.ui.line_host_server.text(),
+                "port": self.ui.line_port_server.text(),
+                "client": self.ui.combo_select_client.currentText(),
+                "message": self.ui.line_message.text(),
+            },
+        }
+
+        # Get font configuration
+        config["font"] = {
+            "radius": Shape.RADIUS,
+            "thickness": Shape.THICKNESS,
+            "font_size": Shape.FONT_SIZE,
+            "min_size": Shape.MIN_SIZE,
+        }
+
+        # Load font config from file if it exists
+        if os.path.exists(FONT_CONFIG_PATH):
+            try:
+                with open(FONT_CONFIG_PATH, "r") as f:
+                    config["font"] = json.load(f)
+            except Exception as e:
+                self.ui_logger.error(f"Error loading font config: {e}")
+
+        # Get model settings
+        config["model"] = {
+            "current": self.ui.combo_model.currentText(),
+            "setting": self.ui.combo_model_setting.currentText(),
+        }
+
+        self.ui_logger.debug(
+            f"Get config: {json.dumps(config, indent=4, ensure_ascii=False)}"
+        )
+
+        return config
+
     def set_config(self, config):
+        """
+        Sets the application configuration based on the provided config dictionary.
+
+        Args:
+            config (dict): Configuration dictionary to apply
+        """
+        try:
+            # Apply shapes to canvas if they exist
+            if "shapes" in config:
+                # Clear existing shapes
+                self.canvas_auto.shapes.clear()
+
+                # Add shapes from config
+                for label, box in config["shapes"].items():
+                    shape = Shape(label=label)
+                    shape.cvBox = box
+                    self.canvas_auto.shapes.append(shape)
+
+                # Update canvas
+                self.canvas_auto.update()
+
+            # Apply module configurations
+            if "modules" in config:
+                modules = config["modules"]
+
+                # Apply camera settings
+                if "camera" in modules:
+                    camera = modules["camera"]
+
+                    index = self.ui.combo_type_camera.findText(camera.get("type", ""))
+                    if index >= 0:
+                        self.ui.combo_type_camera.setCurrentIndex(index)
+
+                    index = self.ui.combo_id_camera.findText(camera.get("id", ""))
+                    if index >= 0:
+                        self.ui.combo_id_camera.setCurrentIndex(index)
+
+                    index = self.ui.combo_feature.findText(camera.get("feature", ""))
+                    if index >= 0:
+                        self.ui.combo_feature.setCurrentIndex(index)
+
+                # Apply lighting settings
+                if "lighting" in modules:
+                    lighting = modules["lighting"]
+
+                    index = self.ui.combo_controller.findText(
+                        lighting.get("controller", "")
+                    )
+                    if index >= 0:
+                        self.ui.combo_controller.setCurrentIndex(index)
+
+                    index = self.ui.combo_comport.findText(lighting.get("com", ""))
+                    if index >= 0:
+                        self.ui.combo_comport.setCurrentIndex(index)
+
+                    index = self.ui.combo_baudrate.findText(
+                        lighting.get("baudrate", "")
+                    )
+                    if index >= 0:
+                        self.ui.combo_baudrate.setCurrentIndex(index)
+
+                    self.ui.spin_delay.setValue(lighting.get("delay", 100))
+
+                    channels = lighting.get("channels", [0, 0, 0, 0])
+                    if len(channels) >= 4:
+                        self.ui.spin_channel_0.setValue(channels[0])
+                        self.ui.spin_channel_1.setValue(channels[1])
+                        self.ui.spin_channel_2.setValue(channels[2])
+                        self.ui.spin_channel_3.setValue(channels[3])
+
+                # Apply system settings
+                if "system" in modules:
+                    system = modules["system"]
+
+                    self.ui.line_log_dir.setText(system.get("log_dir", ""))
+                    self.ui.line_log_size.setText(system.get("log_size", ""))
+                    self.ui.line_database_path.setText(system.get("database_path", ""))
+                    self.ui.check_auto_start.setChecked(system.get("auto_start", False))
+
+                # Apply server settings
+                if "server" in modules:
+                    server = modules["server"]
+
+                    self.ui.line_host_server.setText(server.get("host", "127.0.0.1"))
+                    self.ui.line_port_server.setText(server.get("port", "8080"))
+
+            # Apply font configuration
+            if "font" in config:
+                font = config["font"]
+
+                Shape.RADIUS = font.get("radius", Shape.RADIUS)
+                Shape.THICKNESS = font.get("thickness", Shape.THICKNESS)
+                Shape.FONT_SIZE = font.get("font_size", Shape.FONT_SIZE)
+                Shape.MIN_SIZE = font.get("min_size", Shape.MIN_SIZE)
+
+                # Save font config to file
+                try:
+                    with open(FONT_CONFIG_PATH, "w") as f:
+                        json.dump(font, f, indent=4, ensure_ascii=False)
+                except Exception as e:
+                    self.ui_logger.error(f"Error saving font config: {e}")
+
+            # Apply model settings
+            if "model" in config:
+                model = config["model"]
+
+                index = self.ui.combo_model.findText(model.get("current", ""))
+                if index >= 0:
+                    self.ui.combo_model.setCurrentIndex(index)
+
+                index = self.ui.combo_model_setting.findText(model.get("setting", ""))
+                if index >= 0:
+                    self.ui.combo_model_setting.setCurrentIndex(index)
+
+            self.ui_logger.info("Configuration applied successfully")
+
+        except Exception as e:
+            self.ui_logger.error(f"Error applying configuration: {e}")
+
+    def load_model(self, config):
         pass
 
     def add_model(self, config):
-        pass
-
-    def load_model(self, config):
         pass
 
     def delete_model(self, config):
@@ -352,11 +611,12 @@ class MainWindow(QMainWindow):
             self.camera_thread = CameraThread("Webcam", {"id": "0", "feature": ""})
             # self.camera_thread = CameraThread()
             self.camera_thread.open_camera()
-            self.ui.btn_start_camera.setEnabled(True)
-            self.ui.btn_test_camera.setEnabled(True)
+
             self.ui.btn_open_camera.setText("Close")
             self.ui.btn_open_camera.setProperty("class", "danger")
-            self.ui.btn_open_camera.style().polish(self.ui.btn_open_camera)
+            update_style(self.ui.btn_open_camera)
+            self.ui.btn_start_camera.setEnabled(True)
+            self.ui.btn_test_camera.setEnabled(True)
 
             self.ui_logger.info("Camera opened successfully")
         except Exception as e:
@@ -365,12 +625,13 @@ class MainWindow(QMainWindow):
     def close_camera(self):
         try:
             self.camera_thread.close_camera()
-            self.ui.btn_start_camera.setEnabled(False)
-            self.ui.btn_test_camera.setEnabled(False)
+            self.camera_thread = None
+
             self.ui.btn_open_camera.setText("Open")
             self.ui.btn_open_camera.setProperty("class", "success")
-            self.ui.btn_open_camera.style().polish(self.ui.btn_open_camera)
-            self.camera_thread = None
+            update_style(self.ui.btn_open_camera)
+            self.ui.btn_start_camera.setEnabled(False)
+            self.ui.btn_test_camera.setEnabled(False)
 
             self.ui_logger.info("Camera closed")
         except Exception as e:
@@ -389,7 +650,7 @@ class MainWindow(QMainWindow):
 
             self.ui.btn_start_camera.setText("Stop")
             self.ui.btn_start_camera.setProperty("class", "danger")
-            self.ui.btn_start_camera.style().polish(self.ui.btn_start_camera)
+            update_style(self.ui.btn_start_camera)
             self.ui.btn_open_camera.setEnabled(False)
             self.ui.btn_load_image.setEnabled(False)
             self.ui.btn_open_folder.setEnabled(False)
@@ -407,7 +668,7 @@ class MainWindow(QMainWindow):
 
             self.ui.btn_start_camera.setText("Start")
             self.ui.btn_start_camera.setProperty("class", "success")
-            self.ui.btn_start_camera.style().polish(self.ui.btn_start_camera)
+            update_style(self.ui.btn_start_camera)
             self.ui.btn_open_camera.setEnabled(True)
             self.ui.btn_load_image.setEnabled(True)
             self.ui.btn_open_folder.setEnabled(True)
@@ -464,11 +725,33 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.ui_logger.error(f"Error Capture: {e}")
 
-    def on_click_refesh(self):
-        pass
-
     def on_click_open_light(self):
-        pass
+        if self.ui.btn_open_light.text() == "Open":
+            self.open_light()
+        else:
+            self.close_light()
+
+    def open_light(self):
+        try:
+            print(self.light_controller.open())
+            self.light_controller.on_channel(0, 10)
+
+            self.ui.btn_open_light.setText("Close")
+            self.ui.btn_open_light.setProperty("class", "danger")
+            update_style(self.ui.btn_open_light)
+        except Exception as e:
+            self.ui_logger.error(f"Error Open Light: {e}")
+
+    def close_light(self):
+        try:
+            self.light_controller.off_channel(0)
+            # self.light_controller.close()
+
+            self.ui.btn_open_light.setText("Open")
+            self.ui.btn_open_light.setProperty("class", "success")
+            update_style(self.ui.btn_open_light)
+        except Exception as e:
+            self.ui_logger.error(f"Error Close Light: {e}")
 
     def on_click_connect_server(self):
         if self.ui.btn_connect_server.text() == "Connect":
@@ -479,18 +762,20 @@ class MainWindow(QMainWindow):
     def connect_server(self):
         try:
             self.tcp_server.start()
+
             self.ui.btn_connect_server.setText("Disconnect")
             self.ui.btn_connect_server.setProperty("class", "danger")
-            self.ui.btn_connect_server.style().polish(self.ui.btn_connect_server)
+            update_style(self.ui.btn_connect_server)
         except Exception as e:
             self.ui_logger.error(f"Error Connect Server: {e}")
 
     def disconnect_server(self):
         try:
             self.tcp_server.stop()
+
             self.ui.btn_connect_server.setText("Connect")
             self.ui.btn_connect_server.setProperty("class", "success")
-            self.ui.btn_connect_server.style().polish(self.ui.btn_connect_server)
+            update_style(self.ui.btn_connect_server)
         except Exception as e:
             self.ui_logger.error(f"Error Disconnect Server: {e}")
 
@@ -510,7 +795,7 @@ class MainWindow(QMainWindow):
         try:
             self.ui.btn_connect_database.setText("Disconnect")
             self.ui.btn_connect_database.setProperty("class", "danger")
-            self.ui.btn_connect_database.style().polish(self.ui.btn_connect_database)
+            update_style(self.ui.btn_connect_database)
         except Exception as e:
             self.ui_logger.error(f"Error Connect Database: {e}")
 
@@ -518,7 +803,7 @@ class MainWindow(QMainWindow):
         try:
             self.ui.btn_connect_database.setText("Connect")
             self.ui.btn_connect_database.setProperty("class", "success")
-            self.ui.btn_connect_database.style().polish(self.ui.btn_connect_database)
+            update_style(self.ui.btn_connect_database)
         except Exception as e:
             self.ui_logger.error(f"Error Disconnect Database: {e}")
 

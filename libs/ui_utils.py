@@ -18,6 +18,11 @@ def load_style_sheet(filename: str, widget: QWidget):
     widget.setStyleSheet(stream.data().decode("UTF-8"))
 
 
+def update_style(item):
+    item.style().unpolish(item)
+    item.style().polish(item)
+
+
 def newIcon(icon_name):
     """Tạo QIcon từ tên resource."""
     return QIcon(":/" + icon_name)

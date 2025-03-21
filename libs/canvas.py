@@ -864,8 +864,8 @@ class Canvas(QLabel):
                 r = self.current
                 if (
                     r is not None
-                    and r.width() > Shape.MIN_WIDTH
-                    and r.height() > Shape.MIN_WIDTH
+                    and r.width() > Shape.MIN_SIZE
+                    and r.height() > Shape.MIN_SIZE
                 ):
                     label = self.boxEditLabel.popUp(
                         self.last_label, self.labels, bMove=False

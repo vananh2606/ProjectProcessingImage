@@ -129,5 +129,5 @@ def test_LCPController():
 
 
 if __name__ == "__main__":
-    # test_DCPController()
-    test_LCPController()
+    test_DCPController()
+    # test_LCPController()

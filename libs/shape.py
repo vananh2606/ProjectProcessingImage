@@ -26,7 +26,7 @@ class Shape(object):
     RADIUS = 20  # Bán kính của điểm góc khi hiển thị
     THICKNESS = 3  # Độ dày của đường viền
     FONT_SIZE = 25  # Kích thước font chữ cho nhãn
-    MIN_WIDTH = 10  # Kích thước tối thiểu của shape
+    MIN_SIZE = 10  # Kích thước tối thiểu của shape
 
     def __init__(self, label=None):
         """
@@ -264,7 +264,7 @@ class Shape(object):
         height = pos3.y() - pos1.y()
 
         # Kiểm tra kích thước tối thiểu
-        if width > Shape.MIN_WIDTH and height > Shape.MIN_WIDTH:
+        if width > Shape.MIN_SIZE and height > Shape.MIN_SIZE:
             ret = True
         else:
             ret = False

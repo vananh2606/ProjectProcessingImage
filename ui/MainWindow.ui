@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>800</width>
-    <height>750</height>
+    <height>650</height>
    </rect>
   </property>
   <property name="font">
@@ -24,7 +24,7 @@
     <item>
      <widget class="QTabWidget" name="tabWidgetMain">
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <property name="movable">
        <bool>true</bool>
@@ -529,7 +529,7 @@
               </size>
              </property>
              <property name="currentIndex">
-              <number>2</number>
+              <number>3</number>
              </property>
              <property name="movable">
               <bool>true</bool>
@@ -741,7 +741,7 @@
                 </widget>
                </item>
                <item row="1" column="2">
-                <widget class="QComboBox" name="combo_comrx"/>
+                <widget class="QComboBox" name="combo_baudrate"/>
                </item>
                <item row="6" column="0">
                 <widget class="QLabel" name="label_channel_2">
@@ -758,7 +758,7 @@
                 </widget>
                </item>
                <item row="1" column="1">
-                <widget class="QComboBox" name="combo_comtx">
+                <widget class="QComboBox" name="combo_comport">
                  <property name="minimumSize">
                   <size>
                    <width>0</width>
@@ -829,7 +829,7 @@
                <item row="1" column="0">
                 <widget class="QLabel" name="label_com">
                  <property name="text">
-                  <string>COM</string>
+                  <string>COM &amp; BAUD</string>
                  </property>
                 </widget>
                </item>
@@ -1044,7 +1044,7 @@
                 </widget>
                </item>
                <item row="4" column="1">
-                <widget class="QLineEdit" name="line_client"/>
+                <widget class="QLineEdit" name="line_message"/>
                </item>
                <item row="4" column="0">
                 <widget class="QLabel" name="label">
@@ -1150,7 +1150,7 @@
        <attribute name="title">
         <string>Database</string>
        </attribute>
-       <layout class="QGridLayout" name="gridLayout_2" rowstretch="2,3" columnstretch="2,3,3" rowminimumheight="0,0">
+       <layout class="QGridLayout" name="gridLayoutDatabase" rowstretch="2,3" columnstretch="2,3,3" rowminimumheight="0,0">
         <item row="0" column="0">
          <widget class="QGroupBox" name="groupBox">
           <property name="title">
