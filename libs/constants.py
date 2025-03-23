@@ -36,4 +36,4 @@ FOLDER_DATE_FORMAT = "%Y-%m-%d"
 
 # CONFIG
 IMAGE_PATH_COLUMN = 4
-FONT_CONFIG_PATH = "resources/font/font.json"
+FONT_CONFIG_PATH = "resources/fonts/font.json"
