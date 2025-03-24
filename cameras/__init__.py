@@ -8,5 +8,10 @@ from cameras.soda import SODA
 from cameras.webcam import Webcam
 
 
-def get_camera_devices():
-    return HIK.get_devices()
+def get_camera_devices(type: str):
+    if type == "HIK":
+        return HIK.get_devices()
+    elif type == "SODA":
+        return SODA.get_devices()
+    elif type == "Webcam":
+        return Webcam.get_devices()

@@ -1,0 +1,38 @@
+{
+    "shapes": {},
+    "modules": {
+        "camera": {
+            "type": "HIK",
+            "id": "DA5691963",
+            "feature": "White.ini"
+        },
+        "lighting": {
+            "controller": "DCP",
+            "com": "COM9",
+            "baudrate": "19200",
+            "delay": 100,
+            "channels": [
+                10,
+                10,
+                10,
+                10
+            ]
+        },
+        "server": {
+            "host": "127.0.0.1",
+            "port": "8080"
+        },
+        "system": {
+            "log_dir": "logs",
+            "log_size": "10",
+            "database_path": "database.db",
+            "auto_start": false
+        }
+    },
+    "font": {
+        "radius": 20,
+        "thickness": 3,
+        "font_size": 25,
+        "min_size": 10
+    }
+}
