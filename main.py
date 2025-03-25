@@ -614,17 +614,25 @@ class MainWindow(QMainWindow):
             t1.join()
 
         time.sleep(0.2)
-        if self.tcp_server is not None:
-            t2 = threading.Thread(target=self.connect_server_auto, daemon=True)
+        if self.light_controller is not None:
+            t2 = threading.Thread(target=self.open_light_auto, daemon=True)
             t2.start()
             t2.join()
+
+        time.sleep(0.2)
+        if self.tcp_server is not None:
+            t3 = threading.Thread(target=self.connect_server_auto, daemon=True)
+            t3.start()
+            t3.join()
 
         time.sleep(0.2)
         threading.Thread(target=self.loop_auto, daemon=True).start()
 
     def open_camera_auto(self):
-        if self.camera_thread is not None:
-            self.camera_thread.open_camera()
+        self.camera_thread.open_camera()
+
+    def open_light_auto(self):
+        self.light_controller.open()
 
     def connect_server_auto(self):
         self.tcp_server.start()
