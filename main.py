@@ -23,7 +23,7 @@ from PyQt5.QtWidgets import (
     QScrollArea,
     QListWidgetItem,
 )
-from PyQt5.QtCore import Qt, QFile, pyqtSignal, QSize
+from PyQt5.QtCore import Qt, QThread, QFile, pyqtSignal, QSize, QPointF
 from PyQt5.QtGui import QImage, QPixmap, QIcon
 from functools import partial
 from collections import namedtuple
@@ -49,8 +49,8 @@ RESULT = namedtuple(
         "model",
         "code",
         "src",
+        "binary",
         "dst",
-        "bin",
         "result",
         "time_check",
         "error_type",
@@ -59,427 +59,25 @@ RESULT = namedtuple(
     defaults=10 * [None],
 )
 
-
-class AutoThread(threading.Thread):
-    """
-    Thread chạy vòng lặp tự động theo model đã lưu.
-    """
-
-    def __init__(self, window):
-        super(AutoThread, self).__init__()
-        self.window = window
-        self.daemon = True  # Thread sẽ tự động kết thúc khi chương trình chính kết thúc
-        self.current_step = STEP_WAIT_TRIGGER
-
-    def run(self):
-        """
-        Thực hiện vòng lặp chính cho auto mode.
-        """
-        self.window.ui_logger.info("Auto thread started")
-
-        while True:
-            # Kiểm tra nếu đã bị dừng
-            if self.window.b_stop_auto:
-                self.window.ui_logger.info("Auto thread stopped")
-                break
-
-            # Xử lý theo từng bước
-            if self.current_step == STEP_WAIT_TRIGGER:
-                self.handle_wait_trigger()
-            elif self.current_step == STEP_PREPROCESS:
-                self.handle_preprocess()
-            elif self.current_step == STEP_PROCESSING:
-                self.handle_processing()
-            elif self.current_step == STEP_OUTPUT:
-                self.handle_output()
-            elif self.current_step == STEP_RELEASE:
-                self.handle_release()
-
-            # Thời gian delay giữa các bước
-            time.sleep(0.01)
-
-    def handle_wait_trigger(self):
-        """
-        Chờ tín hiệu kích hoạt để bắt đầu chu trình.
-        """
-        if self.window.b_trigger_auto:
-            self.window.ui_logger.info("Auto trigger detected")
-            # Lấy thời gian bắt đầu
-            self.window.start_elappsed_time()
-            # Chuyển sang bước tiếp theo
-            self.current_step = STEP_PREPROCESS
-
-    def handle_preprocess(self):
-        """
-        Tiền xử lý ảnh từ camera hoặc file.
-        """
-        try:
-            self.window.ui_logger.info("Auto preprocessing started")
-
-            # Lấy ảnh hiện tại
-            if self.window.current_image is None:
-                # Thử lấy ảnh từ camera nếu không có ảnh
-                if self.window.camera_thread and self.window.camera_thread.is_opened():
-                    self.window.current_image = self.window.camera_thread.grab_camera()
-                    if self.window.current_image is None:
-                        raise Exception("Không thể lấy ảnh từ camera")
-                else:
-                    raise Exception("Không có ảnh và camera không được mở")
-
-            # Lấy thông số ánh sáng từ model hiện tại
-            lighting_config = self.window.get_config()["modules"]["lighting"]
-            channels = lighting_config.get("channels", [10, 10, 10, 10])
-
-            # Kích hoạt ánh sáng theo cấu hình
-            if self.window.light_controller:
-                for i, value in enumerate(channels):
-                    if value > 0:
-                        self.window.light_controller.on_channel(i, value)
-                        self.window.ui_logger.debug(
-                            f"Auto: Turned on channel {i} with intensity {value}"
-                        )
-
-            # Chuyển sang bước tiếp theo
-            self.current_step = STEP_PROCESSING
-            self.window.ui_logger.info("Auto preprocessing completed")
-
-        except Exception as e:
-            self.window.ui_logger.error(f"Auto preprocessing error: {str(e)}")
-            # Trong trường hợp lỗi, quay lại bước chờ trigger
-            self.current_step = STEP_WAIT_TRIGGER
-            self.window.b_trigger_auto = False
-
-    def handle_processing(self):
-        """
-        Xử lý ảnh theo thuật toán của model.
-        """
-        try:
-            self.window.ui_logger.info("Auto processing started")
-
-            # TODO: Thêm mã xử lý ảnh và logic thuật toán ở đây
-            # Ví dụ:
-            # 1. Chuyển đổi ảnh theo chế độ (RGB/HSV) từ config
-            # 2. Áp dụng các phép biến đổi
-            # 3. Thực hiện phân tích, nhận dạng, v.v.
-
-            # Hiển thị kết quả trung gian lên canvas
-            if self.window.current_image is not None:
-                # Ví dụ: Hiển thị ảnh nhị phân
-                binary_image = self.create_binary_image(self.window.current_image)
-                self.window.canvas_binary.load_pixmap(ndarray2pixmap(binary_image))
-
-            # Chuyển sang bước tiếp theo
-            self.current_step = STEP_OUTPUT
-            self.window.ui_logger.info("Auto processing completed")
-
-        except Exception as e:
-            self.window.ui_logger.error(f"Auto processing error: {str(e)}")
-            # Trong trường hợp lỗi, quay lại bước chờ trigger
-            self.current_step = STEP_WAIT_TRIGGER
-            self.window.b_trigger_auto = False
-
-    def handle_output(self):
-        """
-        Xuất kết quả và hiển thị kết quả.
-        """
-        try:
-            self.window.ui_logger.info("Auto output started")
-
-            # Thời gian xử lý
-            elapsed_time = self.window.get_elappsed_time()
-            self.window.ui_logger.info(
-                f"Auto processing time: {elapsed_time:.3f} seconds"
-            )
-
-            # TODO: Thêm mã xử lý kết quả và hiển thị
-            # Ví dụ: Cập nhật UI, hiển thị kết quả Pass/Fail, v.v.
-
-            # Tạo kết quả cuối cùng
-            self.window.final_result = RESULT(
-                camera=self.window.ui.combo_type_camera.currentText(),
-                model=self.window.ui.combo_model.currentText(),
-                code="AUTO-" + time.strftime("%Y%m%d-%H%M%S"),
-                src=self.window.current_image.copy(),
-                dst=self.window.current_image.copy(),  # Thay bằng ảnh đã xử lý
-                bin=self.window.current_image.copy(),  # Thay bằng ảnh nhị phân thực tế
-                result="OK",  # Thay bằng kết quả thực tế (OK/NG)
-                time_check=elapsed_time,
-                error_type=None,  # Nếu có lỗi, ghi loại lỗi ở đây
-                config=self.window.get_config(),
-            )
-
-            # Phát tín hiệu kết quả
-            self.window.signalResultAuto.emit(self.window.final_result)
-
-            # Chuyển sang bước tiếp theo
-            self.current_step = STEP_RELEASE
-            self.window.ui_logger.info("Auto output completed")
-
-        except Exception as e:
-            self.window.ui_logger.error(f"Auto output error: {str(e)}")
-            # Trong trường hợp lỗi, quay lại bước chờ trigger
-            self.current_step = STEP_WAIT_TRIGGER
-            self.window.b_trigger_auto = False
-
-    def handle_release(self):
-        """
-        Giải phóng tài nguyên và hoàn tất chu trình.
-        """
-        try:
-            self.window.ui_logger.info("Auto release started")
-
-            # Tắt đèn nếu cần
-            if self.window.light_controller:
-                for i in range(4):  # Tắt tất cả 4 kênh
-                    self.window.light_controller.off_channel(i)
-                    self.window.ui_logger.debug(f"Auto: Turned off channel {i}")
-
-            # Đặt lại trạng thái trigger
-            self.window.b_trigger_auto = False
-
-            # Chuyển về bước đầu tiên
-            self.current_step = STEP_WAIT_TRIGGER
-            self.window.ui_logger.info("Auto release completed")
-
-        except Exception as e:
-            self.window.ui_logger.error(f"Auto release error: {str(e)}")
-            # Trong trường hợp lỗi, vẫn quay lại bước chờ trigger
-            self.current_step = STEP_WAIT_TRIGGER
-            self.window.b_trigger_auto = False
-
-    def create_binary_image(self, image):
-        """
-        Tạo ảnh nhị phân từ ảnh gốc (ví dụ).
-        """
-        try:
-            # Chuyển sang ảnh xám
-            gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
-            # Làm mờ ảnh để giảm nhiễu
-            blur = cv.GaussianBlur(gray, (5, 5), 0)
-            # Nhị phân hóa bằng ngưỡng Otsu
-            _, binary = cv.threshold(blur, 0, 255, cv.THRESH_BINARY)
-            return binary
-        except Exception as e:
-            self.window.ui_logger.error(f"Error creating binary image: {str(e)}")
-            return image  # Trả về ảnh gốc trong trường hợp lỗi
-
-
-class TeachingThread(threading.Thread):
-    """
-    Thread chạy vòng lặp teaching theo thông số từ giao diện.
-    """
-
-    def __init__(self, window):
-        super(TeachingThread, self).__init__()
-        self.window = window
-        self.daemon = True  # Thread sẽ tự động kết thúc khi chương trình chính kết thúc
-        self.current_step = STEP_WAIT_TRIGGER
-
-    def run(self):
-        """
-        Thực hiện vòng lặp chính cho teaching mode.
-        """
-        self.window.ui_logger.info("Teaching thread started")
-
-        while True:
-            # Kiểm tra nếu đã bị dừng
-            if self.window.b_stop_teaching:
-                self.window.ui_logger.info("Teaching thread stopped")
-                break
-
-            # Xử lý theo từng bước
-            if self.current_step == STEP_WAIT_TRIGGER:
-                self.handle_wait_trigger()
-            elif self.current_step == STEP_PREPROCESS:
-                self.handle_preprocess()
-            elif self.current_step == STEP_PROCESSING:
-                self.handle_processing()
-            elif self.current_step == STEP_OUTPUT:
-                self.handle_output()
-            elif self.current_step == STEP_RELEASE:
-                self.handle_release()
-
-            # Thời gian delay giữa các bước
-            time.sleep(0.01)
-
-    def handle_wait_trigger(self):
-        """
-        Chờ tín hiệu kích hoạt để bắt đầu chu trình teaching.
-        """
-        if self.window.b_trigger_teaching:
-            self.window.ui_logger.info("Teaching trigger detected")
-            # Lấy thời gian bắt đầu
-            self.window.start_elappsed_time()
-            # Chuyển sang bước tiếp theo
-            self.current_step = STEP_PREPROCESS
-
-    def handle_preprocess(self):
-        """
-        Tiền xử lý ảnh trong chế độ teaching.
-        """
-        try:
-            self.window.ui_logger.info("Teaching preprocessing started")
-
-            # Lấy ảnh hiện tại
-            if self.window.current_image is None:
-                # Thử lấy ảnh từ camera nếu không có ảnh
-                if self.window.camera_thread and self.window.camera_thread.is_opened():
-                    self.window.current_image = self.window.camera_thread.grab_camera()
-                    if self.window.current_image is None:
-                        raise Exception("Không thể lấy ảnh từ camera")
-                else:
-                    raise Exception("Không có ảnh và camera không được mở")
-
-            # Lấy thông số ánh sáng trực tiếp từ giao diện
-            channels = [
-                self.window.ui.spin_channel_0.value(),
-                self.window.ui.spin_channel_1.value(),
-                self.window.ui.spin_channel_2.value(),
-                self.window.ui.spin_channel_3.value(),
-            ]
-
-            # Kích hoạt ánh sáng theo cấu hình giao diện
-            if self.window.light_controller:
-                for i, value in enumerate(channels):
-                    if value > 0:
-                        self.window.light_controller.on_channel(i, value)
-                        self.window.ui_logger.debug(
-                            f"Teaching: Turned on channel {i} with intensity {value}"
-                        )
-
-            # Chuyển sang bước tiếp theo
-            self.current_step = STEP_PROCESSING
-            self.window.ui_logger.info("Teaching preprocessing completed")
-
-        except Exception as e:
-            self.window.ui_logger.error(f"Teaching preprocessing error: {str(e)}")
-            # Trong trường hợp lỗi, quay lại bước chờ trigger
-            self.current_step = STEP_WAIT_TRIGGER
-            self.window.b_trigger_teaching = False
-
-    def handle_processing(self):
-        """
-        Xử lý ảnh trong chế độ teaching sử dụng thông số từ giao diện.
-        """
-        try:
-            self.window.ui_logger.info("Teaching processing started")
-
-            # Lấy thông số từ giao diện
-            camera_type = self.window.ui.combo_type_camera.currentText()
-            camera_id = self.window.ui.combo_id_camera.currentText()
-            camera_feature = self.window.ui.combo_feature.currentText()
-
-            # TODO: Thêm mã xử lý ảnh theo thông số từ giao diện
-            # Ví dụ:
-            # 1. Chuyển đổi ảnh theo chế độ (RGB/HSV) từ UI
-            # 2. Áp dụng các phép biến đổi với thông số từ UI
-            # 3. Thực hiện phân tích, nhận dạng, v.v.
-
-            # Hiển thị kết quả trung gian lên canvas
-            if self.window.current_image is not None:
-                # Ví dụ: Hiển thị ảnh nhị phân
-                binary_image = self.create_binary_image(self.window.current_image)
-                self.window.canvas_binary.load_pixmap(ndarray2pixmap(binary_image))
-
-            # Chuyển sang bước tiếp theo
-            self.current_step = STEP_OUTPUT
-            self.window.ui_logger.info("Teaching processing completed")
-
-        except Exception as e:
-            self.window.ui_logger.error(f"Teaching processing error: {str(e)}")
-            # Trong trường hợp lỗi, quay lại bước chờ trigger
-            self.current_step = STEP_WAIT_TRIGGER
-            self.window.b_trigger_teaching = False
-
-    def handle_output(self):
-        """
-        Xuất kết quả và hiển thị kết quả trong chế độ teaching.
-        """
-        try:
-            self.window.ui_logger.info("Teaching output started")
-
-            # Thời gian xử lý
-            elapsed_time = self.window.get_elappsed_time()
-            self.window.ui_logger.info(
-                f"Teaching processing time: {elapsed_time:.3f} seconds"
-            )
-
-            # TODO: Thêm mã xử lý kết quả và hiển thị
-            # Ví dụ: Cập nhật UI, hiển thị kết quả, v.v.
-
-            # Tạo kết quả cuối cùng cho teaching
-            self.window.final_result = RESULT(
-                camera=self.window.ui.combo_type_camera.currentText(),
-                model="TEACHING",  # Chế độ teaching không sử dụng model
-                code="TEACH-" + time.strftime("%Y%m%d-%H%M%S"),
-                src=self.window.current_image.copy(),
-                dst=self.window.current_image.copy(),  # Thay bằng ảnh đã xử lý
-                bin=self.window.current_image.copy(),  # Thay bằng ảnh nhị phân thực tế
-                result="OK",  # Thay bằng kết quả thực tế (OK/NG)
-                time_check=elapsed_time,
-                error_type=None,  # Nếu có lỗi, ghi loại lỗi ở đây
-                config=self.window.get_config(),  # Config hiện tại từ UI
-            )
-
-            # Phát tín hiệu kết quả teaching
-            self.window.signalResultTeaching.emit(self.window.final_result)
-
-            # Chuyển sang bước tiếp theo
-            self.current_step = STEP_RELEASE
-            self.window.ui_logger.info("Teaching output completed")
-
-        except Exception as e:
-            self.window.ui_logger.error(f"Teaching output error: {str(e)}")
-            # Trong trường hợp lỗi, quay lại bước chờ trigger
-            self.current_step = STEP_WAIT_TRIGGER
-            self.window.b_trigger_teaching = False
-
-    def handle_release(self):
-        """
-        Giải phóng tài nguyên và hoàn tất chu trình teaching.
-        """
-        try:
-            self.window.ui_logger.info("Teaching release started")
-
-            # Tắt đèn nếu cần
-            if self.window.light_controller:
-                for i in range(4):  # Tắt tất cả 4 kênh
-                    self.window.light_controller.off_channel(i)
-                    self.window.ui_logger.debug(f"Teaching: Turned off channel {i}")
-
-            # Đặt lại trạng thái trigger
-            self.window.b_trigger_teaching = False
-
-            # Chuyển về bước đầu tiên
-            self.current_step = STEP_WAIT_TRIGGER
-            self.window.ui_logger.info("Teaching release completed")
-
-        except Exception as e:
-            self.window.ui_logger.error(f"Teaching release error: {str(e)}")
-            # Trong trường hợp lỗi, vẫn quay lại bước chờ trigger
-            self.current_step = STEP_WAIT_TRIGGER
-            self.window.b_trigger_teaching = False
-
-    def create_binary_image(self, image):
-        """
-        Tạo ảnh nhị phân từ ảnh gốc (ví dụ).
-        """
-        try:
-            # Chuyển sang ảnh xám
-            gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
-            # Làm mờ ảnh để giảm nhiễu
-            blur = cv.GaussianBlur(gray, (5, 5), 0)
-            # Nhị phân hóa bằng ngưỡng Otsu
-            _, binary = cv.threshold(blur, 0, 255, cv.THRESH_BINARY)
-            return binary
-        except Exception as e:
-            self.window.ui_logger.error(f"Error creating binary image: {str(e)}")
-            return image  # Trả về ảnh gốc trong trường hợp lỗi
+DATA_IMAGE = namedtuple(
+    "data_image",
+    [
+        "path",
+        "src",
+        "binary",
+        "dst",
+    ],
+    defaults=4 * [None],
+)
 
 
 class MainWindow(QMainWindow):
     signalResultAuto = pyqtSignal(object)
     signalResultTeaching = pyqtSignal(object)
+
+    signalChangeLight = pyqtSignal(object)
+    signalChangeProcessing = pyqtSignal(object)
+    signalChangeModel = pyqtSignal(object)
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -500,23 +98,24 @@ class MainWindow(QMainWindow):
             self.log_path,
         )
 
-        # Server
-        self.tcp_server = None
-
         # Camera
         self.camera_thread = None
-
-        # Image
-        self.current_image = None
-        self.file_paths = []
 
         # Lighting
         self.light_controller = None
 
+        # Server
+        self.tcp_server = None
+
+        # Image
+        self.current_image_path = None
+        self.current_image = None
+        self.file_paths = []
+
         # Threading
         self._b_trigger_auto = False
-        self._b_trigger_teaching = False
         self._b_stop_auto = False
+        self._b_trigger_teaching = False
         self._b_stop_teaching = False
 
         # Time
@@ -524,6 +123,9 @@ class MainWindow(QMainWindow):
 
         # Result
         self.final_result: RESULT = None
+
+        # Data Image
+        self.data_image: DATA_IMAGE = None
 
     def initUi(self):
         # Theme
@@ -562,10 +164,6 @@ class MainWindow(QMainWindow):
         self.canvas_auto = Canvas()
         self.ui.verticalLayoutScreenAuto.addWidget(WindowCanvas(self.canvas_auto))
 
-        # # ScrollBar
-        # scroll_bar_database = add_scroll(self.ui.table_widget_database)
-        # self.ui.verticalLayoutDatabase.addWidget(scroll_bar_database)
-
         # Model
         self.initialize_models()
         # self.init_all_modules()
@@ -600,6 +198,7 @@ class MainWindow(QMainWindow):
             self.on_change_camera_type
         )
 
+        # ListWidget
         self.ui.list_widget_image.itemSelectionChanged.connect(
             self.display_list_widget_image
         )
@@ -608,26 +207,9 @@ class MainWindow(QMainWindow):
         self.signalResultAuto.connect(self.handle_result_auto)
         self.signalResultTeaching.connect(self.handle_result_teaching)
 
-        # Server
-        # self.tcp_server.clientConnected.connect(
-        #     lambda host, address: print(
-        #         f"Client kết nối HOST: {host} - ADDRESS:{address}"
-        #     )
-        # )
-        # self.tcp_server.clientDisconnected.connect(
-        #     lambda host, address: print(
-        #         f"Client ngắt kết nối HOST: {host} - ADDRESS:{address}"
-        #     )
-        # )
-        # self.tcp_server.dataReceived.connect(
-        #     lambda host, address, data: self.handle_received_data(host, address, data)
-        # )
-        # self.tcp_server.serverStarted.connect(
-        #     lambda host, port: print(
-        #         f"Server đã khởi động tại HOST: {host} - PORT: {port}"
-        #     )
-        # )
-        # self.tcp_server.serverStopped.connect(lambda: print("Server đã dừng"))
+        # Kết nối tín hiệu thay đổi ánh sáng
+        self.signalChangeLight.connect(self.handle_change_light)
+        self.change_value_light()
 
     def load_theme(self):
         self.ui.actionLight.triggered.connect(partial(self.set_theme, "light"))
@@ -644,6 +226,20 @@ class MainWindow(QMainWindow):
         elif theme == "rainbow":
             path = "resources/themes/rainbow_theme.qss"
             load_style_sheet(path, QApplication.instance())
+
+    def change_value_light(self):
+        self.ui.spin_channel_0.valueChanged.connect(
+            lambda value: self.signalChangeLight.emit((0, value))
+        )
+        self.ui.spin_channel_1.valueChanged.connect(
+            lambda value: self.signalChangeLight.emit((1, value))
+        )
+        self.ui.spin_channel_2.valueChanged.connect(
+            lambda value: self.signalChangeLight.emit((2, value))
+        )
+        self.ui.spin_channel_3.valueChanged.connect(
+            lambda value: self.signalChangeLight.emit((3, value))
+        )
 
     def initialize_models(self):
         """
@@ -736,16 +332,11 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.ui_logger.error(f"Lỗi khi áp dụng cấu hình mặc định: {str(e)}")
 
-    def init_camera(self):
+    def init_camera(self, camera_type, camera_id, camera_feature):
         """
         Khởi tạo camera với thông số từ giao diện.
         """
         try:
-            # Lấy thông số từ giao diện
-            camera_type = self.ui.combo_type_camera.currentText()
-            camera_id = self.ui.combo_id_camera.currentText()
-            camera_feature = self.ui.combo_feature.currentText()
-
             # Ghi log thông số camera
             self.ui_logger.info(
                 f"Khởi tạo camera: Type={camera_type}, ID={camera_id}, Feature={camera_feature}"
@@ -787,16 +378,11 @@ class MainWindow(QMainWindow):
             self.ui_logger.error(f"Lỗi khi khởi tạo camera: {str(e)}")
             return False
 
-    def init_lighting(self):
+    def init_lighting(self, controller_type, com_port, baud_rate):
         """
         Khởi tạo bộ điều khiển đèn với thông số từ giao diện.
         """
         try:
-            # Lấy thông số từ giao diện
-            controller_type = self.ui.combo_controller_light.currentText()
-            com_port = self.ui.combo_comport.currentText()
-            baud_rate = int(self.ui.combo_baudrate.currentText())
-
             # Ghi log thông số lighting
             self.ui_logger.info(
                 f"Khởi tạo lighting: Type={controller_type}, COM={com_port}, Baud={baud_rate}"
@@ -820,15 +406,11 @@ class MainWindow(QMainWindow):
             self.ui_logger.error(f"Lỗi khi khởi tạo lighting: {str(e)}")
             return False
 
-    def init_server(self):
+    def init_server(self, host, port):
         """
         Khởi tạo server với thông số từ giao diện.
         """
         try:
-            # Lấy thông số từ giao diện
-            host = self.ui.line_host_server.text()
-            port = int(self.ui.line_port_server.text())
-
             # Ghi log thông số server
             self.ui_logger.info(f"Khởi tạo server: Host={host}, Port={port}")
 
@@ -884,40 +466,6 @@ class MainWindow(QMainWindow):
             self.ui_logger.error(f"Lỗi khi khởi tạo hệ thống: {str(e)}")
             return False
 
-    def init_all_modules(self):
-        """
-        Khởi tạo tất cả các module theo thông số từ giao diện.
-        """
-        # Khởi tạo system
-        system_ok = self.init_system()
-        if not system_ok:
-            self.ui_logger.warning(
-                "Không thể khởi tạo hệ thống với thông số từ giao diện, sử dụng thông số mặc định"
-            )
-
-        # Khởi tạo server
-        server_ok = self.init_server()
-        if not server_ok:
-            self.ui_logger.warning(
-                "Không thể khởi tạo server với thông số từ giao diện, sử dụng thông số mặc định"
-            )
-
-        # Khởi tạo lighting
-        lighting_ok = self.init_lighting()
-        if not lighting_ok:
-            self.ui_logger.warning(
-                "Không thể khởi tạo lighting với thông số từ giao diện, sử dụng thông số mặc định"
-            )
-
-        # Khởi tạo camera
-        camera_ok = self.init_camera()
-        if not camera_ok:
-            self.ui_logger.warning(
-                "Không thể khởi tạo camera với thông số từ giao diện, sử dụng thông số mặc định"
-            )
-
-        return system_ok and server_ok and lighting_ok and camera_ok
-
     def write_log(self):
         """Ghi thử một số log"""
         self.ui_logger_text.textSignal.emit("Một thông báo khác", None)
@@ -932,13 +480,6 @@ class MainWindow(QMainWindow):
         self.ui_logger.error("Đây là log ERROR")
         self.ui_logger.critical("Đây là log CRITICAL")
 
-    def handle_received_data(self, host, address, data):
-        print(f"Nhận từ HOST: {host} - ADDRESS:{address}: {data}")
-        if data == "Check":
-            self.tcp_server.send_to_client(
-                (host, int(address)), "Đã nhận dữ liệu của bạn"
-            )
-
     def start_elappsed_time(self):
         self.t_start = time.time()
 
@@ -948,7 +489,6 @@ class MainWindow(QMainWindow):
 
     @property
     def b_trigger_auto(self):
-        self.ui_logger.debug(f"Get b_trigger_auto: {self._b_trigger_auto}")
         return self._b_trigger_auto
 
     @b_trigger_auto.setter
@@ -956,23 +496,9 @@ class MainWindow(QMainWindow):
         if not isinstance(boolean, bool):
             raise self.ui_logger.error("Biến phải là kiểu bool!")
         self._b_trigger_auto = boolean
-        self.ui_logger.debug(f"Set b_trigger_auto: {self._b_trigger_auto}")
-
-    @property
-    def b_trigger_teaching(self):
-        self.ui_logger.debug(f"Get b_trigger_teaching: {self._b_trigger_teaching}")
-        return self._b_trigger_teaching
-
-    @b_trigger_teaching.setter
-    def b_trigger_teaching(self, boolean):
-        if not isinstance(boolean, bool):
-            raise self.ui_logger.error("Biến phải là kiểu bool!")
-        self._b_trigger_teaching = boolean
-        self.ui_logger.debug(f"Set b_trigger_teaching: {self._b_trigger_teaching}")
 
     @property
     def b_stop_auto(self):
-        self.ui_logger.debug(f"Get b_stop_auto: {self._b_stop_auto}")
         return self._b_stop_auto
 
     @b_stop_auto.setter
@@ -980,11 +506,19 @@ class MainWindow(QMainWindow):
         if not isinstance(boolean, bool):
             raise self.ui_logger.error("Biến phải là kiểu bool!")
         self._b_stop_auto = boolean
-        self.ui_logger.debug(f"Set b_stop_auto: {self._b_stop_auto}")
+
+    @property
+    def b_trigger_teaching(self):
+        return self._b_trigger_teaching
+
+    @b_trigger_teaching.setter
+    def b_trigger_teaching(self, boolean):
+        if not isinstance(boolean, bool):
+            raise self.ui_logger.error("Biến phải là kiểu bool!")
+        self._b_trigger_teaching = boolean
 
     @property
     def b_stop_teaching(self):
-        self.ui_logger.debug(f"Get b_stop_teaching: {self._b_stop_teaching}")
         return self._b_stop_teaching
 
     @b_stop_teaching.setter
@@ -992,7 +526,6 @@ class MainWindow(QMainWindow):
         if not isinstance(boolean, bool):
             raise self.ui_logger.error("Biến phải là kiểu bool!")
         self._b_stop_teaching = boolean
-        self.ui_logger.debug(f"Set b_stop_teaching: {self._b_stop_teaching}")
 
     def on_click_start(self):
         """
@@ -1002,30 +535,28 @@ class MainWindow(QMainWindow):
         try:
             self.ui_logger.info("Bắt đầu khởi động hệ thống Auto")
 
-            # Khởi tạo lại các module nếu cần
-            init_ok = self.init_all_modules()
+            # Cập nhật UI
+            self.ui.btn_start.setEnabled(False)
+            self.ui.combo_model.setEnabled(False)
+            self.ui.btn_stop.setEnabled(True)
 
-            if init_ok:
-                # Cập nhật UI
-                self.ui.btn_start.setEnabled(False)
-                self.ui.btn_stop.setEnabled(True)
-
-                # Khởi tạo và bắt đầu luồng auto
-                self.auto_thread = AutoThread(self)
-                self.auto_thread.start()
-
-                # Đặt trạng thái trigger auto
-                self.b_trigger_auto = True
-                self.b_stop_auto = False
-
-                self.ui_logger.info("Hệ thống Auto đã khởi động thành công")
-            else:
-                self.ui_logger.error(
-                    "Không thể khởi động hệ thống Auto với thông số hiện tại"
-                )
+            # self.set_up_auto()
+            self.start_loop_auto()
 
         except Exception as e:
-            self.ui_logger.error(f"Lỗi khi khởi động hệ thống Auto: {str(e)}")
+            self.ui_logger.error(f"Error start auto: {str(e)}")
+
+    def set_up_auto(self):
+        if not self.b_stop_teaching:
+            self.stop_teaching()
+        if self.ui.btn_start_camera.text() == "Stop":
+            self.stop_camera()
+        if self.ui.btn_open_camera.text() == "Close":
+            self.close_camera()
+        if self.ui.btn_open_light.text() == "Close":
+            self.close_light()
+        if self.ui.btn_connect_server.text() == "Disconnect":
+            self.disconnect_server()
 
     def on_click_stop(self):
         """
@@ -1035,42 +566,263 @@ class MainWindow(QMainWindow):
         try:
             self.ui_logger.info("Đang dừng hệ thống Auto")
 
-            # Đặt trạng thái dừng
-            self.b_stop_auto = True
-            self.b_trigger_auto = False
-
             # Cập nhật UI
             self.ui.btn_start.setEnabled(True)
+            self.ui.combo_model.setEnabled(True)
             self.ui.btn_stop.setEnabled(False)
 
-            self.ui_logger.info("Hệ thống Auto đã dừng thành công")
+            self.stop_loop_auto()
+            self.release_loop_auto()
 
         except Exception as e:
-            self.ui_logger.error(f"Lỗi khi dừng hệ thống Auto: {str(e)}")
+            self.ui_logger.error(f"Error stop auto: {str(e)}")
 
-    def on_click_start_teaching(self):
-        """
-        Xử lý sự kiện khi nhấn nút Start Teaching.
-        Khởi động luồng teaching.
-        """
+    def release_loop_auto(self):
+        if self.camera_thread is not None:
+            self.camera_thread.open_camera()
+        if self.light_controller is not None:
+            self.light_controller.close()
+        if self.tcp_server is not None:
+            self.tcp_server.stop()
+
+    def start_loop_auto(self):
+        config = self.load_config(model_setting=False)
+
+        # Init Camera
+        camera_type = config["modules"]["camera"]["type"]
+        camera_id = config["modules"]["camera"]["id"]
+        camera_feature = config["modules"]["camera"]["feature"]
+        self.init_camera(camera_type, camera_id, camera_feature)
+
+        # Init Lighting
+        controller_type = config["modules"]["lighting"]["controller"]
+        com_port = config["modules"]["lighting"]["com"]
+        baud_rate = int(config["modules"]["lighting"]["baudrate"])
+        self.init_lighting(controller_type, com_port, baud_rate)
+
+        # Init Server
+        host = config["modules"]["server"]["host"]
+        port = int(config["modules"]["server"]["port"])
+        self.init_server(host, port)
+
+        threading.Thread(target=self.setup_loop_auto, daemon=True).start()
+
+    def setup_loop_auto(self):
+        if self.camera_thread is not None:
+            t1 = threading.Thread(target=self.open_camera_auto, daemon=True)
+            t1.start()
+            t1.join()
+
+        time.sleep(0.2)
+        if self.tcp_server is not None:
+            t2 = threading.Thread(target=self.connect_server_auto, daemon=True)
+            t2.start()
+            t2.join()
+
+        time.sleep(0.2)
+        threading.Thread(target=self.loop_auto, daemon=True).start()
+
+    def open_camera_auto(self):
+        if self.camera_thread is not None:
+            self.camera_thread.open_camera()
+
+    def connect_server_auto(self):
+        self.tcp_server.start()
+        self.tcp_server.dataReceived.connect(self.wait_data_received_from_client)
+
+    def wait_data_received_from_client(self, host, address, data):
+        if data == "Check":
+            self.b_trigger_auto = True
+
+    def loop_auto(self):
+        config = self.load_config(model_setting=False)
+
+        self.b_stop_auto = False
+        self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
+
+        while True:
+            # Kiểm tra nếu đã bị dừng
+            if self.b_stop_auto:
+                self.ui_logger.info("Auto thread stopped")
+                break
+
+            # Xử lý theo từng bước
+            if self.current_step_auto == STEP_WAIT_TRIGGER_AUTO:
+                self.handle_wait_trigger_auto()
+            elif self.current_step_auto == STEP_PREPROCESS_AUTO:
+                self.handle_preprocess_auto(config)
+            elif self.current_step_auto == STEP_PROCESSING_AUTO:
+                self.handle_processing_auto()
+            elif self.current_step_auto == STEP_OUTPUT_AUTO:
+                self.handle_output_auto(config)
+            elif self.current_step_auto == STEP_RELEASE_AUTO:
+                self.handle_release_auto(config)
+
+            # Thời gian delay giữa các bước
+            time.sleep(0.1)
+
+    def stop_loop_auto(self):
+        self.b_stop_auto = True
+
+    def handle_wait_trigger_auto(self):
+        if self.b_trigger_auto:
+            self.ui_logger.debug("Step Auto: Wait Trigger")
+            self.b_trigger_auto = False
+            self.start_elappsed_time()
+            self.current_step_auto = STEP_PREPROCESS_AUTO
+
+    def handle_preprocess_auto(self, config):
         try:
-            self.ui_logger.info("Bắt đầu khởi động hệ thống Teaching")
+            self.ui_logger.debug("Step Auto: Preprocess")
 
-            # Cập nhật UI
-            self.ui.btn_start_teaching.setEnabled(False)
+            # Mở đèn
+            type_light = config["modules"]["lighting"]["controller"]
+            channel_0 = config["modules"]["lighting"]["channels"][0]
+            channel_1 = config["modules"]["lighting"]["channels"][1]
+            channel_2 = config["modules"]["lighting"]["channels"][2]
+            channel_3 = config["modules"]["lighting"]["channels"][3]
+            channels = [channel_0, channel_1, channel_2, channel_3]
 
-            # Khởi tạo và bắt đầu luồng teaching
-            self.teaching_thread = TeachingThread(self)
-            self.teaching_thread.start()
+            if self.light_controller is not None:
+                for i, value in enumerate(channels):
+                    if value > 0:
+                        if type_light == "LCP":
+                            self.light_controller.on_channel(i)
+                            self.light_controller.set_light_value(i, value)
+                        else:  # DCP controller
+                            self.light_controller.on_channel(i, value)
 
-            # Đặt trạng thái trigger teaching
-            self.b_trigger_teaching = True
-            self.b_stop_teaching = False
+            delay_lighting = config["modules"]["lighting"]["delay"] / 1000
 
-            self.ui_logger.info("Hệ thống Teaching đã khởi động thành công")
+            time.sleep(delay_lighting)
+
+            # Lấy ảnh hiện tại từ camera
+            if self.camera_thread is not None:
+                self.current_image = self.camera_thread.grab_camera()
+                self.current_image_path = None
+
+            # Chuyển sang bước tiếp theo
+            self.current_step_auto = STEP_PROCESSING_AUTO
+        except Exception as e:
+            self.ui_logger.error(f"Auto preprocessing error: {str(e)}")
+            # Trong trường hợp lỗi, quay lại bước chờ trigger
+            self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
+            self.b_trigger_auto = False
+
+    def handle_processing_auto(self):
+        try:
+            self.ui_logger.debug("Step Auto: Processing")
+
+            # Hiển thị kết quả trung gian lên canvas
+            if self.current_image is not None:
+                src = self.current_image
+
+                # Convert image
+                gray = cv.cvtColor(src, cv.COLOR_BGR2GRAY)
+
+                # Blur
+                blur = cv.GaussianBlur(gray, (5, 5), 0)
+
+                # Threshold
+                _, thresh = cv.threshold(blur, 127, 255, cv.THRESH_BINARY)
+
+                # Morphological Operations
+                kernel = cv.getStructuringElement(cv.MORPH_RECT, (3, 3))
+                binary = cv.erode(thresh, kernel, iterations=1)
+                # binary = cv.dilate(binary, kernel, iterations=1)
+
+                # Find contours
+                cnts, _ = cv.findContours(
+                    binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE
+                )
+
+                # Draw contours
+                dst = src.copy()
+                cv.drawContours(dst, cnts, -1, (0, 255, 0), 2)
+
+                self.ImageData = DATA_IMAGE(
+                    path=self.current_image_path,
+                    src=src,
+                    binary=binary,
+                    dst=dst,
+                )
+
+            # Chuyển sang bước tiếp theo
+            self.current_step_auto = STEP_OUTPUT_AUTO
 
         except Exception as e:
-            self.ui_logger.error(f"Lỗi khi khởi động hệ thống Teaching: {str(e)}")
+            self.ui_logger.error(f"Auto processing error: {str(e)}")
+            # Trong trường hợp lỗi, quay lại bước chờ trigger
+            self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
+            self.b_trigger_auto = False
+
+    def handle_output_auto(self, config):
+        try:
+            self.ui_logger.debug("Step Auto: Output")
+
+            # Thời gian xử lý
+            elapsed_time = self.get_elappsed_time()
+            self.ui_logger.info(f"Auto processing time: {elapsed_time:.3f} seconds")
+
+            # TODO: Thêm mã xử lý kết quả và hiển thị
+            # Ví dụ: Cập nhật UI, hiển thị kết quả, v.v.
+
+            # Tạo kết quả cuối cùng cho auto
+            self.final_result = RESULT(
+                camera=self.ui.combo_type_camera.currentText(),
+                model="AUTO",  # Chế độ auto không sử dụng model
+                code="AUTO-" + time.strftime("%Y%m%d-%H%M%S"),
+                src=self.ImageData.src,
+                dst=self.ImageData.dst,  # Thay bằng ảnh đã xử lý
+                binary=self.ImageData.binary,  # Thay bằng ảnh nhị phân thực tế
+                result="msg",  # Thay bằng kết quả thực tế (OK/NG)
+                time_check=elapsed_time,
+                error_type=None,  # Nếu có lỗi, ghi loại lỗi ở đây
+                config=config,  # Config hiện tại từ UI
+            )
+
+            # Phát tín hiệu kết quả auto
+            self.signalResultAuto.emit(self.final_result)
+
+            # Chuyển sang bước tiếp theo
+            self.current_step_auto = STEP_RELEASE_AUTO
+
+        except Exception as e:
+            self.ui_logger.error(f"Auto output error: {str(e)}")
+            # Trong trường hợp lỗi, quay lại bước chờ trigger
+            self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
+            self.b_trigger_auto = False
+
+    def handle_release_auto(self, config):
+        try:
+            self.ui_logger.debug("Step Auto: Release")
+
+            # Tắt đèn
+            channel_0 = config["modules"]["lighting"]["channels"][0]
+            channel_1 = config["modules"]["lighting"]["channels"][1]
+            channel_2 = config["modules"]["lighting"]["channels"][2]
+            channel_3 = config["modules"]["lighting"]["channels"][3]
+            channels = [channel_0, channel_1, channel_2, channel_3]
+
+            if self.light_controller is not None:
+                for i, value in enumerate(channels):
+                    if value > 0:
+                        self.light_controller.off_channel(i)
+
+            # Giải phóng tài nguyên đã khởi tạo
+            self.final_result = None
+            self.ImageData = None
+
+            # Đặt lại trạng thái trigger
+            self.b_trigger_auto = False
+
+            # Chuyển sang bước chờ trigger
+            self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
+        except Exception as e:
+            self.ui_logger.error(f"Auto release error: {str(e)}")
+            # Trong trường hợp lỗi, quay lại bước chờ trigger
+            self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
+            self.b_trigger_auto = False
 
     def on_click_reset(self):
         """
@@ -1084,22 +836,241 @@ class MainWindow(QMainWindow):
             self.b_stop_auto = True
             self.b_trigger_auto = False
 
-            # Dừng luồng teaching
-            self.b_stop_teaching = True
-            self.b_trigger_teaching = False
-
             # Cập nhật UI
             self.ui.btn_start.setEnabled(True)
             self.ui.btn_stop.setEnabled(False)
-            self.ui.btn_start_teaching.setEnabled(True)
 
             # Khôi phục cấu hình mặc định
             self.apply_default_config()
 
-            self.ui_logger.info("Hệ thống đã reset thành công")
+        except Exception as e:
+            self.ui_logger.error(f"Error reset: {str(e)}")
+
+    def on_click_start_teaching(self):
+        """
+        Xử lý sự kiện khi nhấn nút Start Teaching.
+        Khởi động luồng teaching.
+        """
+        if self.ui.btn_start_teaching.text() == "Start Teaching":
+            self.start_teaching()
+        else:
+            self.stop_teaching()
+
+    def start_teaching(self):
+        try:
+            self.ui_logger.info("Bắt đầu khởi động hệ thống Teaching")
+
+            # Cập nhật UI
+            self.ui.btn_start_teaching.setText("Stop Teaching")
+            self.ui.btn_start_teaching.setProperty("class", "danger")
+            update_style(self.ui.btn_start_teaching)
+
+            # Trigger Teaching
+            self.b_trigger_teaching = True
+
+            self.start_loop_teaching()
 
         except Exception as e:
-            self.ui_logger.error(f"Lỗi khi reset hệ thống: {str(e)}")
+            self.ui_logger.error(f"Error starting teaching: {str(e)}")
+
+    def stop_teaching(self):
+        try:
+            self.ui_logger.info("Đang dừng hệ thống Teaching")
+
+            # Cập nhật UI
+            self.ui.btn_start_teaching.setText("Start Teaching")
+            self.ui.btn_start_teaching.setProperty("class", "success")
+            update_style(self.ui.btn_start_teaching)
+
+            # Trigger Teaching
+            self.b_trigger_teaching = False
+
+            self.stop_loop_teaching()
+
+        except Exception as e:
+            self.ui_logger.error(f"Error stopping teaching: {str(e)}")
+
+    def start_loop_teaching(self):
+        threading.Thread(target=self.loop_teaching, daemon=True).start()
+
+    def loop_teaching(self):
+        self.b_stop_teaching = False
+        self.current_step_teaching = STEP_WAIT_TRIGGER_TEACHING
+
+        while True:
+            # Kiểm tra nếu đã bị dừng
+            if self.b_stop_teaching:
+                self.ui_logger.info("Teaching thread stopped")
+                break
+
+            # Xử lý theo từng bước
+            if self.current_step_teaching == STEP_WAIT_TRIGGER_TEACHING:
+                self.handle_wait_trigger_teaching()
+            elif self.current_step_teaching == STEP_PREPROCESS_TEACHING:
+                self.handle_preprocess_teaching()
+            elif self.current_step_teaching == STEP_PROCESSING_TEACHING:
+                self.handle_processing_teaching()
+            elif self.current_step_teaching == STEP_OUTPUT_TEACHING:
+                self.handle_output_teaching()
+            elif self.current_step_teaching == STEP_RELEASE_TEACHING:
+                self.handle_release_teaching()
+
+            # Thời gian delay giữa các bước
+            time.sleep(0.05)
+
+    def stop_loop_teaching(self):
+        self.b_stop_teaching = True
+
+    def handle_wait_trigger_teaching(self):
+        """
+        Chờ tín hiệu kích hoạt để bắt đầu chu trình teaching.
+        """
+        if self.b_trigger_teaching:
+            self.ui_logger.debug("Step Teaching: Wait Trigger")
+            self.b_trigger_teaching = False
+            self.start_elappsed_time()
+            self.current_step_teaching = STEP_PREPROCESS_TEACHING
+
+    def handle_preprocess_teaching(self):
+        """
+        Tiền xử lý ảnh trong chế độ teaching.
+        """
+        try:
+            self.ui_logger.debug("Step Teaching: Preprocess")
+
+            # Lấy ảnh hiện tại từ camera hoặc file
+            if self.current_image is None:
+                raise Exception("Không có ảnh để xử lý")
+
+            # Kiểm tra ánh sáng
+            if self.light_controller is None:
+                self.ui_logger.warning("Ánh sáng chưa được mở")
+
+            # Kiem tra Server
+            if self.tcp_server is None:
+                self.ui_logger.warning("Chưa kết nối tới Server")
+
+            # Chuyển sang bước tiếp theo
+            self.current_step_teaching = STEP_PROCESSING_TEACHING
+
+        except Exception as e:
+            self.ui_logger.error(f"Teaching preprocessing error: {str(e)}")
+            # Trong trường hợp lỗi, quay lại bước chờ trigger
+            self.current_step_teaching = STEP_WAIT_TRIGGER_TEACHING
+            self.b_trigger_teaching = False
+
+    def handle_processing_teaching(self):
+        """
+        Xử lý ảnh trong chế độ teaching sử dụng thông số từ giao diện.
+        """
+        try:
+            self.ui_logger.debug("Step Teaching: Processing")
+
+            # Hiển thị kết quả trung gian lên canvas
+            if self.current_image is not None:
+                src = self.current_image
+
+                # Convert image
+                gray = cv.cvtColor(src, cv.COLOR_BGR2GRAY)
+
+                # Blur
+                blur = cv.GaussianBlur(gray, (5, 5), 0)
+
+                # Threshold
+                _, thresh = cv.threshold(blur, 127, 255, cv.THRESH_BINARY)
+
+                # Morphological Operations
+                kernel = cv.getStructuringElement(cv.MORPH_RECT, (3, 3))
+                binary = cv.erode(thresh, kernel, iterations=1)
+                # binary = cv.dilate(binary, kernel, iterations=1)
+
+                # Find contours
+                cnts, _ = cv.findContours(
+                    binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE
+                )
+
+                # Draw contours
+                dst = src.copy()
+                cv.drawContours(dst, cnts, -1, (0, 255, 0), 2)
+
+                self.ImageData = DATA_IMAGE(
+                    path=self.current_image_path,
+                    src=src,
+                    binary=binary,
+                    dst=dst,
+                )
+
+            # Chuyển sang bước tiếp theo
+            self.current_step_teaching = STEP_OUTPUT_TEACHING
+
+        except Exception as e:
+            self.ui_logger.error(f"Teaching processing error: {str(e)}")
+            # Trong trường hợp lỗi, quay lại bước chờ trigger
+            self.current_step_teaching = STEP_WAIT_TRIGGER_TEACHING
+            self.b_trigger_teaching = False
+
+    def handle_output_teaching(self):
+        """
+        Xuất kết quả và hiển thị kết quả trong chế độ teaching.
+        """
+        try:
+            self.ui_logger.debug("Step Teaching: Output")
+
+            # Thời gian xử lý
+            elapsed_time = self.get_elappsed_time()
+            self.ui_logger.info(f"Teaching processing time: {elapsed_time:.3f} seconds")
+
+            # TODO: Thêm mã xử lý kết quả và hiển thị
+            # Ví dụ: Cập nhật UI, hiển thị kết quả, v.v.
+
+            # Tạo kết quả cuối cùng cho teaching
+            self.final_result = RESULT(
+                camera=self.ui.combo_type_camera.currentText(),
+                model="TEACHING",  # Chế độ teaching không sử dụng model
+                code="TEACHING-" + time.strftime("%Y%m%d-%H%M%S"),
+                src=self.ImageData.src,
+                dst=self.ImageData.dst,  # Thay bằng ảnh đã xử lý
+                binary=self.ImageData.binary,  # Thay bằng ảnh nhị phân thực tế
+                result="msg",  # Thay bằng kết quả thực tế (OK/NG)
+                time_check=elapsed_time,
+                error_type=None,  # Nếu có lỗi, ghi loại lỗi ở đây
+                config=self.get_config(),  # Config hiện tại từ UI
+            )
+
+            # Phát tín hiệu kết quả teaching
+            self.signalResultTeaching.emit(self.final_result)
+
+            # Chuyển sang bước tiếp theo
+            self.current_step_teaching = STEP_RELEASE_TEACHING
+
+        except Exception as e:
+            self.ui_logger.error(f"Teaching output error: {str(e)}")
+            # Trong trường hợp lỗi, quay lại bước chờ trigger
+            self.current_step_teaching = STEP_WAIT_TRIGGER_TEACHING
+            self.b_trigger_teaching = False
+
+    def handle_release_teaching(self):
+        """
+        Giải phóng tài nguyên và hoàn tất chu trình teaching.
+        """
+        try:
+            self.ui_logger.debug("Step Teaching: Release")
+
+            # Giải phóng tài nguyên đã khởi tạo
+            self.final_result = None
+            self.ImageData = None
+
+            # Đặt lại trạng thái trigger
+            self.b_trigger_teaching = True
+
+            # Chuyển về bước đầu tiên
+            self.current_step_teaching = STEP_WAIT_TRIGGER_TEACHING
+
+        except Exception as e:
+            self.ui_logger.error(f"Teaching release error: {str(e)}")
+            # Trong trường hợp lỗi, vẫn quay lại bước chờ trigger
+            self.current_step_teaching = STEP_WAIT_TRIGGER_TEACHING
+            self.b_trigger_teaching = False
 
     def handle_result_auto(self, result):
         """
@@ -1111,16 +1082,15 @@ class MainWindow(QMainWindow):
             )
 
             # Cập nhật UI với kết quả
-            self.ui.label_result.setText(result.result)
-            if result.result == "OK":
-                self.ui.label_result.setStyleSheet("color: green; font-weight: bold;")
-            else:
-                self.ui.label_result.setStyleSheet("color: red; font-weight: bold;")
-
-            # Cập nhật thông tin chi tiết
-            self.update_stats(result)
+            # TODO: Thêm xử lý kết quả auto
 
             # Hiển thị ảnh kết quả
+            if result.src is not None:
+                self.canvas_auto.load_pixmap(ndarray2pixmap(result.src))
+
+            if result.binary is not None:
+                self.canvas_binary.load_pixmap(ndarray2pixmap(result.binary))
+
             if result.dst is not None:
                 self.canvas_dst.load_pixmap(ndarray2pixmap(result.dst))
 
@@ -1140,42 +1110,14 @@ class MainWindow(QMainWindow):
             # TODO: Thêm xử lý kết quả teaching
 
             # Hiển thị ảnh kết quả
+            if result.binary is not None:
+                self.canvas_binary.load_pixmap(ndarray2pixmap(result.binary))
+
             if result.dst is not None:
                 self.canvas_dst.load_pixmap(ndarray2pixmap(result.dst))
 
-            # Kích hoạt lại nút start teaching
-            self.ui.btn_start_teaching.setEnabled(True)
-
         except Exception as e:
             self.ui_logger.error(f"Lỗi khi xử lý kết quả teaching: {str(e)}")
-
-    def update_stats(self, result):
-        """
-        Cập nhật thống kê trong UI.
-        """
-        try:
-            # Đếm số lượng OK/NG
-            ok_count = int(self.ui.label_text_ok.text() or "0")
-            ng_count = int(self.ui.label_text_ng.text() or "0")
-            total_count = int(self.ui.label_text_total.text() or "0")
-
-            # Cập nhật theo kết quả
-            if result.result == "OK":
-                ok_count += 1
-            else:
-                ng_count += 1
-
-            total_count += 1
-            rate = (ok_count / total_count) * 100 if total_count > 0 else 0
-
-            # Cập nhật UI
-            self.ui.label_text_ok.setText(str(ok_count))
-            self.ui.label_text_ng.setText(str(ng_count))
-            self.ui.label_text_total.setText(str(total_count))
-            self.ui.label_text_rate.setText(f"{rate:.2f}%")
-
-        except Exception as e:
-            self.ui_logger.error(f"Lỗi khi cập nhật thống kê: {str(e)}")
 
     def on_click_refesh(self):
         self.apply_default_config()
@@ -1195,8 +1137,10 @@ class MainWindow(QMainWindow):
         config = {}
 
         # Lưu thông tin về các hình dạng trên canvas
+        shapes: list[Shape] = self.canvas_src.shapes
         config["shapes"] = {
-            shape.label: shape.cvBox for shape in self.canvas_src.shapes
+            i: {"label": shapes[i].label, "box": shapes[i].cvBox}
+            for i in range(len(shapes))
         }
 
         # Lưu thông tin về các module
@@ -1280,17 +1224,19 @@ class MainWindow(QMainWindow):
 
             # Áp dụng cấu hình shapes nếu có
             if "shapes" in config:
-                # Xóa các hình dạng hiện tại
                 self.canvas_src.shapes.clear()
-
-                # Thêm shapes mới từ cấu hình
-                for label, box in config["shapes"].items():
-                    shape = Shape(label=label)
-                    shape.cvBox = box
-                    self.canvas_src.shapes.append(shape)
-
-                # Vẽ lại canvas
-                self.canvas_src.repaint()
+                shapes: dict = config["shapes"]
+                for i in shapes:
+                    label = shapes[i]["label"]
+                    x, y, w, h = shapes[i]["box"]
+                    s = Shape(label)
+                    s.points = [
+                        QPointF(x, y),
+                        QPointF(x + w, y),
+                        QPointF(x + w, y + h),
+                        QPointF(x, y + h),
+                    ]
+                    self.canvas_src.shapes.append(s)
 
             # Áp dụng cấu hình modules nếu có
             if "modules" in config:
@@ -1390,6 +1336,31 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.ui_logger.error(f"Lỗi khi áp dụng cấu hình: {str(e)}")
 
+    def load_config(self, model_setting=False):
+        try:
+            if model_setting:
+                model_name = self.ui.combo_model_setting.currentText()
+            else:
+                model_name = self.ui.combo_model.currentText()
+
+            model_path = os.path.join("models", model_name)
+            config_path = os.path.join(model_path, "config.json")
+
+            if not os.path.exists(config_path):
+                self.ui_logger.info("Không tìm thấy file cấu hình.")
+                return
+
+            # Đọc cấu hình từ file
+            with open(config_path, "r") as f:
+                config = json.load(f)
+
+            self.ui_logger.info("Đọc cấu hình từ file.")
+
+            return config
+
+        except Exception as e:
+            self.ui_logger.error(f"Lỗi khi đọc cấu hình: {str(e)}")
+
     def set_combobox_text(self, combobox, text):
         """
         Hàm phụ trợ để đặt giá trị văn bản cho combobox.
@@ -1432,6 +1403,11 @@ class MainWindow(QMainWindow):
         self.add_combox_item(self.ui.combo_feature, features)
         self.ui.combo_feature.setCurrentIndex(0)
 
+    def on_change_camera_type(self):
+        """Xử lý sự kiện khi thay đổi lựa chọn trong combo_type_camera."""
+        type = self.ui.combo_type_camera.currentText()
+        self.load_camera_devices(type)
+
     def find_comports_and_baurates(self):
         comports = serial.tools.list_ports.comports()
         comports = [port for port, _, _ in comports]
@@ -1440,16 +1416,11 @@ class MainWindow(QMainWindow):
 
         return comports, baudrates
 
-    def on_change_camera_type(self):
-        """Xử lý sự kiện khi thay đổi lựa chọn trong combo_type_camera."""
-        type = self.ui.combo_type_camera.currentText()
-        self.load_camera_devices(type)
-
-    def on_change_feature(self):
-        """Xử lý sự kiện khi thay đổi lựa chọn trong combo_feature."""
-        feature = self.ui.combo_feature.currentText()
-        self.ui_logger.info(f"Đã chọn feature: {feature}")
-        self.ui_logger.info(f"Đã chọn feature: {feature}")
+    def find_list_client(self):
+        if self.tcp_server is not None:
+            list_client = self.tcp_server.clients
+            return list_client
+        return []
 
     def on_change_model(self):
         """
@@ -1737,6 +1708,7 @@ class MainWindow(QMainWindow):
                 item = selected_items[0]
                 index = self.ui.list_widget_image.row(item)
                 file_path = self.file_paths[index]
+                self.current_image_path = file_path
                 self.current_image = cv.imread(file_path)
 
                 # Cập nhật log
@@ -1754,6 +1726,7 @@ class MainWindow(QMainWindow):
                 self, "Select Image", "", "Images (*.png *.jpg *.jpeg)"
             )
             if file_path:
+                self.current_image_path = file_path
                 self.current_image = cv.imread(file_path)
 
                 # Cập nhật log
@@ -1772,7 +1745,11 @@ class MainWindow(QMainWindow):
 
     def open_camera(self):
         try:
-            self.init_camera()
+            # Lấy thông số từ giao diện
+            camera_type = self.ui.combo_type_camera.currentText()
+            camera_id = self.ui.combo_id_camera.currentText()
+            camera_feature = self.ui.combo_feature.currentText()
+            self.init_camera(camera_type, camera_id, camera_feature)
             # self.camera_thread = CameraThread()
             self.camera_thread.open_camera()
 
@@ -1843,6 +1820,7 @@ class MainWindow(QMainWindow):
             self.ui_logger.error(f"Error Stop Camera: {e}")
 
     def update_frame(self, frame):
+        self.current_image_path = None
         self.current_image = frame
 
         self.canvas_src.load_pixmap(ndarray2pixmap(self.current_image))
@@ -1853,6 +1831,7 @@ class MainWindow(QMainWindow):
                 self.ui_logger.warning("Camera is not open")
                 return
 
+            self.current_image_path = None
             self.current_image = self.camera_thread.grab_camera()
             if self.current_image is None:
                 self.ui_logger.error("Failed to capture image")
@@ -1897,13 +1876,17 @@ class MainWindow(QMainWindow):
 
     def open_light(self):
         try:
-            self.init_lighting()
+            # Lấy thông số từ giao diện
+            controller_type = self.ui.combo_controller_light.currentText()
+            com_port = self.ui.combo_comport.currentText()
+            baud_rate = int(self.ui.combo_baudrate.currentText())
+            self.init_lighting(controller_type, com_port, baud_rate)
 
             # Mở kết nối với bộ điều khiển
             status = self.light_controller.open()
 
-            delay_lighting = self.ui.spin_delay.value() / 1000
-            time.sleep(delay_lighting)
+            # delay_lighting = self.ui.spin_delay.value() / 1000
+            # time.sleep(delay_lighting)
 
             # Bật các kênh đèn theo giá trị từ giao diện
             channels = [
@@ -1918,7 +1901,7 @@ class MainWindow(QMainWindow):
                     if self.ui.combo_controller_light.currentText() == "LCP":
                         self.light_controller.on_channel(i)
                         self.light_controller.set_light_value(i, value)
-                    else:
+                    else:  # DCP controller
                         self.light_controller.on_channel(i, value)
                     self.ui_logger.info(f"Turned on channel {i} with intensity {value}")
 
@@ -1964,6 +1947,36 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.ui_logger.error(f"Error Close Light: {e}")
 
+    def handle_change_light(self, channel_data):
+        """
+        Handle changes to light intensity values when the controller is open.
+
+        Args:
+            channel_data (tuple): A tuple containing (channel_index, intensity_value)
+        """
+        try:
+            channel, value = channel_data
+
+            # Only update light if controller is connected and open
+            if self.ui.btn_open_light.text() == "Close":
+                self.ui_logger.debug(f"Channel {channel} value changed to {value}")
+                if self.ui.combo_controller_light.currentText() == "LCP":
+                    if value > 0:
+                        self.light_controller.on_channel(channel)
+                        self.light_controller.set_light_value(channel, value)
+                    elif value == 0:
+                        self.light_controller.off_channel(channel)
+                else:  # DCP controller
+                    if value > 0:
+                        self.light_controller.on_channel(channel, value)
+                    else:
+                        self.light_controller.off_channel(channel)
+            else:
+                self.ui_logger.debug(f"Light controller not open, change not applied")
+
+        except Exception as e:
+            self.ui_logger.error(f"Error handling light change: {str(e)}")
+
     def on_click_connect_server(self):
         if self.ui.btn_connect_server.text() == "Connect":
             self.connect_server()
@@ -1972,8 +1985,10 @@ class MainWindow(QMainWindow):
 
     def connect_server(self):
         try:
-
-            self.init_server()
+            # Lấy thông số từ giao diện
+            host = self.ui.line_host_server.text()
+            port = int(self.ui.line_port_server.text())
+            self.init_server(host, port)
             self.tcp_server.start()
 
             self.ui.btn_connect_server.setText("Disconnect")

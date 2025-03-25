@@ -1,5 +1,15 @@
 {
-    "shapes": {},
+    "shapes": {
+        "0": {
+            "label": "VA",
+            "box": [
+                59,
+                73,
+                84,
+                104
+            ]
+        }
+    },
     "modules": {
         "camera": {
             "type": "Webcam",

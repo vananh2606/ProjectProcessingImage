@@ -11,11 +11,11 @@ class Server(QObject):
     """
 
     # Định nghĩa signals
+    serverStarted = pyqtSignal(str, int)  # (host, port)
+    serverStopped = pyqtSignal()
     clientConnected = pyqtSignal(str, str)  # (host, address)
     clientDisconnected = pyqtSignal(str, str)  # (host, address)
     dataReceived = pyqtSignal(str, str, str)  # (host, address, data)
-    serverStarted = pyqtSignal(str, int)  # (host, port)
-    serverStopped = pyqtSignal()
     clientLocked = pyqtSignal(str, str)  # (host, address)
     clientUnlocked = pyqtSignal()
 
@@ -34,7 +34,7 @@ class Server(QObject):
         self.port = port
         self.server_socket = None
         self.running = False
-        self.clients = {}  # Lưu trữ các client kết nối {(address, port): socket}
+        self.clients = {}  # Lưu trữ các client kết nối {(host, address): socket}
         self.threads = []
         self.logger = logger
         self.log_signals = log_signals
