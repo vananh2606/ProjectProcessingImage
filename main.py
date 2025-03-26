@@ -41,6 +41,7 @@ from libs.tcp_server import Server
 from cameras import HIK, SODA, Webcam, get_camera_devices
 from libs.camera_thread import CameraThread
 from libs.light_controller import LCPController, DCPController
+from libs.IOController import IOController, OutPorts, InPorts, PortState, IOType
 
 RESULT = namedtuple(
     "result",
@@ -97,6 +98,9 @@ class MainWindow(QMainWindow):
             self.project_name,
             self.log_path,
         )
+
+        # IO Controller
+        self.io_controller = IOController(com="COM10", baud=19200)
 
         # Camera
         self.camera_thread = None
@@ -593,6 +597,8 @@ class MainWindow(QMainWindow):
             self.close_light()
         if self.tcp_server is not None:
             self.disconnect_server()
+        if self.io_controller is not None:
+            self.io_controller.close()
         self.ui.btn_start_teaching.setEnabled(True)
         self.ui.btn_open_camera.setEnabled(True)
         self.ui.btn_open_light.setEnabled(True)
@@ -639,6 +645,12 @@ class MainWindow(QMainWindow):
             t3.join()
 
         time.sleep(0.2)
+        if self.io_controller is not None:
+            t4 = threading.Thread(target=self.open_io_controller_auto, daemon=True)
+            t4.start()
+            t4.join()
+
+        time.sleep(0.2)
         threading.Thread(target=self.loop_auto, daemon=True).start()
 
     def open_camera_auto(self):
@@ -653,6 +665,16 @@ class MainWindow(QMainWindow):
 
     def wait_data_received_from_client(self, host, address, data):
         if data == "Check":
+            self.b_trigger_auto = True
+
+    def open_io_controller_auto(self):
+        self.io_controller.open()
+        self.io_controller.inputSignal.connect(
+            self.wait_data_received_from_io_controller
+        )
+
+    def wait_data_received_from_io_controller(self, command, state):
+        if command == InPorts.In_1 and state == PortState.On:
             self.b_trigger_auto = True
 
     def loop_auto(self):
@@ -790,7 +812,7 @@ class MainWindow(QMainWindow):
 
             # Tạo kết quả cuối cùng cho auto
             self.final_result = RESULT(
-                camera=self.ui.combo_type_camera.currentText(),
+                camera=config["modules"]["camera"]["type"],
                 model="AUTO",  # Chế độ auto không sử dụng model
                 code="AUTO-" + time.strftime("%Y%m%d-%H%M%S"),
                 src=self.ImageData.src,
