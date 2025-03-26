@@ -540,23 +540,28 @@ class MainWindow(QMainWindow):
             self.ui.combo_model.setEnabled(False)
             self.ui.btn_stop.setEnabled(True)
 
-            # self.set_up_auto()
+            self.set_up_auto()
             self.start_loop_auto()
 
         except Exception as e:
             self.ui_logger.error(f"Error start auto: {str(e)}")
 
     def set_up_auto(self):
-        if not self.b_stop_teaching:
+        if self.ui.btn_start_teaching.text() == "Stop Teaching":
             self.stop_teaching()
         if self.ui.btn_start_camera.text() == "Stop":
             self.stop_camera()
+            self.close_camera()
         if self.ui.btn_open_camera.text() == "Close":
             self.close_camera()
         if self.ui.btn_open_light.text() == "Close":
             self.close_light()
         if self.ui.btn_connect_server.text() == "Disconnect":
             self.disconnect_server()
+        self.ui.btn_start_teaching.setEnabled(False)
+        self.ui.btn_open_camera.setEnabled(False)
+        self.ui.btn_open_light.setEnabled(False)
+        self.ui.btn_connect_server.setEnabled(False)
 
     def on_click_stop(self):
         """
@@ -579,11 +584,19 @@ class MainWindow(QMainWindow):
 
     def release_loop_auto(self):
         if self.camera_thread is not None:
-            self.camera_thread.open_camera()
+            if self.ui.btn_start_camera.text() == "Stop":
+                self.stop_camera()
+                self.close_camera()
+            if self.ui.btn_open_camera.text() == "Close":
+                self.close_camera()
         if self.light_controller is not None:
-            self.light_controller.close()
+            self.close_light()
         if self.tcp_server is not None:
-            self.tcp_server.stop()
+            self.disconnect_server()
+        self.ui.btn_start_teaching.setEnabled(True)
+        self.ui.btn_open_camera.setEnabled(True)
+        self.ui.btn_open_light.setEnabled(True)
+        self.ui.btn_connect_server.setEnabled(True)
 
     def start_loop_auto(self):
         config = self.load_config(model_setting=False)
@@ -872,6 +885,7 @@ class MainWindow(QMainWindow):
             self.ui.btn_start_teaching.setText("Stop Teaching")
             self.ui.btn_start_teaching.setProperty("class", "danger")
             update_style(self.ui.btn_start_teaching)
+            self.ui.combo_model_setting.setEnabled(False)
 
             # Trigger Teaching
             self.b_trigger_teaching = True
@@ -889,6 +903,7 @@ class MainWindow(QMainWindow):
             self.ui.btn_start_teaching.setText("Start Teaching")
             self.ui.btn_start_teaching.setProperty("class", "success")
             update_style(self.ui.btn_start_teaching)
+            self.ui.combo_model_setting.setEnabled(True)
 
             # Trigger Teaching
             self.b_trigger_teaching = False

@@ -7,7 +7,7 @@
             "feature": "Black.ini"
         },
         "lighting": {
-            "controller": "LCP",
+            "controller": "DCP",
             "com": "COM9",
             "baudrate": "19200",
             "delay": 100,
