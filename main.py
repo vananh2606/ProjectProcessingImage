@@ -41,7 +41,7 @@ from libs.tcp_server import Server
 from cameras import HIK, SODA, Webcam, get_camera_devices
 from libs.camera_thread import CameraThread
 from libs.light_controller import LCPController, DCPController
-from libs.IOController import IOController, OutPorts, InPorts, PortState, IOType
+from libs.io_controller import IOController, OutPorts, InPorts, PortState, IOType
 
 RESULT = namedtuple(
     "result",
@@ -77,6 +77,7 @@ class MainWindow(QMainWindow):
     signalResultTeaching = pyqtSignal(object)
 
     signalChangeLight = pyqtSignal(object)
+    signalChangeIO = pyqtSignal(object)
     signalChangeProcessing = pyqtSignal(object)
     signalChangeModel = pyqtSignal(object)
 
@@ -100,7 +101,7 @@ class MainWindow(QMainWindow):
         )
 
         # IO Controller
-        self.io_controller = IOController(com="COM10", baud=19200)
+        self.io_controller = None
 
         # Camera
         self.camera_thread = None
@@ -154,9 +155,32 @@ class MainWindow(QMainWindow):
         self.ui.btn_refesh.setProperty("class", "primary")
         self.ui.btn_start_teaching.setProperty("class", "success")
         self.ui.btn_open_light.setProperty("class", "success")
+        self.ui.btn_open_io.setProperty("class", "success")
         self.ui.btn_connect_server.setProperty("class", "success")
         self.ui.btn_send_client.setProperty("class", "primary")
         self.ui.btn_connect_database.setProperty("class", "success")
+
+        # IO
+        self.ui.btn_output_1.setProperty("class", "danger")
+        self.ui.btn_output_1.setText("Off")
+        # self.ui.btn_output_1.setEnabled(False)
+        self.ui.btn_output_2.setProperty("class", "danger")
+        self.ui.btn_output_2.setText("Off")
+        # self.ui.btn_output_2.setEnabled(False)
+        self.ui.btn_output_3.setProperty("class", "danger")
+        self.ui.btn_output_3.setText("Off")
+        # self.ui.btn_output_3.setEnabled(False)
+        self.ui.btn_output_4.setProperty("class", "danger")
+        self.ui.btn_output_4.setText("Off")
+        # self.ui.btn_output_4.setEnabled(False)
+        self.ui.label_input_1.setProperty("class", "fail")
+        self.ui.label_input_1.setText("Off")
+        self.ui.label_input_2.setProperty("class", "fail")
+        self.ui.label_input_2.setText("Off")
+        self.ui.label_input_3.setProperty("class", "fail")
+        self.ui.label_input_3.setText("Off")
+        self.ui.label_input_4.setProperty("class", "fail")
+        self.ui.label_input_4.setText("Off")
 
         # Canvas
         self.canvas_src = Canvas()
@@ -189,6 +213,7 @@ class MainWindow(QMainWindow):
         self.ui.btn_refesh.clicked.connect(self.on_click_refesh)
         self.ui.btn_start_teaching.clicked.connect(self.on_click_start_teaching)
         self.ui.btn_open_light.clicked.connect(self.on_click_open_light)
+        self.ui.btn_open_io.clicked.connect(self.on_click_open_io)
         self.ui.btn_connect_server.clicked.connect(self.on_click_connect_server)
         self.ui.btn_send_client.clicked.connect(self.on_click_send_client)
         self.ui.btn_connect_database.clicked.connect(self.on_click_connect_database)
@@ -307,11 +332,16 @@ class MainWindow(QMainWindow):
                 "modules": {
                     "camera": {"type": "Webcam", "id": "0", "feature": ""},
                     "lighting": {
-                        "controller": "LCP",
-                        "com": "COM9",
-                        "baudrate": "19200",
+                        "controller_light": "LCP",
+                        "comport_light": "COM9",
+                        "baudrate_light": "19200",
                         "delay": 100,
                         "channels": [10, 10, 10, 10],
+                    },
+                    "io": {
+                        "controller_io": "LCP",
+                        "comport_io": "COM10",
+                        "baudrate_io": "19200",
                     },
                     "server": {"host": "127.0.0.1", "port": "8080"},
                     "system": {
@@ -408,6 +438,31 @@ class MainWindow(QMainWindow):
 
         except Exception as e:
             self.ui_logger.error(f"Lỗi khi khởi tạo lighting: {str(e)}")
+            return False
+
+    def init_io(self, controller_type, com_port, baud_rate):
+        try:
+            # Ghi log thông số io
+            self.ui_logger.info(
+                f"Khởi tạo io: Type={controller_type}, COM={com_port}, Baud={baud_rate}"
+            )
+
+            # Khởi tạo bộ điều khiển đèn với thông số từ giao diện
+            if controller_type == "LCP":
+                self.io_controller = IOController(com=com_port, baud=baud_rate)
+            elif controller_type == "DCP":
+                self.io_controller = IOController(com=com_port, baud=baud_rate)
+            else:
+                # Mặc định sử dụng LCP
+                self.ui_logger.warning(
+                    f"Loại bộ điều khiển {controller_type} không được hỗ trợ, sử dụng DCP mặc định"
+                )
+                self.io_controller = IOController(com=com_port, baud=baud_rate)
+
+            return True
+
+        except Exception as e:
+            self.ui_logger.error(f"Lỗi khi khởi tạo io: {str(e)}")
             return False
 
     def init_server(self, host, port):
@@ -560,12 +615,15 @@ class MainWindow(QMainWindow):
             self.close_camera()
         if self.ui.btn_open_light.text() == "Close":
             self.close_light()
+        if self.ui.btn_open_io.text() == "Close":
+            self.close_io()
         if self.ui.btn_connect_server.text() == "Disconnect":
             self.disconnect_server()
-        self.ui.btn_start_teaching.setEnabled(False)
+        # self.ui.btn_start_teaching.setEnabled(False)
         self.ui.btn_open_camera.setEnabled(False)
-        self.ui.btn_open_light.setEnabled(False)
-        self.ui.btn_connect_server.setEnabled(False)
+        # self.ui.btn_open_light.setEnabled(False)
+        # self.ui.btn_open_io.setEnabled(False)
+        # self.ui.btn_connect_server.setEnabled(False)
 
     def on_click_stop(self):
         """
@@ -588,21 +646,18 @@ class MainWindow(QMainWindow):
 
     def release_loop_auto(self):
         if self.camera_thread is not None:
-            if self.ui.btn_start_camera.text() == "Stop":
-                self.stop_camera()
-                self.close_camera()
-            if self.ui.btn_open_camera.text() == "Close":
-                self.close_camera()
+            self.close_camera()
         if self.light_controller is not None:
             self.close_light()
         if self.tcp_server is not None:
             self.disconnect_server()
         if self.io_controller is not None:
-            self.io_controller.close()
-        self.ui.btn_start_teaching.setEnabled(True)
+            self.close_io()
+        # self.ui.btn_start_teaching.setEnabled(True)
         self.ui.btn_open_camera.setEnabled(True)
-        self.ui.btn_open_light.setEnabled(True)
-        self.ui.btn_connect_server.setEnabled(True)
+        # self.ui.btn_open_light.setEnabled(True)
+        # self.ui.btn_open_io.setEnabled(True)
+        # self.ui.btn_connect_server.setEnabled(True)
 
     def start_loop_auto(self):
         config = self.load_config(model_setting=False)
@@ -614,10 +669,16 @@ class MainWindow(QMainWindow):
         self.init_camera(camera_type, camera_id, camera_feature)
 
         # Init Lighting
-        controller_type = config["modules"]["lighting"]["controller"]
-        com_port = config["modules"]["lighting"]["com"]
-        baud_rate = int(config["modules"]["lighting"]["baudrate"])
-        self.init_lighting(controller_type, com_port, baud_rate)
+        light_controller_type = config["modules"]["lighting"]["controller_light"]
+        com_port_light = config["modules"]["lighting"]["comport_light"]
+        baud_rate_light = int(config["modules"]["lighting"]["baudrate_light"])
+        self.init_lighting(light_controller_type, com_port_light, baud_rate_light)
+
+        # Init IO Controller
+        io_controller_type = config["modules"]["io"]["controller_io"]
+        com_port_io = config["modules"]["io"]["comport_io"]
+        baud_rate_io = int(config["modules"]["io"]["baudrate_io"])
+        self.init_io(io_controller_type, com_port_io, baud_rate_io)
 
         # Init Server
         host = config["modules"]["server"]["host"]
@@ -711,6 +772,9 @@ class MainWindow(QMainWindow):
         if self.b_trigger_auto:
             self.ui_logger.debug("Step Auto: Wait Trigger")
             self.b_trigger_auto = False
+            self.ui.label_result.setProperty("class", "waiting")
+            self.ui.label_result.setText("Waiting")
+            update_style(self.ui.label_result)
             self.start_elappsed_time()
             self.current_step_auto = STEP_PREPROCESS_AUTO
 
@@ -719,7 +783,7 @@ class MainWindow(QMainWindow):
             self.ui_logger.debug("Step Auto: Preprocess")
 
             # Mở đèn
-            type_light = config["modules"]["lighting"]["controller"]
+            type_light = config["modules"]["lighting"]["controller_light"]
             channel_0 = config["modules"]["lighting"]["channels"][0]
             channel_1 = config["modules"]["lighting"]["channels"][1]
             channel_2 = config["modules"]["lighting"]["channels"][2]
@@ -826,6 +890,14 @@ class MainWindow(QMainWindow):
 
             # Phát tín hiệu kết quả auto
             self.signalResultAuto.emit(self.final_result)
+
+            # Hiển thị kết quả lên UI
+            self.ui.label_result.setProperty("class", "pass")
+            self.ui.label_result.setText("Pass")
+            update_style(self.ui.label_result)
+            self.ui.label_result.setProperty("class", "fail")
+            self.ui.label_result.setText("Fail")
+            update_style(self.ui.label_result)
 
             # Chuyển sang bước tiếp theo
             self.current_step_auto = STEP_RELEASE_AUTO
@@ -1200,9 +1272,9 @@ class MainWindow(QMainWindow):
 
         # Lưu thiết lập liên quan đến lighting
         config["modules"]["lighting"] = {
-            "controller": self.ui.combo_controller_light.currentText(),
-            "com": self.ui.combo_comport.currentText(),
-            "baudrate": self.ui.combo_baudrate.currentText(),
+            "controller_light": self.ui.combo_controller_light.currentText(),
+            "comport_light": self.ui.combo_comport_light.currentText(),
+            "baudrate_light": self.ui.combo_baudrate_light.currentText(),
             "delay": self.ui.spin_delay.value(),
             "channels": [
                 self.ui.spin_channel_0.value(),
@@ -1210,6 +1282,13 @@ class MainWindow(QMainWindow):
                 self.ui.spin_channel_2.value(),
                 self.ui.spin_channel_3.value(),
             ],
+        }
+
+        # Lưu thiết lập liên quan đến io
+        config["modules"]["io"] = {
+            "controller_io": self.ui.combo_controller_io.currentText(),
+            "comport_io": self.ui.combo_comport_io.currentText(),
+            "baudrate_io": self.ui.combo_baudrate_io.currentText(),
         }
 
         # Lưu thiết lập liên quan đến server
@@ -1317,16 +1396,18 @@ class MainWindow(QMainWindow):
                     self.add_combox_item(self.ui.combo_controller_light, ["LCP", "DCP"])
                     self.set_combobox_text(
                         self.ui.combo_controller_light,
-                        lighting_config.get("controller", "LCP"),
+                        lighting_config.get("controller_light", "DCP"),
                     )
                     comports, baudrates = self.find_comports_and_baurates()
-                    self.add_combox_item(self.ui.combo_comport, comports)
-                    self.add_combox_item(self.ui.combo_baudrate, baudrates)
+                    self.add_combox_item(self.ui.combo_comport_light, comports)
+                    self.add_combox_item(self.ui.combo_baudrate_light, baudrates)
                     self.set_combobox_text(
-                        self.ui.combo_comport, lighting_config.get("com", "COM9")
+                        self.ui.combo_comport_light,
+                        lighting_config.get("comport_light", "COM9"),
                     )
                     self.set_combobox_text(
-                        self.ui.combo_baudrate, lighting_config.get("baudrate", "9600")
+                        self.ui.combo_baudrate_light,
+                        lighting_config.get("baudrate_light", "9600"),
                     )
 
                     # Đặt giá trị cho spinbox
@@ -1339,6 +1420,24 @@ class MainWindow(QMainWindow):
                         self.ui.spin_channel_1.setValue(channels[1])
                         self.ui.spin_channel_2.setValue(channels[2])
                         self.ui.spin_channel_3.setValue(channels[3])
+
+                # Áp dụng cấu hình io
+                if "io" in modules:
+                    io_config = modules["io"]
+                    self.add_combox_item(self.ui.combo_controller_io, ["LCP", "DCP"])
+                    self.set_combobox_text(
+                        self.ui.combo_controller_io,
+                        io_config.get("controller_io", "LCP"),
+                    )
+                    comports, baudrates = self.find_comports_and_baurates()
+                    self.add_combox_item(self.ui.combo_comport_io, comports)
+                    self.add_combox_item(self.ui.combo_baudrate_io, baudrates)
+                    self.set_combobox_text(
+                        self.ui.combo_comport_io, io_config.get("comport_io", "COM10")
+                    )
+                    self.set_combobox_text(
+                        self.ui.combo_baudrate_io, io_config.get("baudrate_io", "19200")
+                    )
 
                 # Áp dụng cấu hình server
                 if "server" in modules:
@@ -1922,10 +2021,10 @@ class MainWindow(QMainWindow):
     def open_light(self):
         try:
             # Lấy thông số từ giao diện
-            controller_type = self.ui.combo_controller_light.currentText()
-            com_port = self.ui.combo_comport.currentText()
-            baud_rate = int(self.ui.combo_baudrate.currentText())
-            self.init_lighting(controller_type, com_port, baud_rate)
+            light_controller_type = self.ui.combo_controller_light.currentText()
+            comport_light = self.ui.combo_comport_light.currentText()
+            baudrate_light = int(self.ui.combo_baudrate_light.currentText())
+            self.init_lighting(light_controller_type, comport_light, baudrate_light)
 
             # Mở kết nối với bộ điều khiển
             status = self.light_controller.open()
@@ -2021,6 +2120,190 @@ class MainWindow(QMainWindow):
 
         except Exception as e:
             self.ui_logger.error(f"Error handling light change: {str(e)}")
+
+    def on_click_open_io(self):
+        if self.ui.btn_open_io.text() == "Open":
+            self.open_io()
+        else:
+            self.close_io()
+
+    def open_io(self):
+        try:
+            # Lấy thông số từ giao diện
+            io_controller_type = self.ui.combo_controller_io.currentText()
+            comport_io = self.ui.combo_comport_io.currentText()
+            baudrate_io = int(self.ui.combo_baudrate_io.currentText())
+            self.init_io(io_controller_type, comport_io, baudrate_io)
+
+            # Mở kết nối với bộ điều khiển
+            status = self.io_controller.open()
+
+            # Bật các kênh input theo io
+            self.io_controller.inputSignal.connect(self.handle_change_input_io)
+
+            # Bật các kênh output theo io
+            self.ui.btn_output_1.setEnabled(True)
+            self.ui.btn_output_2.setEnabled(True)
+            self.ui.btn_output_3.setEnabled(True)
+            self.ui.btn_output_4.setEnabled(True)
+            self.ui.btn_output_1.clicked.connect(self.on_click_output_1)
+            self.ui.btn_output_2.clicked.connect(self.on_click_output_2)
+            self.ui.btn_output_3.clicked.connect(self.on_click_output_3)
+            self.ui.btn_output_4.clicked.connect(self.on_click_output_4)
+
+            self.ui.btn_open_io.setText("Close")
+            self.ui.btn_open_io.setProperty("class", "danger")
+            update_style(self.ui.btn_open_io)
+
+            if status:
+                self.ui_logger.info("IO controller connected successfully")
+            else:
+                self.ui_logger.warning("Failed to connect to IO controller")
+
+        except Exception as e:
+            self.ui_logger.error(f"Error Open IO: {e}")
+
+    def close_io(self):
+        try:
+            # Đóng kết nối với bộ điều khiển
+            status = self.io_controller.close()
+
+            # self.ui.btn_output_1.setEnabled(False)
+
+            # self.ui.btn_output_2.setEnabled(False)
+
+            # self.ui.btn_output_3.setEnabled(False)
+
+            # self.ui.btn_output_4.setEnabled(False)
+
+            self.ui.btn_open_io.setText("Open")
+            self.ui.btn_open_io.setProperty("class", "success")
+            update_style(self.ui.btn_open_io)
+
+            if status:
+                self.ui_logger.info("IO controller disconnected successfully")
+            else:
+                self.ui_logger.warning("Failed to disconnect from IO controller")
+        except Exception as e:
+            self.ui_logger.error(f"Error Close IO: {e}")
+
+    def handle_change_input_io(self, command, state):
+        try:
+            # Only update input if controller is connected and open
+            if command == InPorts.In_1:
+                self.ui_logger.debug(f"Input 1 state changed to {state}")
+                if state == PortState.On:
+                    self.ui.label_input_1.setProperty("class", "pass")
+                    self.ui.label_input_1.setText("On")
+                    update_style(self.ui.label_input_1)
+                else:
+                    self.ui.label_input_1.setProperty("class", "fail")
+                    self.ui.label_input_1.setText("Off")
+                    update_style(self.ui.label_input_1)
+            elif command == InPorts.In_2:
+                if state == PortState.On:
+                    self.ui.label_input_2.setProperty("class", "pass")
+                    self.ui.label_input_2.setText("On")
+                    update_style(self.ui.label_input_2)
+                else:
+                    self.ui.label_input_2.setProperty("class", "fail")
+                    self.ui.label_input_2.setText("Off")
+                    update_style(self.ui.label_input_2)
+            elif command == InPorts.In_3:
+                if state == PortState.On:
+                    self.ui.label_input_3.setProperty("class", "pass")
+                    self.ui.label_input_3.setText("On")
+                    update_style(self.ui.label_input_3)
+                else:
+                    self.ui.label_input_3.setProperty("class", "fail")
+                    self.ui.label_input_3.setText("Off")
+                    update_style(self.ui.label_input_3)
+            elif command == InPorts.In_4:
+                if state == PortState.On:
+                    self.ui.label_input_4.setProperty("class", "pass")
+                    self.ui.label_input_4.setText("On")
+                    update_style(self.ui.label_input_4)
+                else:
+                    self.ui.label_input_4.setProperty("class", "fail")
+                    self.ui.label_input_4.setText("Off")
+                    update_style(self.ui.label_input_4)
+            else:
+                self.ui_logger.debug(f"IO controller not open, change not applied")
+
+        except Exception as e:
+            self.ui_logger.error(f"Error handling input change: {str(e)}")
+
+    def on_click_output_1(self):
+        if self.ui.btn_output_1.text() == "Off":
+            self.on_output_1()
+        else:
+            self.off_output_1()
+
+    def on_output_1(self):
+        self.io_controller.write_out(OutPorts.Out_1, PortState.On)
+        self.ui.btn_output_1.setText("On")
+        self.ui.btn_output_1.setProperty("class", "success")
+        update_style(self.ui.btn_output_1)
+
+    def off_output_1(self):
+        self.io_controller.write_out(OutPorts.Out_1, PortState.Off)
+        self.ui.btn_output_1.setText("Off")
+        self.ui.btn_output_1.setProperty("class", "danger")
+        update_style(self.ui.btn_output_1)
+
+    def on_click_output_2(self):
+        if self.ui.btn_output_2.text() == "Off":
+            self.on_output_2()
+        else:
+            self.off_output_2()
+
+    def on_output_2(self):
+        self.io_controller.write_out(OutPorts.Out_2, PortState.On)
+        self.ui.btn_output_2.setText("On")
+        self.ui.btn_output_2.setProperty("class", "success")
+        update_style(self.ui.btn_output_2)
+
+    def off_output_2(self):
+        self.io_controller.write_out(OutPorts.Out_2, PortState.Off)
+        self.ui.btn_output_2.setText("Off")
+        self.ui.btn_output_2.setProperty("class", "danger")
+        update_style(self.ui.btn_output_2)
+
+    def on_click_output_3(self):
+        if self.ui.btn_output_3.text() == "Off":
+            self.on_output_3()
+        else:
+            self.off_output_3()
+
+    def on_output_3(self):
+        self.io_controller.write_out(OutPorts.Out_3, PortState.On)
+        self.ui.btn_output_3.setText("On")
+        self.ui.btn_output_3.setProperty("class", "success")
+        update_style(self.ui.btn_output_3)
+
+    def off_output_3(self):
+        self.io_controller.write_out(OutPorts.Out_3, PortState.Off)
+        self.ui.btn_output_3.setText("Off")
+        self.ui.btn_output_3.setProperty("class", "danger")
+        update_style(self.ui.btn_output_3)
+
+    def on_click_output_4(self):
+        if self.ui.btn_output_4.text() == "Off":
+            self.on_output_4()
+        else:
+            self.off_output_4()
+
+    def on_output_4(self):
+        self.io_controller.write_out(OutPorts.Out_4, PortState.On)
+        self.ui.btn_output_4.setText("On")
+        self.ui.btn_output_4.setProperty("class", "success")
+        update_style(self.ui.btn_output_4)
+
+    def off_output_4(self):
+        self.io_controller.write_out(OutPorts.Out_4, PortState.Off)
+        self.ui.btn_output_4.setText("Off")
+        self.ui.btn_output_4.setProperty("class", "danger")
+        update_style(self.ui.btn_output_4)
 
     def on_click_connect_server(self):
         if self.ui.btn_connect_server.text() == "Connect":

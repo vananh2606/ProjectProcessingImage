@@ -1,32 +1,27 @@
 {
-    "shapes": {
-        "0": {
-            "label": "VA",
-            "box": [
-                59,
-                73,
-                84,
-                104
-            ]
-        }
-    },
+    "shapes": {},
     "modules": {
         "camera": {
-            "type": "Webcam",
-            "id": "0",
-            "feature": ""
+            "type": "HIK",
+            "id": "DA5691963",
+            "feature": "Black.ini"
         },
         "lighting": {
-            "controller": "DCP",
-            "com": "COM9",
-            "baudrate": "19200",
-            "delay": 1000,
+            "controller_light": "DCP",
+            "comport_light": "COM9",
+            "baudrate_light": "19200",
+            "delay": 200,
             "channels": [
-                200,
-                100,
                 50,
+                10,
+                10,
                 10
             ]
+        },
+        "io": {
+            "controller_io": "LCP",
+            "comport_io": "COM10",
+            "baudrate_io": "19200"
         },
         "server": {
             "host": "127.0.0.1",

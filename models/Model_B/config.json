@@ -4,19 +4,24 @@
         "camera": {
             "type": "HIK",
             "id": "DA5691963",
-            "feature": "White.ini"
+            "feature": "Black.ini"
         },
         "lighting": {
-            "controller": "DCP",
-            "com": "COM9",
-            "baudrate": "19200",
-            "delay": 100,
+            "controller_light": "DCP",
+            "comport_light": "COM9",
+            "baudrate_light": "19200",
+            "delay": 200,
             "channels": [
-                10,
+                50,
                 10,
                 10,
                 10
             ]
+        },
+        "io": {
+            "controller_io": "LCP",
+            "comport_io": "COM10",
+            "baudrate_io": "19200"
         },
         "server": {
             "host": "127.0.0.1",

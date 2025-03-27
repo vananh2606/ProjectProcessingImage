@@ -270,6 +270,36 @@ QPushButton.danger:disabled {
     color: #FFFFFF;
 }
 
+/* Base Label Style */
+QLabel {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 2px 4px;
+    border-radius: 2px;
+}
+
+/* Pass Label Style */
+QLabel.pass {
+    background-color: #34C759;  /* Màu xanh lá */
+    color: #FFFFFF;
+    border: 1px solid #28A745;
+}
+
+/* Fail Label Style */
+QLabel.fail {
+    background-color: #FF3B30;  /* Màu đỏ */
+    color: #FFFFFF;
+    border: 1px solid #D12F26;
+}
+
+/* Waiting Label Style */
+QLabel.waiting {
+    background-color: #FF9500;  /* Màu vàng */
+    color: #FFFFFF;
+    border: 1px solid #D17A00;
+}
+
 /* Check Box and Radio Button */
 QCheckBox, QRadioButton {
     spacing: 8px;
