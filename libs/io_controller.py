@@ -9,7 +9,6 @@ from PyQt5.QtCore import pyqtSignal, QObject
 
 
 class OutPorts(enum.Enum):
-    All = 0
     Out_1 = 1
     Out_2 = 2
     Out_3 = 3
@@ -21,15 +20,14 @@ class OutPorts(enum.Enum):
 
 
 class InPorts(enum.Enum):
-    All = 0
-    In_1 = 1
-    In_2 = 2
-    In_3 = 3
-    In_4 = 4
-    In_5 = 5
-    In_6 = 6
-    In_7 = 7
-    In_8 = 8
+    In_1 = 0b00000001
+    In_2 = 0b00000010
+    In_3 = 0b00000100
+    In_4 = 0b00001000
+    In_5 = 0b00010000
+    In_6 = 0b00100000
+    In_7 = 0b01000000
+    In_8 = 0b10000000
 
 
 class PortState(enum.Enum):
@@ -43,13 +41,13 @@ class IOType(enum.Enum):
 
 
 class IODataReceivedEventArgs:
-    def __init__(self, command: InPorts, state: PortState):
-        self.command = command
-        self.state = state
+    def __init__(self, commands: list[InPorts], states: list[PortState]):
+        self.commands = commands
+        self.states = states
 
 
 class IOController(QObject):
-    inputSignal = pyqtSignal(InPorts, PortState)
+    inputSignal = pyqtSignal(list, list)
 
     def __init__(self, com: str, baud: int = 9600, io_type=IOType.FourPorts):
         super().__init__()
@@ -79,8 +77,10 @@ class IOController(QObject):
         self.data_received_callbacks.append(callback)
 
     def callback(self, args: IODataReceivedEventArgs):
-        print("callback received")
-        self.inputSignal.emit(args.command, args.state)
+        print(f"CallBackReceived: ")
+        print("\t", args.commands)
+        print("\t", args.states)
+        self.inputSignal.emit(args.commands, args.states)
 
     def is_open(self) -> bool:
         return self.serial_port is not None and self.serial_port.is_open
@@ -152,79 +152,38 @@ class IOController(QObject):
                 ):  # Thay đổi để đọc bất kỳ dữ liệu nào
                     # Read available bytes
                     buffer = self.serial_port.read(self.serial_port.in_waiting)
-                    print(
-                        f"Raw data received: {' '.join([f'{b:02X}' for b in buffer])}"
-                    )
+                    # print(f"Raw data received: {' '.join([f'{b:02X}' for b in buffer])}")
                     if len(buffer) >= 3:  # Chỉ xử lý nếu đủ 3 byte
                         self.process_in_data(buffer)
-
-                # Small delay to prevent high CPU usage
-                time.sleep(0.01)
             except Exception as ex:
                 print(f"Error reading from port: {ex}")
                 time.sleep(1)  # Longer delay after error
-            """Read continuously from the serial port in a separate thread"""
-
-            while self.running and self.is_open():
-                try:
-                    # Check if there's data available to read
-                    if self.serial_port.in_waiting >= self.received_bytes_threshold:
-                        # Read available bytes
-                        buffer = self.serial_port.read(self.serial_port.in_waiting)
-                        self.process_in_data(buffer)
-
-                        # Print received bytes for debugging
-                        debug_str = "Received bytes: " + " ".join(
-                            [f"{b:02X}" for b in buffer]
-                        )
-                        print(debug_str)
-
-                    # Small delay to prevent high CPU usage
-                    time.sleep(0.1)
-                except Exception as ex:
-                    print(f"Error reading from port: {ex}")
-                    time.sleep(1)  # Longer delay after error
 
     def process_in_data(self, buffer: bytes):
         """Process incoming data from the I/O controller"""
-        if len(buffer) < 3:
-            return
+        buffer_dec = int(buffer[1])
 
-        # Calculate the difference between current and stored byte
-        temp = (
-            self.stored_byte_in - buffer[1]
-            if buffer[1] < self.stored_byte_in
-            else buffer[1] - self.stored_byte_in
-        )
+        commands = []
+        states = []
 
-        # Find the command based on the port_in mapping
-        try:
-            command_index = self.port_in.index(temp)
-            command = InPorts(command_index)
-        except ValueError:
-            # If the byte is not found in port_in
-            print(f"Unknown input byte: {temp:02X}")
-            return
+        for in_port in InPorts:
+            command_name = in_port.name
+            command_index = in_port.value
 
-        # Determine state based on whether value increased or decreased
-        state = PortState.On if buffer[1] > self.stored_byte_in else PortState.Off
+            if buffer_dec & command_index:
+                state = PortState.On
+            else:
+                state = PortState.Off
 
-        # Update stored byte
-        self.stored_byte_in = buffer[1]
-
-        print(f"I/O Controller Received {command}, State {state}")
+            commands.append(command_name)
+            states.append(state)
 
         # Notify callbacks
-        event_args = IODataReceivedEventArgs(command, state)
+        event_args = IODataReceivedEventArgs(commands, states)
         for callback in self.data_received_callbacks:
             callback(event_args)
 
 
 if __name__ == "__main__":
-    lcp = IOController(com="COM10", baud=19200)
+    lcp = IOController(com="COM9", baud=19200)
     print(lcp.open())
-    lcp.write_out(OutPorts.Out_1, PortState.On)
-    time.sleep(3)
-    lcp.write_out(OutPorts.Out_1, PortState.Off)
-
-    # lcp.close()

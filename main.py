@@ -448,16 +448,7 @@ class MainWindow(QMainWindow):
             )
 
             # Khởi tạo bộ điều khiển đèn với thông số từ giao diện
-            if controller_type == "LCP":
-                self.io_controller = IOController(com=com_port, baud=baud_rate)
-            elif controller_type == "DCP":
-                self.io_controller = IOController(com=com_port, baud=baud_rate)
-            else:
-                # Mặc định sử dụng LCP
-                self.ui_logger.warning(
-                    f"Loại bộ điều khiển {controller_type} không được hỗ trợ, sử dụng DCP mặc định"
-                )
-                self.io_controller = IOController(com=com_port, baud=baud_rate)
+            self.io_controller = IOController(com=com_port, baud=baud_rate)
 
             return True
 
@@ -847,7 +838,7 @@ class MainWindow(QMainWindow):
                 dst = src.copy()
                 cv.drawContours(dst, cnts, -1, (0, 255, 0), 2)
 
-                self.ImageData = DATA_IMAGE(
+                self.data_image = DATA_IMAGE(
                     path=self.current_image_path,
                     src=src,
                     binary=binary,
@@ -879,9 +870,9 @@ class MainWindow(QMainWindow):
                 camera=config["modules"]["camera"]["type"],
                 model="AUTO",  # Chế độ auto không sử dụng model
                 code="AUTO-" + time.strftime("%Y%m%d-%H%M%S"),
-                src=self.ImageData.src,
-                dst=self.ImageData.dst,  # Thay bằng ảnh đã xử lý
-                binary=self.ImageData.binary,  # Thay bằng ảnh nhị phân thực tế
+                src=self.data_image.src,
+                dst=self.data_image.dst,  # Thay bằng ảnh đã xử lý
+                binary=self.data_image.binary,  # Thay bằng ảnh nhị phân thực tế
                 result="msg",  # Thay bằng kết quả thực tế (OK/NG)
                 time_check=elapsed_time,
                 error_type=None,  # Nếu có lỗi, ghi loại lỗi ở đây
@@ -926,7 +917,7 @@ class MainWindow(QMainWindow):
 
             # Giải phóng tài nguyên đã khởi tạo
             self.final_result = None
-            self.ImageData = None
+            self.data_image = None
 
             # Đặt lại trạng thái trigger
             self.b_trigger_auto = False
@@ -1110,7 +1101,7 @@ class MainWindow(QMainWindow):
                 dst = src.copy()
                 cv.drawContours(dst, cnts, -1, (0, 255, 0), 2)
 
-                self.ImageData = DATA_IMAGE(
+                self.data_image = DATA_IMAGE(
                     path=self.current_image_path,
                     src=src,
                     binary=binary,
@@ -1145,9 +1136,9 @@ class MainWindow(QMainWindow):
                 camera=self.ui.combo_type_camera.currentText(),
                 model="TEACHING",  # Chế độ teaching không sử dụng model
                 code="TEACHING-" + time.strftime("%Y%m%d-%H%M%S"),
-                src=self.ImageData.src,
-                dst=self.ImageData.dst,  # Thay bằng ảnh đã xử lý
-                binary=self.ImageData.binary,  # Thay bằng ảnh nhị phân thực tế
+                src=self.data_image.src,
+                dst=self.data_image.dst,  # Thay bằng ảnh đã xử lý
+                binary=self.data_image.binary,  # Thay bằng ảnh nhị phân thực tế
                 result="msg",  # Thay bằng kết quả thực tế (OK/NG)
                 time_check=elapsed_time,
                 error_type=None,  # Nếu có lỗi, ghi loại lỗi ở đây
@@ -1175,7 +1166,7 @@ class MainWindow(QMainWindow):
 
             # Giải phóng tài nguyên đã khởi tạo
             self.final_result = None
-            self.ImageData = None
+            self.data_image = None
 
             # Đặt lại trạng thái trigger
             self.b_trigger_teaching = True

@@ -2,9 +2,9 @@
     "shapes": {},
     "modules": {
         "camera": {
-            "type": "HIK",
-            "id": "DA5691963",
-            "feature": "Black.ini"
+            "type": "Webcam",
+            "id": "0",
+            "feature": ""
         },
         "lighting": {
             "controller_light": "DCP",
