@@ -8,18 +8,17 @@
         },
         "lighting": {
             "controller_light": "DCP",
-            "comport_light": "COM9",
+            "comport_light": "COM8",
             "baudrate_light": "19200",
-            "delay": 200,
+            "delay": 100,
             "channels": [
-                50,
+                10,
                 10,
                 10,
                 10
             ]
         },
         "io": {
-            "controller_io": "LCP",
             "comport_io": "COM10",
             "baudrate_io": "19200"
         },
@@ -28,10 +27,10 @@
             "port": "8080"
         },
         "system": {
-            "log_dir": "logs",
+            "log_dir": "A:\\Project\\ProjectProcessingImage\\log_database",
             "log_size": "10",
             "database_path": "database.db",
-            "auto_start": false
+            "auto_start": true
         }
     },
     "font": {

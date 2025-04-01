@@ -144,7 +144,7 @@ class Logger(logging.Logger):
 
 def test_write_log():
     # Ví dụ sử dụng
-    logger = Logger(name="test_logger", log_file="logs/test")
+    logger = Logger(name="test_logger", log_file="logs/test.log")
     logger.debug("Đây là thông báo DEBUG")
     logger.info("Đây là thông báo INFO")
     logger.warning("Đây là thông báo WARNING")

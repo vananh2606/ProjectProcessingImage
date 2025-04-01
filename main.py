@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import json
+import shutil
 import logging
 import serial
 import serial.tools
@@ -13,6 +14,8 @@ from PyQt5.QtWidgets import (
     QApplication,
     QWidget,
     QTabWidget,
+    QTableWidget,
+    QTableWidgetItem,
     QFileDialog,
     QPushButton,
     QLineEdit,
@@ -35,9 +38,11 @@ from libs.constants import *
 from libs.canvas import WindowCanvas, Canvas
 from libs.shape import Shape
 from libs.ui_utils import load_style_sheet, update_style, add_scroll, ndarray2pixmap
+from libs.utils import scan_dir
 from libs.log_model import setup_logger
 from libs.image_converter import ImageConverter
 from libs.tcp_server import Server
+from libs.database_lite import *
 from cameras import HIK, SODA, Webcam, get_camera_devices
 from libs.camera_thread import CameraThread
 from libs.light_controller import LCPController, DCPController
@@ -77,7 +82,7 @@ class MainWindow(QMainWindow):
     signalResultTeaching = pyqtSignal(object)
 
     signalChangeLight = pyqtSignal(object)
-    signalChangeIO = pyqtSignal(object)
+    signalChangeOutputIO = pyqtSignal(object, OutPorts, PortState)
     signalChangeProcessing = pyqtSignal(object)
     signalChangeModel = pyqtSignal(object)
 
@@ -89,6 +94,7 @@ class MainWindow(QMainWindow):
         self.initParameters()
         self.initUi()
         self.connectUi()
+        self.initFunctions()
 
     def initParameters(self):
         # Logger and Log Signals
@@ -132,12 +138,18 @@ class MainWindow(QMainWindow):
         # Data Image
         self.data_image: DATA_IMAGE = None
 
+        # Database
+        self.database_path = ""
+
     def initUi(self):
         # Theme
         self.load_theme()
 
         # Dock
         self.setTabPosition(Qt.AllDockWidgetAreas, QTabWidget.North)
+
+        # TableWidget
+        self.ui.table_widget_database.setEditTriggers(QTableWidget.NoEditTriggers)
 
         # Button
         self.ui.btn_start.setProperty("class", "success")
@@ -158,21 +170,35 @@ class MainWindow(QMainWindow):
         self.ui.btn_open_io.setProperty("class", "success")
         self.ui.btn_connect_server.setProperty("class", "success")
         self.ui.btn_send_client.setProperty("class", "primary")
+        self.ui.btn_create_database.setProperty("class", "primary")
         self.ui.btn_connect_database.setProperty("class", "success")
+        self.ui.btn_filter_data.setProperty("class", "primary")
 
         # IO
-        self.ui.btn_output_1.setProperty("class", "danger")
-        self.ui.btn_output_1.setText("Off")
-        # self.ui.btn_output_1.setEnabled(False)
-        self.ui.btn_output_2.setProperty("class", "danger")
-        self.ui.btn_output_2.setText("Off")
-        # self.ui.btn_output_2.setEnabled(False)
-        self.ui.btn_output_3.setProperty("class", "danger")
-        self.ui.btn_output_3.setText("Off")
-        # self.ui.btn_output_3.setEnabled(False)
-        self.ui.btn_output_4.setProperty("class", "danger")
-        self.ui.btn_output_4.setText("Off")
-        # self.ui.btn_output_4.setEnabled(False)
+        self.ui.btn_output_1.setProperty("class", "success")
+        self.ui.btn_output_1.setText("On")
+        self.ui.btn_output_1.setEnabled(False)
+        self.ui.btn_output_2.setProperty("class", "success")
+        self.ui.btn_output_2.setText("On")
+        self.ui.btn_output_2.setEnabled(False)
+        self.ui.btn_output_3.setProperty("class", "success")
+        self.ui.btn_output_3.setText("On")
+        self.ui.btn_output_3.setEnabled(False)
+        self.ui.btn_output_4.setProperty("class", "success")
+        self.ui.btn_output_4.setText("On")
+        self.ui.btn_output_4.setEnabled(False)
+        self.ui.btn_output_5.setProperty("class", "success")
+        self.ui.btn_output_5.setText("On")
+        self.ui.btn_output_5.setEnabled(False)
+        self.ui.btn_output_6.setProperty("class", "success")
+        self.ui.btn_output_6.setText("On")
+        self.ui.btn_output_6.setEnabled(False)
+        self.ui.btn_output_7.setProperty("class", "success")
+        self.ui.btn_output_7.setText("On")
+        self.ui.btn_output_7.setEnabled(False)
+        self.ui.btn_output_8.setProperty("class", "success")
+        self.ui.btn_output_8.setText("On")
+        self.ui.btn_output_8.setEnabled(False)
         self.ui.label_input_1.setProperty("class", "fail")
         self.ui.label_input_1.setText("Off")
         self.ui.label_input_2.setProperty("class", "fail")
@@ -181,6 +207,14 @@ class MainWindow(QMainWindow):
         self.ui.label_input_3.setText("Off")
         self.ui.label_input_4.setProperty("class", "fail")
         self.ui.label_input_4.setText("Off")
+        self.ui.label_input_5.setProperty("class", "fail")
+        self.ui.label_input_5.setText("Off")
+        self.ui.label_input_6.setProperty("class", "fail")
+        self.ui.label_input_6.setText("Off")
+        self.ui.label_input_7.setProperty("class", "fail")
+        self.ui.label_input_7.setText("Off")
+        self.ui.label_input_8.setProperty("class", "fail")
+        self.ui.label_input_8.setText("Off")
 
         # Canvas
         self.canvas_src = Canvas()
@@ -191,10 +225,13 @@ class MainWindow(QMainWindow):
         self.ui.verticalLayoutImageDST.addWidget(WindowCanvas(self.canvas_dst))
         self.canvas_auto = Canvas()
         self.ui.verticalLayoutScreenAuto.addWidget(WindowCanvas(self.canvas_auto))
+        self.canvas_input = Canvas()
+        self.ui.verticalLayoutCanvasInput.addWidget(WindowCanvas(self.canvas_input))
+        self.canvas_output = Canvas()
+        self.ui.verticalLayoutCanvasOutput.addWidget(WindowCanvas(self.canvas_output))
 
         # Model
         self.initialize_models()
-        # self.init_all_modules()
 
     def connectUi(self):
         # Button
@@ -216,7 +253,19 @@ class MainWindow(QMainWindow):
         self.ui.btn_open_io.clicked.connect(self.on_click_open_io)
         self.ui.btn_connect_server.clicked.connect(self.on_click_connect_server)
         self.ui.btn_send_client.clicked.connect(self.on_click_send_client)
+        self.ui.btn_create_database.clicked.connect(self.create_database)
         self.ui.btn_connect_database.clicked.connect(self.on_click_connect_database)
+        self.ui.btn_filter_data.clicked.connect(self.filter_data)
+
+        # IO
+        self.ui.btn_output_1.clicked.connect(self.on_click_output_1)
+        self.ui.btn_output_2.clicked.connect(self.on_click_output_2)
+        self.ui.btn_output_3.clicked.connect(self.on_click_output_3)
+        self.ui.btn_output_4.clicked.connect(self.on_click_output_4)
+        self.ui.btn_output_5.clicked.connect(self.on_click_output_5)
+        self.ui.btn_output_6.clicked.connect(self.on_click_output_6)
+        self.ui.btn_output_7.clicked.connect(self.on_click_output_7)
+        self.ui.btn_output_8.clicked.connect(self.on_click_output_8)
 
         # Combobox
         self.ui.combo_model.currentIndexChanged.connect(self.on_change_model)
@@ -232,6 +281,9 @@ class MainWindow(QMainWindow):
             self.display_list_widget_image
         )
 
+        # TableWidget
+        self.ui.table_widget_database.itemSelectionChanged.connect(self.on_item_table_data_selection_changed)
+
         # Kết nối tín hiệu kết quả
         self.signalResultAuto.connect(self.handle_result_auto)
         self.signalResultTeaching.connect(self.handle_result_teaching)
@@ -239,6 +291,10 @@ class MainWindow(QMainWindow):
         # Kết nối tín hiệu thay đổi ánh sáng
         self.signalChangeLight.connect(self.handle_change_light)
         self.change_value_light()
+
+    def initFunctions(self):
+        # Database
+        pass
 
     def load_theme(self):
         self.ui.actionLight.triggered.connect(partial(self.set_theme, "light"))
@@ -339,13 +395,12 @@ class MainWindow(QMainWindow):
                         "channels": [10, 10, 10, 10],
                     },
                     "io": {
-                        "controller_io": "LCP",
                         "comport_io": "COM10",
                         "baudrate_io": "19200",
                     },
                     "server": {"host": "127.0.0.1", "port": "8080"},
                     "system": {
-                        "log_dir": "logs",
+                        "log_dir": "log_database",
                         "log_size": "10",
                         "database_path": "database.db",
                         "auto_start": False,
@@ -440,11 +495,11 @@ class MainWindow(QMainWindow):
             self.ui_logger.error(f"Lỗi khi khởi tạo lighting: {str(e)}")
             return False
 
-    def init_io(self, controller_type, com_port, baud_rate):
+    def init_io(self, com_port, baud_rate):
         try:
             # Ghi log thông số io
             self.ui_logger.info(
-                f"Khởi tạo io: Type={controller_type}, COM={com_port}, Baud={baud_rate}"
+                f"Khởi tạo IO: COM={com_port}, Baud={baud_rate}"
             )
 
             # Khởi tạo bộ điều khiển đèn với thông số từ giao diện
@@ -666,10 +721,9 @@ class MainWindow(QMainWindow):
         self.init_lighting(light_controller_type, com_port_light, baud_rate_light)
 
         # Init IO Controller
-        io_controller_type = config["modules"]["io"]["controller_io"]
         com_port_io = config["modules"]["io"]["comport_io"]
         baud_rate_io = int(config["modules"]["io"]["baudrate_io"])
-        self.init_io(io_controller_type, com_port_io, baud_rate_io)
+        self.init_io(com_port_io, baud_rate_io)
 
         # Init Server
         host = config["modules"]["server"]["host"]
@@ -725,9 +779,10 @@ class MainWindow(QMainWindow):
             self.wait_data_received_from_io_controller
         )
 
-    def wait_data_received_from_io_controller(self, command, state):
-        if command == InPorts.In_1 and state == PortState.On:
-            self.b_trigger_auto = True
+    def wait_data_received_from_io_controller(self, commands, states):
+        for command, state in zip(commands, states):
+            if command == 'In_1' and state == PortState.On:
+                self.b_trigger_auto = True
 
     def loop_auto(self):
         config = self.load_config(model_setting=False)
@@ -874,13 +929,16 @@ class MainWindow(QMainWindow):
                 dst=self.data_image.dst,  # Thay bằng ảnh đã xử lý
                 binary=self.data_image.binary,  # Thay bằng ảnh nhị phân thực tế
                 result="msg",  # Thay bằng kết quả thực tế (OK/NG)
-                time_check=elapsed_time,
+                time_check=time.strftime(DATETIME_FORMAT),
                 error_type=None,  # Nếu có lỗi, ghi loại lỗi ở đây
                 config=config,  # Config hiện tại từ UI
             )
 
             # Phát tín hiệu kết quả auto
             self.signalResultAuto.emit(self.final_result)
+
+            # Ghi log database
+            self.write_log_database(self.final_result)
 
             # Hiển thị kết quả lên UI
             self.ui.label_result.setProperty("class", "pass")
@@ -929,6 +987,52 @@ class MainWindow(QMainWindow):
             # Trong trường hợp lỗi, quay lại bước chờ trigger
             self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
             self.b_trigger_auto = False
+
+    def write_log_database(self, result: RESULT):
+        try:
+            config = self.get_config()
+            model_name = self.ui.combo_model.currentText()
+            date_now = time.strftime(FOLDER_DATE_FORMAT)
+
+            modules = config["modules"]
+            log_dir = modules["system"]["log_dir"]
+            try:
+                log_size = int(modules["system"]["log_size"]) * 1024
+            except:
+                log_size = 10 * 1024
+
+            os.makedirs(log_dir, exist_ok=True)
+
+            image_folder = os.path.join(log_dir, "images", model_name, date_now)
+            os.makedirs(image_folder, exist_ok=True)
+
+            filename = time.strftime(FILENAME_FORMAT)
+            image_path = f"{image_folder}/{filename}"
+            cv.imwrite(image_path, result.src)
+
+            image_folder_output = f"{image_folder}/output"
+            os.makedirs(image_folder_output, exist_ok=True)
+            image_path_output = os.path.join(image_folder_output, filename.replace(".jpg", "_output.jpg"))
+            cv.imwrite(image_path_output, result.dst)
+
+            threading.Thread(target=self.scan_log_dir, args=(log_dir, log_size), daemon=True).start()
+
+            database_path = os.path.join(log_dir, modules["system"]["database_path"])
+            conn = create_db(database_path)
+
+            values = ("Project", model_name, result.result, result.time_check, image_path, "", "")
+            sql = "INSERT INTO history VALUES(?,?,?,?,?,?,?)"
+            insert(conn, sql, values)
+        except Exception as e:
+            self.ui_logger.error(f"Error write log database: {str(e)}")
+
+    def scan_log_dir(self, log_dir, max_size):
+        self.ui_logger.debug(f"Scanning log dir '{log_dir}' ...")
+
+        size = scan_dir(log_dir)
+        if size > max_size:
+            shutil.rmtree(log_dir)
+            self.ui_logger.debug(f"Log dir size > {max_size} --> Remove log dir.")
 
     def on_click_reset(self):
         """
@@ -1024,7 +1128,7 @@ class MainWindow(QMainWindow):
                 self.handle_release_teaching()
 
             # Thời gian delay giữa các bước
-            time.sleep(0.05)
+            time.sleep(0.1)
 
     def stop_loop_teaching(self):
         self.b_stop_teaching = True
@@ -1140,7 +1244,7 @@ class MainWindow(QMainWindow):
                 dst=self.data_image.dst,  # Thay bằng ảnh đã xử lý
                 binary=self.data_image.binary,  # Thay bằng ảnh nhị phân thực tế
                 result="msg",  # Thay bằng kết quả thực tế (OK/NG)
-                time_check=elapsed_time,
+                time_check=time.strftime(DATETIME_FORMAT),
                 error_type=None,  # Nếu có lỗi, ghi loại lỗi ở đây
                 config=self.get_config(),  # Config hiện tại từ UI
             )
@@ -1277,7 +1381,6 @@ class MainWindow(QMainWindow):
 
         # Lưu thiết lập liên quan đến io
         config["modules"]["io"] = {
-            "controller_io": self.ui.combo_controller_io.currentText(),
             "comport_io": self.ui.combo_comport_io.currentText(),
             "baudrate_io": self.ui.combo_baudrate_io.currentText(),
         }
@@ -1415,11 +1518,6 @@ class MainWindow(QMainWindow):
                 # Áp dụng cấu hình io
                 if "io" in modules:
                     io_config = modules["io"]
-                    self.add_combox_item(self.ui.combo_controller_io, ["LCP", "DCP"])
-                    self.set_combobox_text(
-                        self.ui.combo_controller_io,
-                        io_config.get("controller_io", "LCP"),
-                    )
                     comports, baudrates = self.find_comports_and_baurates()
                     self.add_combox_item(self.ui.combo_comport_io, comports)
                     self.add_combox_item(self.ui.combo_baudrate_io, baudrates)
@@ -1443,7 +1541,7 @@ class MainWindow(QMainWindow):
                 # Áp dụng cấu hình system
                 if "system" in modules:
                     system_config = modules["system"]
-                    self.ui.line_log_dir.setText(system_config.get("log_dir", "logs"))
+                    self.ui.line_log_dir.setText(system_config.get("log_dir", "log_database"))
                     self.ui.line_log_size.setText(
                         str(system_config.get("log_size", 10))
                     )
@@ -1515,6 +1613,7 @@ class MainWindow(QMainWindow):
 
     def find_camera_devices(self, type: str):
         devices = get_camera_devices(type)
+
         if devices is not None:
             id_camera = list(devices.keys())
 
@@ -2121,10 +2220,9 @@ class MainWindow(QMainWindow):
     def open_io(self):
         try:
             # Lấy thông số từ giao diện
-            io_controller_type = self.ui.combo_controller_io.currentText()
             comport_io = self.ui.combo_comport_io.currentText()
             baudrate_io = int(self.ui.combo_baudrate_io.currentText())
-            self.init_io(io_controller_type, comport_io, baudrate_io)
+            self.init_io(comport_io, baudrate_io)
 
             # Mở kết nối với bộ điều khiển
             status = self.io_controller.open()
@@ -2137,10 +2235,10 @@ class MainWindow(QMainWindow):
             self.ui.btn_output_2.setEnabled(True)
             self.ui.btn_output_3.setEnabled(True)
             self.ui.btn_output_4.setEnabled(True)
-            self.ui.btn_output_1.clicked.connect(self.on_click_output_1)
-            self.ui.btn_output_2.clicked.connect(self.on_click_output_2)
-            self.ui.btn_output_3.clicked.connect(self.on_click_output_3)
-            self.ui.btn_output_4.clicked.connect(self.on_click_output_4)
+            self.ui.btn_output_5.setEnabled(True)
+            self.ui.btn_output_6.setEnabled(True)
+            self.ui.btn_output_7.setEnabled(True)
+            self.ui.btn_output_8.setEnabled(True)
 
             self.ui.btn_open_io.setText("Close")
             self.ui.btn_open_io.setProperty("class", "danger")
@@ -2159,13 +2257,14 @@ class MainWindow(QMainWindow):
             # Đóng kết nối với bộ điều khiển
             status = self.io_controller.close()
 
-            # self.ui.btn_output_1.setEnabled(False)
-
-            # self.ui.btn_output_2.setEnabled(False)
-
-            # self.ui.btn_output_3.setEnabled(False)
-
-            # self.ui.btn_output_4.setEnabled(False)
+            self.ui.btn_output_1.setEnabled(False)
+            self.ui.btn_output_2.setEnabled(False)
+            self.ui.btn_output_3.setEnabled(False)
+            self.ui.btn_output_4.setEnabled(False)
+            self.ui.btn_output_5.setEnabled(False)
+            self.ui.btn_output_6.setEnabled(False)
+            self.ui.btn_output_7.setEnabled(False)
+            self.ui.btn_output_8.setEnabled(False)
 
             self.ui.btn_open_io.setText("Open")
             self.ui.btn_open_io.setProperty("class", "success")
@@ -2178,123 +2277,136 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.ui_logger.error(f"Error Close IO: {e}")
 
-    def handle_change_input_io(self, command, state):
+    def handle_change_input_io(self, commands, states):
         try:
-            # Only update input if controller is connected and open
-            if command == InPorts.In_1:
-                self.ui_logger.debug(f"Input 1 state changed to {state}")
-                if state == PortState.On:
+            for command, state in zip(commands, states):
+                if command == 'In_1' and state == PortState.On:
                     self.ui.label_input_1.setProperty("class", "pass")
                     self.ui.label_input_1.setText("On")
                     update_style(self.ui.label_input_1)
-                else:
+                if command == 'In_1' and state == PortState.Off:
                     self.ui.label_input_1.setProperty("class", "fail")
                     self.ui.label_input_1.setText("Off")
                     update_style(self.ui.label_input_1)
-            elif command == InPorts.In_2:
-                if state == PortState.On:
+                if command == 'In_2' and state == PortState.On:
                     self.ui.label_input_2.setProperty("class", "pass")
                     self.ui.label_input_2.setText("On")
                     update_style(self.ui.label_input_2)
-                else:
+                if command == 'In_2' and state == PortState.Off:
                     self.ui.label_input_2.setProperty("class", "fail")
                     self.ui.label_input_2.setText("Off")
                     update_style(self.ui.label_input_2)
-            elif command == InPorts.In_3:
-                if state == PortState.On:
+                if command == 'In_3' and state == PortState.On:
                     self.ui.label_input_3.setProperty("class", "pass")
                     self.ui.label_input_3.setText("On")
                     update_style(self.ui.label_input_3)
-                else:
+                if command == 'In_3' and state == PortState.Off:
                     self.ui.label_input_3.setProperty("class", "fail")
                     self.ui.label_input_3.setText("Off")
                     update_style(self.ui.label_input_3)
-            elif command == InPorts.In_4:
-                if state == PortState.On:
+                if command == 'In_4' and state == PortState.On:
                     self.ui.label_input_4.setProperty("class", "pass")
                     self.ui.label_input_4.setText("On")
                     update_style(self.ui.label_input_4)
-                else:
+                if command == 'In_4' and state == PortState.Off:
                     self.ui.label_input_4.setProperty("class", "fail")
                     self.ui.label_input_4.setText("Off")
                     update_style(self.ui.label_input_4)
-            else:
-                self.ui_logger.debug(f"IO controller not open, change not applied")
+                if command == 'In_5' and state == PortState.On:
+                    self.ui.label_input_5.setProperty("class", "pass")
+                    self.ui.label_input_5.setText("On")
+                    update_style(self.ui.label_input_5)
+                if command == 'In_5' and state == PortState.Off:
+                    self.ui.label_input_5.setProperty("class", "fail")
+                    self.ui.label_input_5.setText("Off")
+                    update_style(self.ui.label_input_5)
+                if command == 'In_6' and state == PortState.On:
+                    self.ui.label_input_6.setProperty("class", "pass")
+                    self.ui.label_input_6.setText("On")
+                    update_style(self.ui.label_input_6)
+                if command == 'In_6' and state == PortState.Off:
+                    self.ui.label_input_6.setProperty("class", "fail")
+                    self.ui.label_input_6.setText("Off")
+                    update_style(self.ui.label_input_6)
+                if command == 'In_7' and state == PortState.On:
+                    self.ui.label_input_7.setProperty("class", "pass")
+                    self.ui.label_input_7.setText("On")
+                    update_style(self.ui.label_input_7)
+                if command == 'In_7' and state == PortState.Off:
+                    self.ui.label_input_7.setProperty("class", "fail")
+                    self.ui.label_input_7.setText("Off")
+                    update_style(self.ui.label_input_7)
+                if command == 'In_8' and state == PortState.On:
+                    self.ui.label_input_8.setProperty("class", "pass")
+                    self.ui.label_input_8.setText("On")
+                    update_style(self.ui.label_input_8)
+                if command == 'In_8' and state == PortState.Off:
+                    self.ui.label_input_8.setProperty("class", "fail")
+                    self.ui.label_input_8.setText("Off")
+                    update_style(self.ui.label_input_8)
 
         except Exception as e:
             self.ui_logger.error(f"Error handling input change: {str(e)}")
 
     def on_click_output_1(self):
-        if self.ui.btn_output_1.text() == "Off":
-            self.on_output_1()
+        if self.ui.btn_output_1.text() == "On":
+            self.on_output(self.ui.btn_output_1, OutPorts.Out_1)
         else:
-            self.off_output_1()
-
-    def on_output_1(self):
-        self.io_controller.write_out(OutPorts.Out_1, PortState.On)
-        self.ui.btn_output_1.setText("On")
-        self.ui.btn_output_1.setProperty("class", "success")
-        update_style(self.ui.btn_output_1)
-
-    def off_output_1(self):
-        self.io_controller.write_out(OutPorts.Out_1, PortState.Off)
-        self.ui.btn_output_1.setText("Off")
-        self.ui.btn_output_1.setProperty("class", "danger")
-        update_style(self.ui.btn_output_1)
+            self.off_output(self.ui.btn_output_1, OutPorts.Out_1)
 
     def on_click_output_2(self):
-        if self.ui.btn_output_2.text() == "Off":
-            self.on_output_2()
+        if self.ui.btn_output_2.text() == "On":
+            self.on_output(self.ui.btn_output_2, OutPorts.Out_2)
         else:
-            self.off_output_2()
-
-    def on_output_2(self):
-        self.io_controller.write_out(OutPorts.Out_2, PortState.On)
-        self.ui.btn_output_2.setText("On")
-        self.ui.btn_output_2.setProperty("class", "success")
-        update_style(self.ui.btn_output_2)
-
-    def off_output_2(self):
-        self.io_controller.write_out(OutPorts.Out_2, PortState.Off)
-        self.ui.btn_output_2.setText("Off")
-        self.ui.btn_output_2.setProperty("class", "danger")
-        update_style(self.ui.btn_output_2)
-
+            self.off_output(self.ui.btn_output_2, OutPorts.Out_2)
+    
     def on_click_output_3(self):
-        if self.ui.btn_output_3.text() == "Off":
-            self.on_output_3()
+        if self.ui.btn_output_3.text() == "On":
+            self.on_output(self.ui.btn_output_3, OutPorts.Out_3)
         else:
-            self.off_output_3()
-
-    def on_output_3(self):
-        self.io_controller.write_out(OutPorts.Out_3, PortState.On)
-        self.ui.btn_output_3.setText("On")
-        self.ui.btn_output_3.setProperty("class", "success")
-        update_style(self.ui.btn_output_3)
-
-    def off_output_3(self):
-        self.io_controller.write_out(OutPorts.Out_3, PortState.Off)
-        self.ui.btn_output_3.setText("Off")
-        self.ui.btn_output_3.setProperty("class", "danger")
-        update_style(self.ui.btn_output_3)
+            self.off_output(self.ui.btn_output_3, OutPorts.Out_3)
 
     def on_click_output_4(self):
-        if self.ui.btn_output_4.text() == "Off":
-            self.on_output_4()
+        if self.ui.btn_output_4.text() == "On":
+            self.on_output(self.ui.btn_output_4, OutPorts.Out_4)
         else:
-            self.off_output_4()
+            self.off_output(self.ui.btn_output_4, OutPorts.Out_4)
+    
+    def on_click_output_5(self):
+        if self.ui.btn_output_5.text() == "On":
+            self.on_output(self.ui.btn_output_5, OutPorts.Out_5)
+        else:
+            self.off_output(self.ui.btn_output_5, OutPorts.Out_5)
 
-    def on_output_4(self):
-        self.io_controller.write_out(OutPorts.Out_4, PortState.On)
-        self.ui.btn_output_4.setText("On")
-        self.ui.btn_output_4.setProperty("class", "success")
-        update_style(self.ui.btn_output_4)
+    def on_click_output_6(self):
+        if self.ui.btn_output_6.text() == "On":
+            self.on_output(self.ui.btn_output_6, OutPorts.Out_6)
+        else:
+            self.off_output(self.ui.btn_output_6, OutPorts.Out_6)
 
-    def off_output_4(self):
-        self.io_controller.write_out(OutPorts.Out_4, PortState.Off)
-        self.ui.btn_output_4.setText("Off")
-        self.ui.btn_output_4.setProperty("class", "danger")
-        update_style(self.ui.btn_output_4)
+    def on_click_output_7(self):
+        if self.ui.btn_output_7.text() == "On":
+            self.on_output(self.ui.btn_output_7, OutPorts.Out_7)
+        else:
+            self.off_output(self.ui.btn_output_7, OutPorts.Out_7)
+
+    def on_click_output_8(self):
+        if self.ui.btn_output_8.text() == "On":
+            self.on_output(self.ui.btn_output_8, OutPorts.Out_8)
+        else:
+            self.off_output(self.ui.btn_output_8, OutPorts.Out_8)
+
+    def on_output(self, button: QPushButton, out: OutPorts):
+        self.io_controller.write_out(out, PortState.On)
+        button.setText("Off")
+        button.setProperty("class", "danger")
+        update_style(button)
+
+    def off_output(self, button: QPushButton, out: OutPorts):
+        self.io_controller.write_out(out, PortState.Off)
+        button.setText("On")
+        button.setProperty("class", "success")
+        update_style(button)
 
     def on_click_connect_server(self):
         if self.ui.btn_connect_server.text() == "Connect":
@@ -2340,6 +2452,23 @@ class MainWindow(QMainWindow):
 
     def connect_database(self):
         try:
+
+            config = self.get_config()
+            log_dir = config["modules"]["system"]["log_dir"]
+            database_path = os.path.join(log_dir, config["modules"]["system"]["database_path"])
+
+            options = QFileDialog.Options()
+            filename,_ = QFileDialog.getOpenFileName(self, "Select file", database_path
+                    , "Database files (*.db)", options=options)
+
+            if filename:
+                self.database_path = filename
+                self.ui_logger.info(f"Connect database success")
+                sql = sql = f"SELECT * FROM history"
+                conn = create_db(self.database_path)
+                rows = select(conn, sql)
+                self.update_rows(rows)
+
             self.ui.btn_connect_database.setText("Disconnect")
             self.ui.btn_connect_database.setProperty("class", "danger")
             update_style(self.ui.btn_connect_database)
@@ -2348,11 +2477,87 @@ class MainWindow(QMainWindow):
 
     def disconnect_database(self):
         try:
+
+            conn = create_db(self.database_path)
+            conn.close()
+            self.database_path = ""
+            self.ui_logger.info(f"Disconnect database success")
+
             self.ui.btn_connect_database.setText("Connect")
             self.ui.btn_connect_database.setProperty("class", "success")
             update_style(self.ui.btn_connect_database)
         except Exception as e:
             self.ui_logger.error(f"Error Disconnect Database: {e}")
+
+    def create_database(self):
+        try:
+            config = self.get_config()
+            log_dir = config["modules"]["system"]["log_dir"]
+            database_path = os.path.join(log_dir, config["modules"]["system"]["database_path"])
+            os.makedirs(os.path.dirname(database_path), exist_ok=True)
+            with open("resources/database/database.sql", "r") as file:
+                sql_script = file.read()
+                conn = create_db(database_path)
+                conn.executescript(sql_script)
+        except Exception as e:
+            self.ui_logger.error(f"Error Create Database: {e}")
+
+    def on_item_table_data_selection_changed(self):
+        row = self.ui.table_widget_database.currentRow()
+        it = self.ui.table_widget_database.item(row, IMAGE_PATH_COLUMN)
+
+        img_path = it.text()
+
+        if not os.path.exists(img_path):
+            self.ui_logger.error("File not found %s" % img_path)
+            self.canvas_input.clear_pixmap()
+        else:
+            src = cv.imread(img_path)
+            self.canvas_input.load_pixmap(ndarray2pixmap(src), True)
+
+        basename = os.path.basename(img_path)
+        dirname = os.path.dirname(img_path)
+
+        img_path_output = os.path.join(dirname, "output", basename.replace(".jpg", "_output.jpg"))
+        if not os.path.exists(img_path_output):
+            self.ui_logger.error("File not found %s" % img_path_output)
+            self.canvas_output.clear_pixmap()
+        else:
+            dst = cv.imread(img_path_output)
+            self.canvas_output.load_pixmap(ndarray2pixmap(dst), True)
+
+    def filter_data(self):
+        if self.database_path != "":
+            date_from = self.ui.date_time_from.dateTime().toString("yyyy/MM/dd hh:mm:ss")
+            date_to = self.ui.date_time_to.dateTime().toString("yyyy/MM/dd hh:mm:ss")
+            print(date_from)
+            print(date_to)
+            
+            result = self.ui.combo_result_type.currentText()
+            if result == "ALL":
+                result = ""
+
+            error_type = self.ui.combo_error_type.currentText()
+            if error_type == "All":
+                error_type = ""
+
+            key_word = self.ui.line_keyword.text()
+
+            sql = f"SELECT camera,model,result,time_check,img_path,code,error_type FROM history WHERE \
+                    (time_check BETWEEN '{date_from}' AND '{date_to}') \
+                    AND (result LIKE '%{result}%') \
+                    AND (result=='PASS' OR error_type LIKE '%{error_type}%') \
+                    AND (code LIKE '%{key_word}%' OR error_type LIKE '%{key_word}%' OR img_path LIKE '%{key_word}%' OR time_check LIKE '%{key_word}%') \
+                    "
+            conn = create_db(self.database_path)
+            rows = select(conn, sql)
+            self.update_rows(rows)
+
+    def update_rows(self, rows):
+        self.ui.table_widget_database.setRowCount(len(rows))
+        for i, r in enumerate(rows):
+            for j in range(len(r)):
+                self.ui.table_widget_database.setItem(i, j, QTableWidgetItem(r[j]))
 
     def closeEvent(self, event):
         return super().closeEvent(event)

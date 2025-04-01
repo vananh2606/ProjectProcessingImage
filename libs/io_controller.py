@@ -185,5 +185,5 @@ class IOController(QObject):
 
 
 if __name__ == "__main__":
-    lcp = IOController(com="COM9", baud=19200)
+    lcp = IOController(com="COM10", baud=19200)
     print(lcp.open())
