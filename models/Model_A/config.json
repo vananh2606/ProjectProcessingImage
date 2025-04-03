@@ -8,7 +8,7 @@
         },
         "lighting": {
             "controller_light": "DCP",
-            "comport_light": "COM8",
+            "comport_light": "COM10",
             "baudrate_light": "19200",
             "delay": 100,
             "channels": [
@@ -19,7 +19,7 @@
             ]
         },
         "io": {
-            "comport_io": "COM10",
+            "comport_io": "COM9",
             "baudrate_io": "19200"
         },
         "server": {
@@ -31,6 +31,10 @@
             "log_size": "10",
             "database_path": "database.db",
             "auto_start": true
+        },
+        "model_ai": {
+            "model_path": "yolov8n-seg",
+            "confidence": "0.25"
         }
     },
     "font": {

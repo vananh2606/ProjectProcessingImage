@@ -44,3 +44,4 @@ FOLDER_DATE_FORMAT = "%Y-%m-%d"
 # CONFIG
 IMAGE_PATH_COLUMN = 4
 FONT_CONFIG_PATH = "resources/fonts/font.json"
+LABEL_CONFIG_PATH = "resources/models_ai/labels.yaml"

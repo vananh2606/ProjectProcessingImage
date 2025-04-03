@@ -3,6 +3,7 @@ import sys
 import time
 import json
 import shutil
+import random
 import logging
 import serial
 import serial.tools
@@ -42,6 +43,7 @@ from libs.utils import scan_dir
 from libs.log_model import setup_logger
 from libs.image_converter import ImageConverter
 from libs.tcp_server import Server
+from libs.vision import YoloInference, plot_results
 from libs.database_lite import *
 from cameras import HIK, SODA, Webcam, get_camera_devices
 from libs.camera_thread import CameraThread
@@ -81,10 +83,11 @@ class MainWindow(QMainWindow):
     signalResultAuto = pyqtSignal(object)
     signalResultTeaching = pyqtSignal(object)
 
+    signalChangeLabelResult = pyqtSignal(str)
     signalChangeLight = pyqtSignal(object)
     signalChangeOutputIO = pyqtSignal(object, OutPorts, PortState)
     signalChangeProcessing = pyqtSignal(object)
-    signalChangeModel = pyqtSignal(object)
+    signalChangeModelAI = pyqtSignal(object)
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -94,7 +97,6 @@ class MainWindow(QMainWindow):
         self.initParameters()
         self.initUi()
         self.connectUi()
-        self.initFunctions()
 
     def initParameters(self):
         # Logger and Log Signals
@@ -118,6 +120,9 @@ class MainWindow(QMainWindow):
         # Server
         self.tcp_server = None
 
+        # Model AI
+        self.model_ai = None
+
         # Image
         self.current_image_path = None
         self.current_image = None
@@ -134,9 +139,6 @@ class MainWindow(QMainWindow):
 
         # Result
         self.final_result: RESULT = None
-
-        # Data Image
-        self.data_image: DATA_IMAGE = None
 
         # Database
         self.database_path = ""
@@ -288,13 +290,15 @@ class MainWindow(QMainWindow):
         self.signalResultAuto.connect(self.handle_result_auto)
         self.signalResultTeaching.connect(self.handle_result_teaching)
 
+        # Kết nối tín hiệu thay đổi Label
+        self.signalChangeLabelResult.connect(self.handle_change_label_result)
+
         # Kết nối tín hiệu thay đổi ánh sáng
         self.signalChangeLight.connect(self.handle_change_light)
         self.change_value_light()
 
-    def initFunctions(self):
-        # Database
-        pass
+        # Kết nối tín hiệu thay đổi confidence
+        self.signalChangeModelAI.connect(self.handle_change_confidence)
 
     def load_theme(self):
         self.ui.actionLight.triggered.connect(partial(self.set_theme, "light"))
@@ -434,7 +438,7 @@ class MainWindow(QMainWindow):
             # Khởi tạo camera thread với thông số từ giao diện
             if camera_type == "Webcam":
                 self.camera_thread = CameraThread(
-                    camera_type, {"id": camera_id, "feature": camera_feature}
+                    camera_type, {"id": camera_id, "feature": f"{camera_feature}.ini"}
                 )
             elif camera_type == "HIK":
                 # Cấu hình đặc biệt cho camera HIK nếu cần
@@ -442,7 +446,7 @@ class MainWindow(QMainWindow):
                     camera_type,
                     {
                         "id": camera_id,
-                        "feature": f"resources/cameras/HIK/{camera_feature}",
+                        "feature": f"resources/cameras/HIK/{camera_feature}.ini",
                     },
                 )
             elif camera_type == "SODA":
@@ -451,7 +455,7 @@ class MainWindow(QMainWindow):
                     camera_type,
                     {
                         "id": camera_id,
-                        "feature": f"resources/cameras/SODA/{camera_feature}",
+                        "feature": f"resources/cameras/SODA/{camera_feature}.ini",
                     },
                 )
             else:
@@ -570,6 +574,28 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.ui_logger.error(f"Lỗi khi khởi tạo hệ thống: {str(e)}")
             return False
+        
+    def init_model_ai(self, model_path):
+        """
+        Khởi tạo model AI với thông số từ giao diện.
+        """
+        try:
+            # Ghi log thông số model AI
+            self.ui_logger.info(f"Khởi tạo model AI: Path={model_path}")
+
+            # Khởi tạo model AI với thông số từ giao diện
+            self.model_ai = YoloInference(
+                model=f"resources/models_ai/{model_path}.pt",
+                label=LABEL_CONFIG_PATH,
+            )
+
+            return True
+
+        except Exception as e:
+            self.ui_logger.error(f"Lỗi khi khởi tạo Model AI: {str(e)}")
+            return False
+
+
 
     def write_log(self):
         """Ghi thử một số log"""
@@ -654,17 +680,23 @@ class MainWindow(QMainWindow):
     def set_up_auto(self):
         if self.ui.btn_start_teaching.text() == "Stop Teaching":
             self.stop_teaching()
+
         if self.ui.btn_start_camera.text() == "Stop":
             self.stop_camera()
             self.close_camera()
+
         if self.ui.btn_open_camera.text() == "Close":
             self.close_camera()
+
         if self.ui.btn_open_light.text() == "Close":
             self.close_light()
+
         if self.ui.btn_open_io.text() == "Close":
             self.close_io()
+
         if self.ui.btn_connect_server.text() == "Disconnect":
             self.disconnect_server()
+
         # self.ui.btn_start_teaching.setEnabled(False)
         self.ui.btn_open_camera.setEnabled(False)
         # self.ui.btn_open_light.setEnabled(False)
@@ -691,6 +723,13 @@ class MainWindow(QMainWindow):
             self.ui_logger.error(f"Error stop auto: {str(e)}")
 
     def release_loop_auto(self):
+        self.io_controller.write_out(OutPorts.Out_1, PortState.Off)  
+        time.sleep(0.05)
+        self.io_controller.write_out(OutPorts.Out_2, PortState.Off)  
+        time.sleep(0.05)
+        self.io_controller.write_out(OutPorts.Out_3, PortState.Off)  
+        time.sleep(0.05)
+
         if self.camera_thread is not None:
             self.close_camera()
         if self.light_controller is not None:
@@ -775,6 +814,7 @@ class MainWindow(QMainWindow):
 
     def open_io_controller_auto(self):
         self.io_controller.open()
+        self.io_controller.write_out(OutPorts.Out_1, PortState.On)
         self.io_controller.inputSignal.connect(
             self.wait_data_received_from_io_controller
         )
@@ -786,6 +826,9 @@ class MainWindow(QMainWindow):
 
     def loop_auto(self):
         config = self.load_config(model_setting=False)
+
+        model_path = config["modules"]["model_ai"]["model_path"]
+        self.init_model_ai(model_path)
 
         self.b_stop_auto = False
         self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
@@ -802,14 +845,14 @@ class MainWindow(QMainWindow):
             elif self.current_step_auto == STEP_PREPROCESS_AUTO:
                 self.handle_preprocess_auto(config)
             elif self.current_step_auto == STEP_PROCESSING_AUTO:
-                self.handle_processing_auto()
+                self.handle_processing_auto(config)
             elif self.current_step_auto == STEP_OUTPUT_AUTO:
                 self.handle_output_auto(config)
             elif self.current_step_auto == STEP_RELEASE_AUTO:
                 self.handle_release_auto(config)
 
             # Thời gian delay giữa các bước
-            time.sleep(0.1)
+            time.sleep(0.01)
 
     def stop_loop_auto(self):
         self.b_stop_auto = True
@@ -818,10 +861,9 @@ class MainWindow(QMainWindow):
         if self.b_trigger_auto:
             self.ui_logger.debug("Step Auto: Wait Trigger")
             self.b_trigger_auto = False
-            self.ui.label_result.setProperty("class", "waiting")
-            self.ui.label_result.setText("Waiting")
-            update_style(self.ui.label_result)
+            self.signalChangeLabelResult.emit("Waiting...")
             self.start_elappsed_time()
+            # print("handle_wait_trigger complete")
             self.current_step_auto = STEP_PREPROCESS_AUTO
 
     def handle_preprocess_auto(self, config):
@@ -854,6 +896,7 @@ class MainWindow(QMainWindow):
                 self.current_image = self.camera_thread.grab_camera()
                 self.current_image_path = None
 
+            # print("handle_preprocess complete")
             # Chuyển sang bước tiếp theo
             self.current_step_auto = STEP_PROCESSING_AUTO
         except Exception as e:
@@ -862,7 +905,7 @@ class MainWindow(QMainWindow):
             self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
             self.b_trigger_auto = False
 
-    def handle_processing_auto(self):
+    def handle_processing_auto(self, config):
         try:
             self.ui_logger.debug("Step Auto: Processing")
 
@@ -884,22 +927,48 @@ class MainWindow(QMainWindow):
                 binary = cv.erode(thresh, kernel, iterations=1)
                 # binary = cv.dilate(binary, kernel, iterations=1)
 
-                # Find contours
-                cnts, _ = cv.findContours(
-                    binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE
-                )
-
-                # Draw contours
                 dst = src.copy()
-                cv.drawContours(dst, cnts, -1, (0, 255, 0), 2)
 
-                self.data_image = DATA_IMAGE(
-                    path=self.current_image_path,
+                # # Find contours
+                # cnts, _ = cv.findContours(
+                #     binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE
+                # )
+
+                # # Draw contours
+                # cv.drawContours(dst, cnts, -1, (0, 255, 0), 2)
+
+                # Thực hiện phát hiện
+                results = self.model_ai.detect(src, conf=float(config["modules"]["model_ai"]["confidence"]), imgsz=640)
+                
+                # Vẽ kết quả
+                dst = plot_results(results, dst, self.model_ai.label_map, self.model_ai.color_map)
+
+                random_result = random.randint(0, 2)
+                if random_result == 0:
+                    msg = "PASS"
+                elif random_result == 1: 
+                    msg = "FAIL"
+                else:
+                    msg = "WAIT"
+
+                # Tạo kết quả cuối cùng cho auto
+                self.final_result = RESULT(
+                    camera=config["modules"]["camera"]["type"],
+                    model="AUTO",  # Chế độ auto không sử dụng model
+                    code="AUTO-" + time.strftime("%Y%m%d-%H%M%S"),
                     src=src,
-                    binary=binary,
-                    dst=dst,
+                    dst=dst,  # Thay bằng ảnh đã xử lý
+                    binary=binary,  # Thay bằng ảnh nhị phân thực tế
+                    result=msg,  # Thay bằng kết quả thực tế (OK/NG)
+                    time_check=time.strftime(DATETIME_FORMAT),
+                    error_type=None,  # Nếu có lỗi, ghi loại lỗi ở đây
+                    config=config,  # Config hiện tại từ UI
                 )
 
+                # Phát tín hiệu kết quả auto
+                self.signalResultAuto.emit(self.final_result)
+
+            # print("handle_processing complete")
             # Chuyển sang bước tiếp theo
             self.current_step_auto = STEP_OUTPUT_AUTO
 
@@ -920,34 +989,33 @@ class MainWindow(QMainWindow):
             # TODO: Thêm mã xử lý kết quả và hiển thị
             # Ví dụ: Cập nhật UI, hiển thị kết quả, v.v.
 
-            # Tạo kết quả cuối cùng cho auto
-            self.final_result = RESULT(
-                camera=config["modules"]["camera"]["type"],
-                model="AUTO",  # Chế độ auto không sử dụng model
-                code="AUTO-" + time.strftime("%Y%m%d-%H%M%S"),
-                src=self.data_image.src,
-                dst=self.data_image.dst,  # Thay bằng ảnh đã xử lý
-                binary=self.data_image.binary,  # Thay bằng ảnh nhị phân thực tế
-                result="msg",  # Thay bằng kết quả thực tế (OK/NG)
-                time_check=time.strftime(DATETIME_FORMAT),
-                error_type=None,  # Nếu có lỗi, ghi loại lỗi ở đây
-                config=config,  # Config hiện tại từ UI
-            )
+            if self.final_result.result == "PASS":
+                self.signalChangeLabelResult.emit("Pass")
+                self.io_controller.write_out(OutPorts.Out_2, PortState.Off)
+                time.sleep(0.05)
+                self.io_controller.write_out(OutPorts.Out_3, PortState.Off)
+                time.sleep(0.05)
+                self.io_controller.write_out(OutPorts.Out_1, PortState.On) 
+            elif self.final_result.result  == "FAIL": 
+                self.signalChangeLabelResult.emit("Fail")
+                self.io_controller.write_out(OutPorts.Out_1, PortState.Off)
+                time.sleep(0.05)
+                self.io_controller.write_out(OutPorts.Out_3, PortState.Off)
+                time.sleep(0.05)
+                self.io_controller.write_out(OutPorts.Out_2, PortState.On)  
+            else:
+                self.signalChangeLabelResult.emit("Wait")
+                self.io_controller.write_out(OutPorts.Out_1, PortState.Off)
+                time.sleep(0.05)
+                self.io_controller.write_out(OutPorts.Out_2, PortState.Off)
+                time.sleep(0.05)
+                self.io_controller.write_out(OutPorts.Out_3, PortState.On)  
 
-            # Phát tín hiệu kết quả auto
-            self.signalResultAuto.emit(self.final_result)
 
             # Ghi log database
             self.write_log_database(self.final_result)
 
-            # Hiển thị kết quả lên UI
-            self.ui.label_result.setProperty("class", "pass")
-            self.ui.label_result.setText("Pass")
-            update_style(self.ui.label_result)
-            self.ui.label_result.setProperty("class", "fail")
-            self.ui.label_result.setText("Fail")
-            update_style(self.ui.label_result)
-
+            # print("handle_output complete")
             # Chuyển sang bước tiếp theo
             self.current_step_auto = STEP_RELEASE_AUTO
 
@@ -975,11 +1043,11 @@ class MainWindow(QMainWindow):
 
             # Giải phóng tài nguyên đã khởi tạo
             self.final_result = None
-            self.data_image = None
 
             # Đặt lại trạng thái trigger
             self.b_trigger_auto = False
 
+            # print("handle_release complete")
             # Chuyển sang bước chờ trigger
             self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
         except Exception as e:
@@ -1021,7 +1089,7 @@ class MainWindow(QMainWindow):
             conn = create_db(database_path)
 
             values = ("Project", model_name, result.result, result.time_check, image_path, "", "")
-            sql = "INSERT INTO history VALUES(?,?,?,?,?,?,?)"
+            sql = "INSERT INTO history (camera, model, result, time_check, img_path, code, error_type) VALUES (?, ?, ?, ?, ?, ?, ?)"
             insert(conn, sql, values)
         except Exception as e:
             self.ui_logger.error(f"Error write log database: {str(e)}")
@@ -1030,8 +1098,9 @@ class MainWindow(QMainWindow):
         self.ui_logger.debug(f"Scanning log dir '{log_dir}' ...")
 
         size = scan_dir(log_dir)
+        log_images = os.path.join(log_dir, "images")
         if size > max_size:
-            shutil.rmtree(log_dir)
+            shutil.rmtree(log_images)
             self.ui_logger.debug(f"Log dir size > {max_size} --> Remove log dir.")
 
     def on_click_reset(self):
@@ -1106,6 +1175,9 @@ class MainWindow(QMainWindow):
         threading.Thread(target=self.loop_teaching, daemon=True).start()
 
     def loop_teaching(self):
+        model_path = self.ui.combo_model_ai.currentText()
+        self.init_model_ai(model_path)
+
         self.b_stop_teaching = False
         self.current_step_teaching = STEP_WAIT_TRIGGER_TEACHING
 
@@ -1196,21 +1268,40 @@ class MainWindow(QMainWindow):
                 binary = cv.erode(thresh, kernel, iterations=1)
                 # binary = cv.dilate(binary, kernel, iterations=1)
 
-                # Find contours
-                cnts, _ = cv.findContours(
-                    binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE
-                )
-
-                # Draw contours
                 dst = src.copy()
-                cv.drawContours(dst, cnts, -1, (0, 255, 0), 2)
 
-                self.data_image = DATA_IMAGE(
-                    path=self.current_image_path,
+                # # Find contours
+                # cnts, _ = cv.findContours(
+                #     binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE
+                # )
+
+                # # Draw contours
+                # cv.drawContours(dst, cnts, -1, (0, 255, 0), 2)
+
+                conf = float(self.ui.line_confidence.text())
+
+                # Thực hiện phát hiện
+                results = self.model_ai.detect(src, conf=conf, imgsz=640)
+                
+                # Vẽ kết quả
+                dst = plot_results(results, dst, self.model_ai.label_map, self.model_ai.color_map)
+
+                 # Tạo kết quả cuối cùng cho teaching
+                self.final_result = RESULT(
+                    camera=self.ui.combo_type_camera.currentText(),
+                    model="TEACHING",  # Chế độ teaching không sử dụng model
+                    code="TEACHING-" + time.strftime("%Y%m%d-%H%M%S"),
                     src=src,
-                    binary=binary,
-                    dst=dst,
+                    dst=dst,  # Thay bằng ảnh đã xử lý
+                    binary=binary,  # Thay bằng ảnh nhị phân thực tế
+                    result="msg",  # Thay bằng kết quả thực tế (OK/NG)
+                    time_check=time.strftime(DATETIME_FORMAT),
+                    error_type=None,  # Nếu có lỗi, ghi loại lỗi ở đây
+                    config=self.get_config(),  # Config hiện tại từ UI
                 )
+
+                # Phát tín hiệu kết quả teaching
+                self.signalResultTeaching.emit(self.final_result)
 
             # Chuyển sang bước tiếp theo
             self.current_step_teaching = STEP_OUTPUT_TEACHING
@@ -1231,26 +1322,6 @@ class MainWindow(QMainWindow):
             # Thời gian xử lý
             elapsed_time = self.get_elappsed_time()
             self.ui_logger.info(f"Teaching processing time: {elapsed_time:.3f} seconds")
-
-            # TODO: Thêm mã xử lý kết quả và hiển thị
-            # Ví dụ: Cập nhật UI, hiển thị kết quả, v.v.
-
-            # Tạo kết quả cuối cùng cho teaching
-            self.final_result = RESULT(
-                camera=self.ui.combo_type_camera.currentText(),
-                model="TEACHING",  # Chế độ teaching không sử dụng model
-                code="TEACHING-" + time.strftime("%Y%m%d-%H%M%S"),
-                src=self.data_image.src,
-                dst=self.data_image.dst,  # Thay bằng ảnh đã xử lý
-                binary=self.data_image.binary,  # Thay bằng ảnh nhị phân thực tế
-                result="msg",  # Thay bằng kết quả thực tế (OK/NG)
-                time_check=time.strftime(DATETIME_FORMAT),
-                error_type=None,  # Nếu có lỗi, ghi loại lỗi ở đây
-                config=self.get_config(),  # Config hiện tại từ UI
-            )
-
-            # Phát tín hiệu kết quả teaching
-            self.signalResultTeaching.emit(self.final_result)
 
             # Chuyển sang bước tiếp theo
             self.current_step_teaching = STEP_RELEASE_TEACHING
@@ -1331,6 +1402,33 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.ui_logger.error(f"Lỗi khi xử lý kết quả teaching: {str(e)}")
 
+    def handle_change_label_result(self, text):
+        if text == "Wait":
+            self.ui.label_result.setProperty("class", "waiting")
+            self.ui.label_result.setText("Wait")
+            update_style(self.ui.label_result)
+        elif text == "Pass":
+            self.ui.label_result.setProperty("class", "pass")
+            self.ui.label_result.setText("Pass")
+            update_style(self.ui.label_result)
+        elif text == "Fail":
+            self.ui.label_result.setProperty("class", "fail")
+            self.ui.label_result.setText("Fail")
+            update_style(self.ui.label_result)
+        else:
+            self.ui.label_result.setProperty("class", "waiting")
+            self.ui.label_result.setText("Waiting")
+            update_style(self.ui.label_result)
+
+    def handle_change_confidence(self, src, dst, confidence):
+        # Thực hiện phát hiện
+        results = self.model_ai.detect(src, conf=confidence, imgsz=640)
+        
+        # Vẽ kết quả
+        dst = plot_results(results, dst, self.model_ai.label_map, self.model_ai.color_map)
+
+        return dst
+
     def on_click_refesh(self):
         self.apply_default_config()
 
@@ -1397,6 +1495,12 @@ class MainWindow(QMainWindow):
             "log_size": self.ui.line_log_size.text(),
             "database_path": self.ui.line_database_path.text(),
             "auto_start": self.ui.check_auto_start.isChecked(),
+        }
+
+        # Lưu thiết lập liên quan đến model AI
+        config["modules"]["model_ai"] = {
+            "model_path": self.ui.combo_model_ai.currentText(),
+            "confidence": self.ui.line_confidence.text(),
         }
 
         # Lưu thiết lập font
@@ -1552,6 +1656,19 @@ class MainWindow(QMainWindow):
                         system_config.get("auto_start", False)
                     )
 
+                # Áp dụng cấu hình module AI
+                if "model_ai" in modules:
+                    model_ai_config = modules["model_ai"]
+                    model_ai = self.find_model_ai()
+                    self.add_combox_item(self.ui.combo_model_ai, model_ai)
+                    self.set_combobox_text(
+                        self.ui.combo_model_ai,
+                        model_ai_config.get("model", "model.pt"),
+                    )
+                    self.ui.line_confidence.setText(
+                        str(model_ai_config.get("confidence", 0.25))
+                    )
+
             # Áp dụng cấu hình font nếu có
             if "font" in config:
                 font_config = config["font"]
@@ -1620,7 +1737,7 @@ class MainWindow(QMainWindow):
             feature_dir = "resources/cameras/" + type
             if os.path.exists(feature_dir):
                 features = [
-                    name
+                    name.split('.')[0]
                     for name in os.listdir(feature_dir)
                     if name.endswith(".ini") or name.endswith(".pfs")
                 ]
@@ -1655,6 +1772,12 @@ class MainWindow(QMainWindow):
             list_client = self.tcp_server.clients
             return list_client
         return []
+    
+    def find_model_ai(self):
+        model_ai_dir = "resources/models_ai"
+        model_names = [name.split('.')[0] for name in os.listdir(model_ai_dir) if name.endswith((".pt", ".pth"))]
+
+        return model_names
 
     def on_change_model(self):
         """
@@ -1833,8 +1956,6 @@ class MainWindow(QMainWindow):
             is_current_model = model_name == self.ui.combo_model.currentText()
 
             # Xóa thư mục model và tất cả nội dung
-            import shutil
-
             shutil.rmtree(model_path)
 
             # Xóa model khỏi combobox
@@ -1881,7 +2002,20 @@ class MainWindow(QMainWindow):
             if model_name is None:
                 model_name = self.ui.combo_model.currentText()
 
-            self.ui_logger.info(f"Đang lưu model: {model_name}")
+             # Hiển thị hộp thoại xác nhận
+            from PyQt5.QtWidgets import QMessageBox
+
+            reply = QMessageBox.question(
+                self,
+                "Xác nhận lưu Model",
+                f"Lưu model {model_name} thành công",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No,
+            )
+
+            if reply == QMessageBox.No:
+                self.ui_logger.info("Chưa lưu model")
+                return False
 
             # Tạo đường dẫn đến thư mục model
             model_path = os.path.join("models", model_name)
@@ -2480,6 +2614,7 @@ class MainWindow(QMainWindow):
 
             conn = create_db(self.database_path)
             conn.close()
+            self.ui.table_widget_database.clear()
             self.database_path = ""
             self.ui_logger.info(f"Disconnect database success")
 
@@ -2494,6 +2629,22 @@ class MainWindow(QMainWindow):
             config = self.get_config()
             log_dir = config["modules"]["system"]["log_dir"]
             database_path = os.path.join(log_dir, config["modules"]["system"]["database_path"])
+
+            # Hiển thị hộp thoại xác nhận
+            from PyQt5.QtWidgets import QMessageBox
+
+            reply = QMessageBox.question(
+                self,
+                f"Tạo Database",
+                f"Xác nhận tạo Database: {config["modules"]["system"]["database_path"]}",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No,
+            )
+
+            if reply == QMessageBox.No:
+                self.ui_logger.info("Chưa tạo database")
+                return False
+
             os.makedirs(os.path.dirname(database_path), exist_ok=True)
             with open("resources/database/database.sql", "r") as file:
                 sql_script = file.read()
@@ -2530,8 +2681,6 @@ class MainWindow(QMainWindow):
         if self.database_path != "":
             date_from = self.ui.date_time_from.dateTime().toString("yyyy/MM/dd hh:mm:ss")
             date_to = self.ui.date_time_to.dateTime().toString("yyyy/MM/dd hh:mm:ss")
-            print(date_from)
-            print(date_to)
             
             result = self.ui.combo_result_type.currentText()
             if result == "ALL":
@@ -2560,6 +2709,10 @@ class MainWindow(QMainWindow):
                 self.ui.table_widget_database.setItem(i, j, QTableWidgetItem(r[j]))
 
     def closeEvent(self, event):
+        # Stop camera thread if running
+        if hasattr(self, 'camera_thread') and self.camera_thread is not None:
+            self.camera_thread.stop_camera()
+            self.camera_thread.wait()  # Wait for thread to finish
         return super().closeEvent(event)
 
 

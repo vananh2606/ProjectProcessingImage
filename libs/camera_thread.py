@@ -47,15 +47,18 @@ class CameraThread(QThread):
                 else:
                     self.frameCaptured.emit(self.frame)
 
-                time.sleep(0.04)
+                self.msleep(50)
 
     def stop_camera(self):
         self.running = False
+        self.msleep(50)
 
     def close_camera(self):
         self.stop_camera()
-        self.camera.stop_grabbing()
-        self.camera.close()
+        if hasattr(self, 'camera') and self.camera:
+            self.camera.stop_grabbing()
+            self.camera.close()
+        self.wait()
 
     # def __init__(self, parent=None):
     #     super().__init__(parent)

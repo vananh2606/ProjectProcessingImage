@@ -96,7 +96,7 @@ class IOController(QObject):
 
             # Start a thread to read from the serial port
             self.running = True
-            self.read_thread = threading.Thread(target=self.read_loop)
+            self.read_thread = threading.Thread(target=self.read_loop, daemon=True)
             self.read_thread.start()
 
             return True
@@ -141,6 +141,28 @@ class IOController(QObject):
             print(f"Error writing to port: {ex}")
 
         return result
+    
+    def write_out_by_hex(self, value:int, state=0) -> bool:
+        """Send a command to the output port"""
+        result = False
+
+        if not self.is_open():
+            print("Cannot send command - port is not open")
+            return result
+
+        try:
+            bytes_to_send = bytearray(
+                [0x98, value, state, 0x99]
+            )
+            print(f"Sending raw data: {' '.join([f'{b:02X}' for b in bytes_to_send])}")
+            self.serial_port.write(bytes_to_send)
+            self.serial_port.flush()  # Đảm bảo dữ liệu được gửi đi
+            print(f"I/O Controller Send {value}, State {state}")
+            result = True
+        except Exception as ex:
+            print(f"Error writing to port: {ex}")
+
+        return result
 
     def read_loop(self):
         """Read continuously from the serial port in a separate thread"""
@@ -158,6 +180,7 @@ class IOController(QObject):
             except Exception as ex:
                 print(f"Error reading from port: {ex}")
                 time.sleep(1)  # Longer delay after error
+                break
 
     def process_in_data(self, buffer: bytes):
         """Process incoming data from the I/O controller"""
@@ -185,5 +208,10 @@ class IOController(QObject):
 
 
 if __name__ == "__main__":
-    lcp = IOController(com="COM10", baud=19200)
+    lcp = IOController(com="COM9", baud=19200)
     print(lcp.open())
+    lcp.write_out_by_hex(0b00001111, 0)
+    time.sleep(1)
+    lcp.write_out_by_hex(0b00001111, 1)
+    lcp.close()
+

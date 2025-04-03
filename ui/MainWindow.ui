@@ -24,7 +24,7 @@
     <item>
      <widget class="QTabWidget" name="tabWidgetMain">
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <property name="movable">
        <bool>true</bool>
@@ -529,7 +529,7 @@
               </size>
              </property>
              <property name="currentIndex">
-              <number>0</number>
+              <number>6</number>
              </property>
              <property name="movable">
               <bool>true</bool>
@@ -1103,15 +1103,91 @@
                </item>
               </layout>
              </widget>
-             <widget class="QWidget" name="tabProcessing">
-              <attribute name="title">
-               <string>Processing</string>
-              </attribute>
-             </widget>
              <widget class="QWidget" name="tabModelAI">
               <attribute name="title">
                <string>ModelAI</string>
               </attribute>
+              <layout class="QGridLayout" name="gridLayout_4">
+               <item row="1" column="1" colspan="2">
+                <widget class="QLineEdit" name="line_confidence"/>
+               </item>
+               <item row="0" column="1" colspan="2">
+                <widget class="QComboBox" name="combo_model_ai"/>
+               </item>
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_model_ai">
+                 <property name="text">
+                  <string>Model AI</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="0">
+                <widget class="QLabel" name="label_confidence">
+                 <property name="text">
+                  <string>Confidence</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+             <widget class="QWidget" name="tabProcessing">
+              <attribute name="title">
+               <string>Processing</string>
+              </attribute>
+              <layout class="QGridLayout" name="gridLayout_5">
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_2">
+                 <property name="text">
+                  <string>Color</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="0">
+                <widget class="QLabel" name="label_3">
+                 <property name="text">
+                  <string>Blur</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="0">
+                <widget class="QLabel" name="label_4">
+                 <property name="text">
+                  <string>Threshold</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="0">
+                <widget class="QLabel" name="label_5">
+                 <property name="text">
+                  <string>Morpho</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="1">
+                <widget class="QComboBox" name="comboBox_4"/>
+               </item>
+               <item row="3" column="2" colspan="2">
+                <widget class="QSpinBox" name="spinBox_4"/>
+               </item>
+               <item row="3" column="4">
+                <widget class="QSpinBox" name="spinBox_3"/>
+               </item>
+               <item row="0" column="1" colspan="4">
+                <widget class="QComboBox" name="comboBox"/>
+               </item>
+               <item row="2" column="4">
+                <widget class="QSpinBox" name="spinBox_2"/>
+               </item>
+               <item row="1" column="4">
+                <widget class="QSpinBox" name="spinBox"/>
+               </item>
+               <item row="1" column="1" colspan="3">
+                <widget class="QComboBox" name="comboBox_2"/>
+               </item>
+               <item row="2" column="1" colspan="3">
+                <widget class="QComboBox" name="comboBox_3"/>
+               </item>
+              </layout>
              </widget>
             </widget>
            </item>
