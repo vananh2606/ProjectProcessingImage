@@ -208,10 +208,32 @@ class IOController(QObject):
 
 
 if __name__ == "__main__":
-    lcp = IOController(com="COM9", baud=19200)
+    import random
+
+    lcp = IOController(com="COM8", baud=19200)
     print(lcp.open())
-    lcp.write_out_by_hex(0b00001111, 0)
-    time.sleep(1)
-    lcp.write_out_by_hex(0b00001111, 1)
+
+    while True:
+        msg = ["PASS", "FAIL", ""][random.randint(0, 2)]
+
+        if msg == "PASS":
+            lcp.write_out(OutPorts.Out_2, PortState.Off)
+            time.sleep(0.05)
+            lcp.write_out(OutPorts.Out_3, PortState.Off)
+            time.sleep(0.05)
+            lcp.write_out(OutPorts.Out_1, PortState.On) 
+        elif msg  == "FAIL": 
+            lcp.write_out(OutPorts.Out_1, PortState.Off)
+            time.sleep(0.05)
+            lcp.write_out(OutPorts.Out_3, PortState.Off)
+            time.sleep(0.05)
+            lcp.write_out(OutPorts.Out_2, PortState.On)  
+        else:
+            lcp.write_out(OutPorts.Out_1, PortState.Off)
+            time.sleep(0.05)
+            lcp.write_out(OutPorts.Out_2, PortState.Off)
+            time.sleep(0.05)
+            lcp.write_out(OutPorts.Out_3, PortState.On)  
+        time.sleep(1)
     lcp.close()
 

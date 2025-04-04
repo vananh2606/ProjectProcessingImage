@@ -1,0 +1,46 @@
+{
+    "shapes": {},
+    "modules": {
+        "camera": {
+            "type": "HIK",
+            "id": "0",
+            "feature": ""
+        },
+        "lighting": {
+            "controller_light": "DCP",
+            "comport_light": "COM8",
+            "baudrate_light": "19200",
+            "delay": 100,
+            "channels": [
+                10,
+                10,
+                10,
+                10
+            ]
+        },
+        "io": {
+            "comport_io": "COM8",
+            "baudrate_io": "19200"
+        },
+        "server": {
+            "host": "127.0.0.1",
+            "port": "8080"
+        },
+        "system": {
+            "log_dir": "A:\\Project\\ProjectProcessingImage\\log_database",
+            "log_size": "10",
+            "database_path": "database.db",
+            "auto_start": true
+        },
+        "model_ai": {
+            "model_path": "yolov8n-seg",
+            "confidence": "0.25"
+        }
+    },
+    "font": {
+        "radius": 20,
+        "thickness": 3,
+        "font_size": 25,
+        "min_size": 10
+    }
+}
