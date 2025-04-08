@@ -824,79 +824,42 @@ class MainWindow(QMainWindow):
                 self.b_trigger_auto = True
 
     def loop_auto(self):
-        try:
-            # Load configuration once at the beginning
-            config = self.load_config(model_setting=False)
-            if config is None:
-                self.ui_logger.error("Failed to load configuration")
-                return
+        # Load configuration once at the beginning
+        config = self.load_config(model_setting=False)
+        if config is None:
+            self.ui_logger.error("Failed to load configuration")
+            return
 
-            # Initialize model AI only once
-            model_path = config["modules"]["model_ai"]["model_path"]
-            if not self.init_model_ai(model_path):
-                self.ui_logger.error(f"Failed to initialize model AI: {model_path}")
-                return
+        # Initialize model AI only once
+        model_path = config["modules"]["model_ai"]["model_path"]
+        if not self.init_model_ai(model_path):
+            self.ui_logger.error(f"Failed to initialize model AI: {model_path}")
+            return
 
-            # Set initial states
-            self.b_stop_auto = False
-            self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
-            
-            self.ui_logger.info("Auto loop started successfully")
-            
-            # Main loop
-            while True:
-                # Check if stop flag is set
-                if self.b_stop_auto:
-                    self.ui_logger.info("Auto thread stopping gracefully")
-                    break
+        # Set initial states
+        self.b_stop_auto = False
+        self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
 
-                try:
-                    # Process each step with proper error handling
-                    if self.current_step_auto == STEP_WAIT_TRIGGER_AUTO:
-                        self.handle_wait_trigger_auto()
-                    elif self.current_step_auto == STEP_PREPROCESS_AUTO:
-                        self.handle_preprocess_auto(config)
-                    elif self.current_step_auto == STEP_PROCESSING_AUTO:
-                        self.handle_processing_auto(config)
-                    elif self.current_step_auto == STEP_OUTPUT_AUTO:
-                        self.handle_output_auto(config)
-                    elif self.current_step_auto == STEP_RELEASE_AUTO:
-                        self.handle_release_auto(config)
-                    else:
-                        # Unknown state - reset to wait trigger
-                        self.ui_logger.warning(f"Unknown auto step: {self.current_step_auto}")
-                        self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
-                
-                except Exception as e:
-                    # Log error but continue loop
-                    self.ui_logger.error(f"Error in auto loop step {self.current_step_auto}: {str(e)}")
-                    # Reset to wait trigger state
-                    self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
-                    self.b_trigger_auto = False
-                    # Clear any partial results
-                    self.final_result = None
-                    
-                    # Give system time to recover
-                    time.sleep(1.0)
-                
-                # Yield to other threads to prevent UI freezing
-                QApplication.processEvents()
-                
-                # Reasonable delay to prevent CPU overload
-                time.sleep(0.05)
+        while True:
+            # Kiểm tra nếu đã bị dừng
+            if self.b_stop_auto:
+                self.ui_logger.debug("Auto thread stopped")
+                break
 
-        except Exception as e:
-            self.ui_logger.critical(f"Fatal error in auto loop: {str(e)}")
-        finally:
-            # Ensure resources are cleaned up
-            if self.model_ai is not None:
-                try:
-                    # Clean up model resources if needed
-                    pass
-                except:
-                    pass
-            
-            self.ui_logger.info("Auto loop terminated")
+            # Xử lý theo từng bước
+            if self.current_step_auto == STEP_WAIT_TRIGGER_AUTO:
+                self.handle_wait_trigger_auto()
+            elif self.current_step_auto == STEP_PREPROCESS_AUTO:
+                self.handle_preprocess_auto(config)
+            elif self.current_step_auto == STEP_PROCESSING_AUTO:
+                self.handle_processing_auto(config)
+            elif self.current_step_auto == STEP_OUTPUT_AUTO:
+                self.handle_output_auto(config)
+            elif self.current_step_auto == STEP_RELEASE_AUTO:
+                self.handle_release_auto(config)
+
+            # Thời gian delay giữa các bước
+            time.sleep(0.1)
 
     def stop_loop_auto(self):
         self.b_stop_auto = True
@@ -911,246 +874,205 @@ class MainWindow(QMainWindow):
             self.current_step_auto = STEP_PREPROCESS_AUTO
 
     def handle_preprocess_auto(self, config):
-        try:
-            elapsed_time = self.get_elappsed_time()
-            self.ui_logger.info(f"Auto wait trigger time: {elapsed_time:.3f} seconds")
-            self.ui_logger.debug("Step Auto: Preprocess")
+        # try:
+        elapsed_time = self.get_elappsed_time()
+        self.ui_logger.info(f"Auto wait trigger time: {elapsed_time:.3f} seconds")
+        self.ui_logger.debug("Step Auto: Preprocess")
 
-            # Get lighting configuration
-            type_light = config["modules"]["lighting"]["controller_light"]
-            channels = [
-                config["modules"]["lighting"]["channels"][0],
-                config["modules"]["lighting"]["channels"][1],
-                config["modules"]["lighting"]["channels"][2],
-                config["modules"]["lighting"]["channels"][3]
-            ]
-            delay_lighting = config["modules"]["lighting"]["delay"] / 1000
+        type_light = config["modules"]["lighting"]["controller_light"]
+        channel_0 = config["modules"]["lighting"]["channels"][0]
+        channel_1 = config["modules"]["lighting"]["channels"][1]
+        channel_2 = config["modules"]["lighting"]["channels"][2]
+        channel_3 = config["modules"]["lighting"]["channels"][3]
+        channels = [channel_0, channel_1, channel_2, channel_3]
 
-            # Clear previous image
-            if hasattr(self, 'current_image') and self.current_image is not None:
-                self.current_image = None
+        # Mở đèn
+        if self.light_controller is not None:
+            for i, value in enumerate(channels):
+                if value > 0:
+                    if type_light == "LCP":
+                        self.light_controller.on_channel(i)
+                        self.light_controller.set_light_value(i, value)
+                    else:  # DCP controller
+                        self.light_controller.on_channel(i, value)
 
-            # Turn on lights with proper error handling
-            lights_on = False
-            if self.light_controller is not None:
-                try:
-                    for i, value in enumerate(channels):
-                        if value > 0:
-                            if type_light == "LCP":
-                                self.light_controller.on_channel(i)
-                                self.light_controller.set_light_value(i, value)
-                            else:  # DCP controller
-                                self.light_controller.on_channel(i, value)
-                    lights_on = True
-                except Exception as e:
-                    self.ui_logger.error(f"Error turning on lights: {str(e)}")
-            
-            # Wait for lights to stabilize
-            time.sleep(delay_lighting)
-            
-            # Capture image with proper error handling
-            if self.camera_thread is not None:
-                try:
-                    self.current_image = self.camera_thread.grab_camera()
-                    if self.current_image is None:
-                        raise Exception("Camera returned None image")
-                except Exception as e:
-                    self.ui_logger.error(f"Error capturing image: {str(e)}")
-                    raise
-            else:
-                self.ui_logger.error("Camera not initialized")
-                raise Exception("Camera not initialized")
+        delay_lighting = config["modules"]["lighting"]["delay"] / 1000
 
-            # Turn off lights
-            if self.light_controller is not None and lights_on:
-                try:
-                    for i, value in enumerate(channels):
-                        if value > 0:
-                            self.light_controller.off_channel(i)
-                except Exception as e:
-                    self.ui_logger.error(f"Error turning off lights: {str(e)}")
+        time.sleep(delay_lighting)
 
-            # Proceed to next step
-            self.current_step_auto = STEP_PROCESSING_AUTO
-        except Exception as e:
-            self.ui_logger.error(f"Auto preprocessing error: {str(e)}")
-            # Trong trường hợp lỗi, quay lại bước chờ trigger
-            self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
-            self.b_trigger_auto = False
+        # Lấy ảnh hiện tại từ camera
+        if self.camera_thread is not None:
+            self.current_image = self.camera_thread.grab_camera()
+
+        # Tắt đèn
+        if self.light_controller is not None:
+            for i, value in enumerate(channels):
+                if value > 0:
+                    self.light_controller.off_channel(i)
+
+        # print("handle_preprocess complete")
+        # Chuyển sang bước tiếp theo
+        self.current_step_auto = STEP_PROCESSING_AUTO
+        # except Exception as e:
+        #     self.ui_logger.error(f"Auto preprocessing error: {str(e)}")
+        #     # Trong trường hợp lỗi, quay lại bước chờ trigger
+        #     self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
+        #     self.b_trigger_auto = False
 
     def handle_processing_auto(self, config):
-        try:
-            elapsed_time = self.get_elappsed_time()
-            self.ui_logger.info(f"Auto preprocess time: {elapsed_time:.3f} seconds")
-            self.ui_logger.debug("Step Auto: Processing")
+        # try:
+        elapsed_time = self.get_elappsed_time()
+        self.ui_logger.info(f"Auto preprocess time: {elapsed_time:.3f} seconds")
+        self.ui_logger.debug("Step Auto: Processing")
 
-            if self.current_image is None:
-                raise Exception("No image available for processing")
+        # Hiển thị kết quả trung gian lên canvas
+        if self.current_image is not None:
+            src = self.current_image
 
-            # Create copies to avoid modifying original data
-            src = self.current_image.copy()
+            # Convert image
+            gray = cv.cvtColor(src, cv.COLOR_BGR2GRAY)
+
+            # Blur
+            blur = cv.GaussianBlur(gray, (5, 5), 0)
+
+            # Threshold
+            _, thresh = cv.threshold(blur, 127, 255, cv.THRESH_BINARY)
+
+            # Morphological Operations
+            kernel = cv.getStructuringElement(cv.MORPH_RECT, (3, 3))
+            binary = cv.erode(thresh, kernel, iterations=1)
+            # binary = cv.dilate(binary, kernel, iterations=1)
+
+            self.ui_logger.debug("Processing Image: Preprocess")
+
+            dst = src.copy()
+
+            # # Find contours
+            # cnts, _ = cv.findContours(
+            #     binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE
+            # )
+
+            # # Draw contours
+            # cv.drawContours(dst, cnts, -1, (0, 255, 0), 2)
+
+            # Thực hiện phát hiện
+            results = self.model_ai.detect(src, conf=float(config["modules"]["model_ai"]["confidence"]), imgsz=640)
             
-            # Process with error checking at each step
-            try:
-                # Convert image
-                gray = cv.cvtColor(src, cv.COLOR_BGR2GRAY)
-                
-                # Blur
-                blur = cv.GaussianBlur(gray, (5, 5), 0)
-                
-                # Threshold
-                _, thresh = cv.threshold(blur, 127, 255, cv.THRESH_BINARY)
-                
-                # Morphological Operations
-                kernel = cv.getStructuringElement(cv.MORPH_RECT, (3, 3))
-                binary = cv.erode(thresh, kernel, iterations=1)
-                
-                self.ui_logger.debug("Processing Image: Preprocess complete")
-                
-                # Create a copy for drawing results
-                dst = src.copy()
-                
-                # Run model detection with proper error handling
-                confidence = float(config["modules"]["model_ai"]["confidence"])
-                results = None
-                
-                if self.model_ai is not None:
-                    results = self.model_ai.detect(src, conf=confidence, imgsz=640)
-                    
-                    # Plot results on the destination image
-                    if results is not None:
-                        dst = plot_results(results, dst, self.model_ai.label_map, self.model_ai.color_map)
-                        self.ui_logger.debug("Detection: Complete")
-                    else:
-                        self.ui_logger.warning("Model detection returned no results")
-                else:
-                    self.ui_logger.error("Model AI not initialized")
-                    
-                # Create a random result for demonstration (replace with actual logic)
-                random_result = random.randint(0, 2)
-                if random_result == 0:
-                    msg = "PASS"
-                elif random_result == 1: 
-                    msg = "FAIL"
-                else:
-                    msg = "WAIT"
-                    
-                # Create final result object
-                self.final_result = RESULT(
-                    camera=config["modules"]["camera"]["type"],
-                    model="AUTO",
-                    code="AUTO-" + time.strftime("%Y%m%d-%H%M%S"),
-                    src=src,
-                    dst=dst,
-                    binary=binary,
-                    result=msg,
-                    time_check=time.strftime(DATETIME_FORMAT),
-                    error_type=None,
-                    config=config,
-                )
-                
-                # Send result to UI thread
-                self.signalResultAuto.emit(self.final_result)
-                
-            except Exception as e:
-                self.ui_logger.error(f"Image processing error: {str(e)}")
-                raise
-                
-            # Move to next step
-            self.current_step_auto = STEP_OUTPUT_AUTO
+            # Vẽ kết quả
+            dst = plot_results(results, dst, self.model_ai.label_map, self.model_ai.color_map)
 
-        except Exception as e:
-            self.ui_logger.error(f"Auto processing error: {str(e)}")
-            # Trong trường hợp lỗi, quay lại bước chờ trigger
-            self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
-            self.b_trigger_auto = False
+            self.ui_logger.debug("Detecion Image: Preprocess")
+
+            random_result = random.randint(0, 2)
+            if random_result == 0:
+                msg = "PASS"
+            elif random_result == 1: 
+                msg = "FAIL"
+            else:
+                msg = "WAIT"
+
+            # Tạo kết quả cuối cùng cho auto
+            self.final_result = RESULT(
+                camera=config["modules"]["camera"]["type"],
+                model="AUTO",  # Chế độ auto không sử dụng model
+                code="AUTO-" + time.strftime("%Y%m%d-%H%M%S"),
+                src=src,
+                dst=dst,  # Thay bằng ảnh đã xử lý
+                binary=binary,  # Thay bằng ảnh nhị phân thực tế
+                result=msg,  # Thay bằng kết quả thực tế (OK/NG)
+                time_check=time.strftime(DATETIME_FORMAT),
+                error_type=None,  # Nếu có lỗi, ghi loại lỗi ở đây
+                config=config,  # Config hiện tại từ UI
+            )
+
+            self.ui_logger.debug("Result Image: Preprocess")
+
+            # Phát tín hiệu kết quả auto
+            self.signalResultAuto.emit(self.final_result)
+
+        print("handle_processing complete")        
+        # Chuyển sang bước tiếp theo
+        self.current_step_auto = STEP_OUTPUT_AUTO
+
+        # except Exception as e:
+        #     self.ui_logger.error(f"Auto processing error: {str(e)}")
+        #     # Trong trường hợp lỗi, quay lại bước chờ trigger
+        #     self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
+        #     self.b_trigger_auto = False
 
     def handle_output_auto(self, config):
-        try:
-            elapsed_time = self.get_elappsed_time()
-            self.ui_logger.info(f"Auto processing time: {elapsed_time:.3f} seconds")
-            self.ui_logger.debug("Step Auto: Output")
+        # try:
+        elapsed_time = self.get_elappsed_time()
+        self.ui_logger.info(f"Auto processing time: {elapsed_time:.3f} seconds")
+        self.ui_logger.debug("Step Auto: Output")
 
-            if self.final_result is None:
-                raise Exception("No result available for output")
-                
-            if self.io_controller is None:
-                self.ui_logger.warning("IO controller not available")
+        if self.final_result is not None:
+            if self.final_result.result == "PASS":
+                self.signalChangeLabelResult.emit("Pass")
+                self.io_controller.write_out(OutPorts.Out_2, PortState.Off)
+                time.sleep(0.05)
+                self.io_controller.write_out(OutPorts.Out_3, PortState.Off)
+                time.sleep(0.05)
+                self.io_controller.write_out(OutPorts.Out_1, PortState.On) 
+            elif self.final_result.result  == "FAIL": 
+                self.signalChangeLabelResult.emit("Fail")
+                self.io_controller.write_out(OutPorts.Out_1, PortState.Off)
+                time.sleep(0.05)
+                self.io_controller.write_out(OutPorts.Out_3, PortState.Off)
+                time.sleep(0.05)
+                self.io_controller.write_out(OutPorts.Out_2, PortState.On)  
             else:
-                # Set outputs based on result
-                try:
-                    if self.final_result.result == "PASS":
-                        self.signalChangeLabelResult.emit("Pass")
-                        self.io_controller.write_out(OutPorts.Out_2, PortState.Off)
-                        time.sleep(0.05)
-                        self.io_controller.write_out(OutPorts.Out_3, PortState.Off)
-                        time.sleep(0.05)
-                        self.io_controller.write_out(OutPorts.Out_1, PortState.On) 
-                    elif self.final_result.result == "FAIL": 
-                        self.signalChangeLabelResult.emit("Fail")
-                        self.io_controller.write_out(OutPorts.Out_1, PortState.Off)
-                        time.sleep(0.05)
-                        self.io_controller.write_out(OutPorts.Out_3, PortState.Off)
-                        time.sleep(0.05)
-                        self.io_controller.write_out(OutPorts.Out_2, PortState.On)  
-                    else:
-                        self.signalChangeLabelResult.emit("Wait")
-                        self.io_controller.write_out(OutPorts.Out_1, PortState.Off)
-                        time.sleep(0.05)
-                        self.io_controller.write_out(OutPorts.Out_2, PortState.Off)
-                        time.sleep(0.05)
-                        self.io_controller.write_out(OutPorts.Out_3, PortState.On)
-                except Exception as e:
-                    self.ui_logger.error(f"Error setting IO outputs: {str(e)}")
-            
-            # Log result to database in a separate thread to avoid blocking
-            if self.final_result is not None:
-                threading.Thread(
-                    target=self.write_log_database, 
-                    args=(self.final_result,),
-                    daemon=True
-                ).start()
+                self.signalChangeLabelResult.emit("Wait")
+                self.io_controller.write_out(OutPorts.Out_1, PortState.Off)
+                time.sleep(0.05)
+                self.io_controller.write_out(OutPorts.Out_2, PortState.Off)
+                time.sleep(0.05)
+                self.io_controller.write_out(OutPorts.Out_3, PortState.On)  
+        
+            self.ui_logger.debug("Load Result: Output")
 
-            # Move to next step
-            self.current_step_auto = STEP_RELEASE_AUTO
+            # Ghi log database
+            self.write_log_database(self.final_result)
 
-        except Exception as e:
-            self.ui_logger.error(f"Auto output error: {str(e)}")
-            # Trong trường hợp lỗi, quay lại bước chờ trigger
-            self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
-            self.b_trigger_auto = False
+            self.ui_logger.debug("Write Result: Output")
+
+        # print("handle_output complete")
+        # Chuyển sang bước tiếp theo
+        self.current_step_auto = STEP_RELEASE_AUTO
+
+        # except Exception as e:
+        #     self.ui_logger.error(f"Auto output error: {str(e)}")
+        #     # Trong trường hợp lỗi, quay lại bước chờ trigger
+        #     self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
+        #     self.b_trigger_auto = False
 
     def handle_release_auto(self, config):
-        try:
-            elapsed_time = self.get_elappsed_time()
-            self.ui_logger.info(f"Auto output time: {elapsed_time:.3f} seconds")
-            self.ui_logger.debug("Step Auto: Release")
+        # try:
+        elapsed_time = self.get_elappsed_time()
+        self.ui_logger.info(f"Auto output time: {elapsed_time:.3f} seconds")
+        self.ui_logger.debug("Step Auto: Release")
 
-            # Clean up resources to prevent memory leaks
-            if self.final_result is not None:                    
-                # Clear the final result
-                self.final_result = None
-                
-            # Force garbage collection to free memory
-            import gc
-            gc.collect()
-            
-            # Reset trigger state
-            self.b_trigger_auto = False
-            
-            # Return to wait trigger state
-            self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
-        except Exception as e:
-            self.ui_logger.error(f"Auto release error: {str(e)}")
-            # Trong trường hợp lỗi, quay lại bước chờ trigger
-            self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
-            self.b_trigger_auto = False
+        if self.final_result is not None:
+            # Giải phóng tài nguyên đã khởi tạo
+            self.final_result = None
+
+        self.ui_logger.debug("Reset Result: Release")
+
+        # Đặt lại trạng thái trigger
+        self.b_trigger_auto = False
+
+        self.ui_logger.debug("Reset Trigger: Release")
+
+        # print("handle_release complete")
+        # Chuyển sang bước chờ trigger
+        self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
+        # except Exception as e:
+        #     self.ui_logger.error(f"Auto release error: {str(e)}")
+        #     # Trong trường hợp lỗi, quay lại bước chờ trigger
+        #     self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
+        #     self.b_trigger_auto = False
 
     def write_log_database(self, result: RESULT):
-        if result is None:
-            self.ui_logger.warning("Cannot log null result to database")
-            return
-            
         try:
             config = self.get_config()
             model_name = self.ui.combo_model.currentText()
@@ -1164,64 +1086,31 @@ class MainWindow(QMainWindow):
             except:
                 log_size = 10 * 1024
 
-            # Create directories
-            os.makedirs(log_dir, exist_ok=True)
-            image_folder = os.path.join(log_dir, "images", model_name, date_now)
-            os.makedirs(image_folder, exist_ok=True)
-            image_folder_output = os.path.join(image_folder, "output")
-            os.makedirs(image_folder_output, exist_ok=True)
+            if result is not None:
+                os.makedirs(log_dir, exist_ok=True)
 
-            # Generate unique filenames
-            filename = time.strftime(FILENAME_FORMAT)
-            image_path = os.path.join(image_folder, filename)
-            image_path_output = os.path.join(image_folder_output, filename.replace(".jpg", "_output.jpg"))
+                image_folder = os.path.join(log_dir, "images", model_name, date_now)
+                os.makedirs(image_folder, exist_ok=True)
 
-            # Save images with error handling
-            if result.src is not None:
-                try:
-                    cv.imwrite(image_path, result.src)
-                except Exception as e:
-                    self.ui_logger.error(f"Error saving source image: {str(e)}")
-                    image_path = ""
+                filename = time.strftime(FILENAME_FORMAT)
+                image_path = f"{image_folder}/{filename}"
+                cv.imwrite(image_path, result.src)
 
-            if result.dst is not None:
-                try:
-                    cv.imwrite(image_path_output, result.dst)
-                except Exception as e:
-                    self.ui_logger.error(f"Error saving output image: {str(e)}")
+                image_folder_output = f"{image_folder}/output"
+                os.makedirs(image_folder_output, exist_ok=True)
+                image_path_output = os.path.join(image_folder_output, filename.replace(".jpg", "_output.jpg"))
+                cv.imwrite(image_path_output, result.dst)
 
-            # Check log directory size in a separate thread
-            threading.Thread(
-                target=self.scan_log_dir, 
-                args=(log_dir, log_size), 
-                daemon=True
-            ).start()
+                threading.Thread(target=self.scan_log_dir, args=(log_dir, log_size), daemon=True).start()
 
-            # Write to database
-            try:
                 database_path = os.path.join(log_dir, modules["system"]["database_path"])
                 conn = create_db(database_path)
-                
-                if conn:
-                    values = (
-                        "Project", 
-                        model_name, 
-                        result.result, 
-                        result.time_check, 
-                        image_path, 
-                        result.code if result.code else "", 
-                        result.error_type if result.error_type else ""
-                    )
-                    sql = "INSERT INTO history (camera, model, result, time_check, img_path, code, error_type) VALUES (?, ?, ?, ?, ?, ?, ?)"
-                    insert(conn, sql, values)
-                    conn.close()
-                else:
-                    self.ui_logger.error("Failed to connect to database")
-            except Exception as e:
-                self.ui_logger.error(f"Error writing to database: {str(e)}")
-                
+
+                values = ("Project", model_name, result.result, result.time_check, image_path, "", "")
+                sql = "INSERT INTO history (camera, model, result, time_check, img_path, code, error_type) VALUES (?, ?, ?, ?, ?, ?, ?)"
+                insert(conn, sql, values)
         except Exception as e:
-            self.ui_logger.error(f"Error in write_log_database: {str(e)}")
+            self.ui_logger.error(f"Error write log database: {str(e)}")
 
     def scan_log_dir(self, log_dir, max_size):
         self.ui_logger.debug(f"Scanning log dir '{log_dir}' ...")
