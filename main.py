@@ -1,4 +1,5 @@
 import os
+import gc
 import sys
 import time
 import json
@@ -40,7 +41,7 @@ from libs.canvas import WindowCanvas, Canvas
 from libs.shape import Shape
 from libs.ui_utils import load_style_sheet, update_style, add_scroll, ndarray2pixmap
 from libs.utils import scan_dir
-from libs.log_model import setup_logger
+from libs.logger import Logger
 from libs.image_converter import ImageConverter
 from libs.tcp_server import Server
 from libs.vision import YoloInference, plot_results
@@ -102,11 +103,7 @@ class MainWindow(QMainWindow):
         # Logger and Log Signals
         self.project_name = "Project Name"
         self.log_path = "logs\\logfile.log"
-        self.ui_logger, self.ui_logger_text = setup_logger(
-            self.ui.list_widget_log,
-            self.project_name,
-            self.log_path,
-        )
+        self.ui_logger = Logger(name=self.project_name, log_file=self.log_path)
 
         # IO Controller
         self.io_controller = None
@@ -527,7 +524,6 @@ class MainWindow(QMainWindow):
                 host=host,
                 port=port,
                 logger=self.ui_logger,
-                log_signals=self.ui_logger_text,
             )
 
             return True
@@ -598,12 +594,12 @@ class MainWindow(QMainWindow):
 
     def write_log(self):
         """Ghi thử một số log"""
-        self.ui_logger_text.textSignal.emit("Một thông báo khác", None)
-        self.ui_logger_text.textSignal.emit("Một thông báo khác", "DEBUG")
-        self.ui_logger_text.textSignal.emit("Một thông báo khác", "INFO")
-        self.ui_logger_text.textSignal.emit("Một thông báo khác", "WARNING")
-        self.ui_logger_text.textSignal.emit("Một thông báo khác", "ERROR")
-        self.ui_logger_text.textSignal.emit("Một thông báo khác", "CRITICAL")
+        # self.ui_logger_text.textSignal.emit("Một thông báo khác", None)
+        # self.ui_logger_text.textSignal.emit("Một thông báo khác", "DEBUG")
+        # self.ui_logger_text.textSignal.emit("Một thông báo khác", "INFO")
+        # self.ui_logger_text.textSignal.emit("Một thông báo khác", "WARNING")
+        # self.ui_logger_text.textSignal.emit("Một thông báo khác", "ERROR")
+        # self.ui_logger_text.textSignal.emit("Một thông báo khác", "CRITICAL")
         self.ui_logger.debug("Đây là log DEBUG")
         self.ui_logger.info("Đây là log INFO")
         self.ui_logger.warning("Đây là log WARNING")
@@ -768,6 +764,12 @@ class MainWindow(QMainWindow):
         port = int(config["modules"]["server"]["port"])
         self.init_server(host, port)
 
+        # Set initial states
+        self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
+        self.b_trigger_auto = False
+        self.b_stop_auto = False
+        self.final_result = None
+
         threading.Thread(target=self.setup_loop_auto, daemon=True).start()
 
     def setup_loop_auto(self):
@@ -836,11 +838,10 @@ class MainWindow(QMainWindow):
             self.ui_logger.error(f"Failed to initialize model AI: {model_path}")
             return
 
-        # Set initial states
-        self.b_stop_auto = False
-        self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
-
         while True:
+            # Cho phép UI cập nhật
+            QApplication.processEvents()
+
             # Kiểm tra nếu đã bị dừng
             if self.b_stop_auto:
                 self.ui_logger.debug("Auto thread stopped")
@@ -859,11 +860,16 @@ class MainWindow(QMainWindow):
                 self.handle_release_auto(config)
 
             # Thời gian delay giữa các bước
-            time.sleep(0.1)
+            time.sleep(0.05)
 
     def stop_loop_auto(self):
+        # Đảm bảo loop auto dừng hoàn toàn
         self.b_stop_auto = True
-
+        self.b_trigger_auto = False
+        
+        # Hủy bỏ kết quả hiện tại nếu có
+        if hasattr(self, 'final_result') and self.final_result is not None:
+            self.final_result = None
     def handle_wait_trigger_auto(self):
         if self.b_trigger_auto:
             self.ui_logger.debug("Step Auto: Wait Trigger")
@@ -874,203 +880,207 @@ class MainWindow(QMainWindow):
             self.current_step_auto = STEP_PREPROCESS_AUTO
 
     def handle_preprocess_auto(self, config):
-        # try:
-        elapsed_time = self.get_elappsed_time()
-        self.ui_logger.info(f"Auto wait trigger time: {elapsed_time:.3f} seconds")
-        self.ui_logger.debug("Step Auto: Preprocess")
+        try:
+            elapsed_time = self.get_elappsed_time()
+            self.ui_logger.info(f"Auto wait trigger time: {elapsed_time:.3f} seconds")
+            self.start_elappsed_time()
+            self.ui_logger.debug("Step Auto: Preprocess")
 
-        type_light = config["modules"]["lighting"]["controller_light"]
-        channel_0 = config["modules"]["lighting"]["channels"][0]
-        channel_1 = config["modules"]["lighting"]["channels"][1]
-        channel_2 = config["modules"]["lighting"]["channels"][2]
-        channel_3 = config["modules"]["lighting"]["channels"][3]
-        channels = [channel_0, channel_1, channel_2, channel_3]
+            type_light = config["modules"]["lighting"]["controller_light"]
+            channel_0 = config["modules"]["lighting"]["channels"][0]
+            channel_1 = config["modules"]["lighting"]["channels"][1]
+            channel_2 = config["modules"]["lighting"]["channels"][2]
+            channel_3 = config["modules"]["lighting"]["channels"][3]
+            channels = [channel_0, channel_1, channel_2, channel_3]
 
-        # Mở đèn
-        if self.light_controller is not None:
-            for i, value in enumerate(channels):
-                if value > 0:
-                    if type_light == "LCP":
-                        self.light_controller.on_channel(i)
-                        self.light_controller.set_light_value(i, value)
-                    else:  # DCP controller
-                        self.light_controller.on_channel(i, value)
+            # Mở đèn
+            if self.light_controller is not None:
+                for i, value in enumerate(channels):
+                    if value > 0:
+                        if type_light == "LCP":
+                            self.light_controller.on_channel(i)
+                            self.light_controller.set_light_value(i, value)
+                        else:  # DCP controller
+                            self.light_controller.on_channel(i, value)
 
-        delay_lighting = config["modules"]["lighting"]["delay"] / 1000
+            delay_lighting = config["modules"]["lighting"]["delay"] / 1000
 
-        time.sleep(delay_lighting)
+            time.sleep(delay_lighting)
 
-        # Lấy ảnh hiện tại từ camera
-        if self.camera_thread is not None:
-            self.current_image = self.camera_thread.grab_camera()
+            # Lấy ảnh hiện tại từ camera
+            if self.camera_thread is not None:
+                self.current_image = self.camera_thread.grab_camera()
 
-        # Tắt đèn
-        if self.light_controller is not None:
-            for i, value in enumerate(channels):
-                if value > 0:
-                    self.light_controller.off_channel(i)
+            # Tắt đèn
+            if self.light_controller is not None:
+                for i, value in enumerate(channels):
+                    if value > 0:
+                        self.light_controller.off_channel(i)
 
-        # print("handle_preprocess complete")
-        # Chuyển sang bước tiếp theo
-        self.current_step_auto = STEP_PROCESSING_AUTO
-        # except Exception as e:
-        #     self.ui_logger.error(f"Auto preprocessing error: {str(e)}")
-        #     # Trong trường hợp lỗi, quay lại bước chờ trigger
-        #     self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
-        #     self.b_trigger_auto = False
+            # print("handle_preprocess complete")
+            # Chuyển sang bước tiếp theo
+            self.current_step_auto = STEP_PROCESSING_AUTO
+        except Exception as e:
+            self.ui_logger.error(f"Auto preprocessing error: {str(e)}")
+            # Trong trường hợp lỗi, quay lại bước chờ trigger
+            self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
+            self.b_trigger_auto = False
 
     def handle_processing_auto(self, config):
-        # try:
-        elapsed_time = self.get_elappsed_time()
-        self.ui_logger.info(f"Auto preprocess time: {elapsed_time:.3f} seconds")
-        self.ui_logger.debug("Step Auto: Processing")
+        try:
+            elapsed_time = self.get_elappsed_time()
+            self.ui_logger.info(f"Auto preprocess time: {elapsed_time:.3f} seconds")
+            self.start_elappsed_time()
+            self.ui_logger.debug("Step Auto: Processing")
 
-        # Hiển thị kết quả trung gian lên canvas
-        if self.current_image is not None:
-            src = self.current_image
+            # Hiển thị kết quả trung gian lên canvas
+            if self.current_image is not None:
+                src = self.current_image
 
-            # Convert image
-            gray = cv.cvtColor(src, cv.COLOR_BGR2GRAY)
+                # Convert image
+                gray = cv.cvtColor(src, cv.COLOR_BGR2GRAY)
 
-            # Blur
-            blur = cv.GaussianBlur(gray, (5, 5), 0)
+                # Blur
+                blur = cv.GaussianBlur(gray, (5, 5), 0)
 
-            # Threshold
-            _, thresh = cv.threshold(blur, 127, 255, cv.THRESH_BINARY)
+                # Threshold
+                _, thresh = cv.threshold(blur, 127, 255, cv.THRESH_BINARY)
 
-            # Morphological Operations
-            kernel = cv.getStructuringElement(cv.MORPH_RECT, (3, 3))
-            binary = cv.erode(thresh, kernel, iterations=1)
-            # binary = cv.dilate(binary, kernel, iterations=1)
+                # Morphological Operations
+                kernel = cv.getStructuringElement(cv.MORPH_RECT, (3, 3))
+                binary = cv.erode(thresh, kernel, iterations=1)
+                # binary = cv.dilate(binary, kernel, iterations=1)
 
-            self.ui_logger.debug("Processing Image: Preprocess")
+                self.ui_logger.debug("Processing Image: Preprocess")
 
-            dst = src.copy()
+                dst = src.copy()
 
-            # # Find contours
-            # cnts, _ = cv.findContours(
-            #     binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE
-            # )
+                # # Find contours
+                # cnts, _ = cv.findContours(
+                #     binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE
+                # )
 
-            # # Draw contours
-            # cv.drawContours(dst, cnts, -1, (0, 255, 0), 2)
+                # # Draw contours
+                # cv.drawContours(dst, cnts, -1, (0, 255, 0), 2)
 
-            # Thực hiện phát hiện
-            results = self.model_ai.detect(src, conf=float(config["modules"]["model_ai"]["confidence"]), imgsz=640)
-            
-            # Vẽ kết quả
-            dst = plot_results(results, dst, self.model_ai.label_map, self.model_ai.color_map)
+                # Thực hiện phát hiện
+                results = self.model_ai.detect(src, conf=float(config["modules"]["model_ai"]["confidence"]), imgsz=640)
+                
+                # Vẽ kết quả
+                dst = plot_results(results, dst, self.model_ai.label_map, self.model_ai.color_map)
 
-            self.ui_logger.debug("Detecion Image: Preprocess")
+                self.ui_logger.debug("Detecion Image: Preprocess")
 
-            random_result = random.randint(0, 2)
-            if random_result == 0:
-                msg = "PASS"
-            elif random_result == 1: 
-                msg = "FAIL"
-            else:
-                msg = "WAIT"
+                random_result = random.randint(0, 2)
+                if random_result == 0:
+                    msg = "PASS"
+                elif random_result == 1: 
+                    msg = "FAIL"
+                else:
+                    msg = "WAIT"
 
-            # Tạo kết quả cuối cùng cho auto
-            self.final_result = RESULT(
-                camera=config["modules"]["camera"]["type"],
-                model="AUTO",  # Chế độ auto không sử dụng model
-                code="AUTO-" + time.strftime("%Y%m%d-%H%M%S"),
-                src=src,
-                dst=dst,  # Thay bằng ảnh đã xử lý
-                binary=binary,  # Thay bằng ảnh nhị phân thực tế
-                result=msg,  # Thay bằng kết quả thực tế (OK/NG)
-                time_check=time.strftime(DATETIME_FORMAT),
-                error_type=None,  # Nếu có lỗi, ghi loại lỗi ở đây
-                config=config,  # Config hiện tại từ UI
-            )
+                # Tạo kết quả cuối cùng cho auto
+                self.final_result = RESULT(
+                    camera=config["modules"]["camera"]["type"],
+                    model="AUTO",  # Chế độ auto không sử dụng model
+                    code="AUTO-" + time.strftime("%Y%m%d-%H%M%S"),
+                    src=src,
+                    dst=dst,  # Thay bằng ảnh đã xử lý
+                    binary=binary,  # Thay bằng ảnh nhị phân thực tế
+                    result=msg,  # Thay bằng kết quả thực tế (OK/NG)
+                    time_check=time.strftime(DATETIME_FORMAT),
+                    error_type=None,  # Nếu có lỗi, ghi loại lỗi ở đây
+                    config=config,  # Config hiện tại từ UI
+                )
 
-            self.ui_logger.debug("Result Image: Preprocess")
+                self.ui_logger.debug("Result Image: Preprocess")
 
-            # Phát tín hiệu kết quả auto
-            self.signalResultAuto.emit(self.final_result)
+                # Phát tín hiệu kết quả auto
+                self.signalResultAuto.emit(self.final_result)
 
-        print("handle_processing complete")        
-        # Chuyển sang bước tiếp theo
-        self.current_step_auto = STEP_OUTPUT_AUTO
+            print("handle_processing complete")        
+            # Chuyển sang bước tiếp theo
+            self.current_step_auto = STEP_OUTPUT_AUTO
 
-        # except Exception as e:
-        #     self.ui_logger.error(f"Auto processing error: {str(e)}")
-        #     # Trong trường hợp lỗi, quay lại bước chờ trigger
-        #     self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
-        #     self.b_trigger_auto = False
+        except Exception as e:
+            self.ui_logger.error(f"Auto processing error: {str(e)}")
+            # Trong trường hợp lỗi, quay lại bước chờ trigger
+            self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
+            self.b_trigger_auto = False
 
     def handle_output_auto(self, config):
-        # try:
-        elapsed_time = self.get_elappsed_time()
-        self.ui_logger.info(f"Auto processing time: {elapsed_time:.3f} seconds")
-        self.ui_logger.debug("Step Auto: Output")
+        try:
+            elapsed_time = self.get_elappsed_time()
+            self.ui_logger.info(f"Auto processing time: {elapsed_time:.3f} seconds")
+            self.start_elappsed_time()
+            self.ui_logger.debug("Step Auto: Output")
 
-        if self.final_result is not None:
-            if self.final_result.result == "PASS":
-                self.signalChangeLabelResult.emit("Pass")
-                self.io_controller.write_out(OutPorts.Out_2, PortState.Off)
-                time.sleep(0.05)
-                self.io_controller.write_out(OutPorts.Out_3, PortState.Off)
-                time.sleep(0.05)
-                self.io_controller.write_out(OutPorts.Out_1, PortState.On) 
-            elif self.final_result.result  == "FAIL": 
-                self.signalChangeLabelResult.emit("Fail")
-                self.io_controller.write_out(OutPorts.Out_1, PortState.Off)
-                time.sleep(0.05)
-                self.io_controller.write_out(OutPorts.Out_3, PortState.Off)
-                time.sleep(0.05)
-                self.io_controller.write_out(OutPorts.Out_2, PortState.On)  
-            else:
-                self.signalChangeLabelResult.emit("Wait")
-                self.io_controller.write_out(OutPorts.Out_1, PortState.Off)
-                time.sleep(0.05)
-                self.io_controller.write_out(OutPorts.Out_2, PortState.Off)
-                time.sleep(0.05)
-                self.io_controller.write_out(OutPorts.Out_3, PortState.On)  
-        
-            self.ui_logger.debug("Load Result: Output")
+            if self.final_result is not None:
+                if self.final_result.result == "PASS":
+                    self.signalChangeLabelResult.emit("Pass")
+                    self.io_controller.write_out(OutPorts.Out_2, PortState.Off)
+                    time.sleep(0.05)
+                    self.io_controller.write_out(OutPorts.Out_3, PortState.Off)
+                    time.sleep(0.05)
+                    self.io_controller.write_out(OutPorts.Out_1, PortState.On) 
+                elif self.final_result.result  == "FAIL": 
+                    self.signalChangeLabelResult.emit("Fail")
+                    self.io_controller.write_out(OutPorts.Out_1, PortState.Off)
+                    time.sleep(0.05)
+                    self.io_controller.write_out(OutPorts.Out_3, PortState.Off)
+                    time.sleep(0.05)
+                    self.io_controller.write_out(OutPorts.Out_2, PortState.On)  
+                else:
+                    self.signalChangeLabelResult.emit("Wait")
+                    self.io_controller.write_out(OutPorts.Out_1, PortState.Off)
+                    time.sleep(0.05)
+                    self.io_controller.write_out(OutPorts.Out_2, PortState.Off)
+                    time.sleep(0.05)
+                    self.io_controller.write_out(OutPorts.Out_3, PortState.On)  
+            
+                self.ui_logger.debug("Load Result: Output")
 
-            # Ghi log database
-            self.write_log_database(self.final_result)
+                # Ghi log database
+                self.write_log_database(self.final_result)
 
-            self.ui_logger.debug("Write Result: Output")
+                self.ui_logger.debug("Write Result: Output")
 
-        # print("handle_output complete")
-        # Chuyển sang bước tiếp theo
-        self.current_step_auto = STEP_RELEASE_AUTO
+            # print("handle_output complete")
+            # Chuyển sang bước tiếp theo
+            self.current_step_auto = STEP_RELEASE_AUTO
 
-        # except Exception as e:
-        #     self.ui_logger.error(f"Auto output error: {str(e)}")
-        #     # Trong trường hợp lỗi, quay lại bước chờ trigger
-        #     self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
-        #     self.b_trigger_auto = False
+        except Exception as e:
+            self.ui_logger.error(f"Auto output error: {str(e)}")
+            # Trong trường hợp lỗi, quay lại bước chờ trigger
+            self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
+            self.b_trigger_auto = False
 
     def handle_release_auto(self, config):
-        # try:
-        elapsed_time = self.get_elappsed_time()
-        self.ui_logger.info(f"Auto output time: {elapsed_time:.3f} seconds")
-        self.ui_logger.debug("Step Auto: Release")
+        try:
+            elapsed_time = self.get_elappsed_time()
+            self.ui_logger.info(f"Auto output time: {elapsed_time:.3f} seconds")
+            self.start_elappsed_time()
+            self.ui_logger.debug("Step Auto: Release")
 
-        if self.final_result is not None:
-            # Giải phóng tài nguyên đã khởi tạo
-            self.final_result = None
+            if self.final_result is not None:
+                # Giải phóng tài nguyên đã khởi tạo
+                self.final_result = None
 
-        self.ui_logger.debug("Reset Result: Release")
+            self.ui_logger.debug("Reset Result: Release")
 
-        # Đặt lại trạng thái trigger
-        self.b_trigger_auto = False
+            # Đặt lại trạng thái trigger
+            self.b_trigger_auto = False
 
-        self.ui_logger.debug("Reset Trigger: Release")
+            self.ui_logger.debug("Reset Trigger: Release")
 
-        # print("handle_release complete")
-        # Chuyển sang bước chờ trigger
-        self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
-        # except Exception as e:
-        #     self.ui_logger.error(f"Auto release error: {str(e)}")
-        #     # Trong trường hợp lỗi, quay lại bước chờ trigger
-        #     self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
-        #     self.b_trigger_auto = False
+            # print("handle_release complete")
+            # Chuyển sang bước chờ trigger
+            self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
+        except Exception as e:
+            self.ui_logger.error(f"Auto release error: {str(e)}")
+            # Trong trường hợp lỗi, quay lại bước chờ trigger
+            self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
+            self.b_trigger_auto = False
 
     def write_log_database(self, result: RESULT):
         try:
@@ -1193,16 +1203,18 @@ class MainWindow(QMainWindow):
             self.ui_logger.error(f"Error stopping teaching: {str(e)}")
 
     def start_loop_teaching(self):
+        self.b_stop_teaching = False
+        self.current_step_teaching = STEP_WAIT_TRIGGER_TEACHING
         threading.Thread(target=self.loop_teaching, daemon=True).start()
 
     def loop_teaching(self):
         model_path = self.ui.combo_model_ai.currentText()
         self.init_model_ai(model_path)
 
-        self.b_stop_teaching = False
-        self.current_step_teaching = STEP_WAIT_TRIGGER_TEACHING
-
         while True:
+            # Cho phép UI cập nhật
+            QApplication.processEvents()
+
             # Kiểm tra nếu đã bị dừng
             if self.b_stop_teaching:
                 self.ui_logger.info("Teaching thread stopped")
@@ -1363,6 +1375,9 @@ class MainWindow(QMainWindow):
             # Giải phóng tài nguyên đã khởi tạo
             self.final_result = None
 
+            # Thu hồi bộ nhớ không sử dụng
+            gc.collect()
+
             # Đặt lại trạng thái trigger
             self.b_trigger_teaching = True
 
@@ -1384,9 +1399,6 @@ class MainWindow(QMainWindow):
                 f"Nhận kết quả auto: {result.code}, kết quả: {result.result}"
             )
 
-            # Cập nhật UI với kết quả
-            # TODO: Thêm xử lý kết quả auto
-
             # Hiển thị ảnh kết quả
             if result.src is not None:
                 self.canvas_auto.load_pixmap(ndarray2pixmap(result.src))
@@ -1399,6 +1411,9 @@ class MainWindow(QMainWindow):
 
         except Exception as e:
             self.ui_logger.error(f"Lỗi khi xử lý kết quả auto: {str(e)}")
+        finally:
+            # Giải phóng bộ nhớ
+            gc.collect()
 
     def handle_result_teaching(self, result):
         """

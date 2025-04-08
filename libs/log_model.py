@@ -16,11 +16,11 @@ class LogSignals(QObject):
     textSignal = pyqtSignal(str, str)  # Signal với tham số: text, level
 
 
-class QListWidgetLogger(logging.Handler):
+class QListWidgetLogger(logging.Handler, QObject):
     """
     Custom logging handler để hiển thị log trong QListWidget của PyQt5.
     """
-
+    
     def __init__(self, widget):
         super().__init__()
         self.widget = widget  # QListWidget nơi log sẽ hiển thị
