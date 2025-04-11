@@ -12,7 +12,10 @@ import inspect
 import ctypes
 import random
 from ctypes import *
-from cameras.MVSImport.MvCameraControl_class import *
+import sys 
+
+sys.path.append("cameras")
+from MVSImport.MvCameraControl_class import *
 import time
 
 def getStrDateTime():

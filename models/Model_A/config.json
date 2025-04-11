@@ -2,9 +2,9 @@
     "shapes": {},
     "modules": {
         "camera": {
-            "type": "Webcam",
-            "id": "0",
-            "feature": ""
+            "type": "HIK",
+            "id": "DA5691963",
+            "feature": "White"
         },
         "lighting": {
             "controller_light": "DCP",
@@ -12,14 +12,14 @@
             "baudrate_light": "19200",
             "delay": 100,
             "channels": [
-                10,
+                100,
                 10,
                 10,
                 10
             ]
         },
         "io": {
-            "comport_io": "COM9",
+            "comport_io": "COM8",
             "baudrate_io": "19200"
         },
         "server": {
@@ -27,14 +27,46 @@
             "port": "8080"
         },
         "system": {
-            "log_dir": "A:\\Project\\ProjectProcessingImage\\log_database",
+            "log_dir": "A:\\ProjectPython\\ProjectProcessingImage\\log_database",
             "log_size": "10",
             "database_path": "database.db",
             "auto_start": true
         },
         "model_ai": {
-            "model_path": "yolov8n-seg",
-            "confidence": "0.25"
+            "model_path": "best",
+            "confidence": "0.80"
+        },
+        "camera_config": {
+            "camera1": {
+                "device": {
+                    "type": "HIK",
+                    "id": "DA5691963",
+                    "feature": "Black"
+                },
+                "lighting": {
+                    "channels": [
+                        10,
+                        10,
+                        10,
+                        10
+                    ]
+                }
+            },
+            "camera2": {
+                "device": {
+                    "type": "HIK",
+                    "id": "DA5691963",
+                    "feature": "White"
+                },
+                "lighting": {
+                    "channels": [
+                        10,
+                        10,
+                        10,
+                        10
+                    ]
+                }
+            }
         }
     },
     "font": {

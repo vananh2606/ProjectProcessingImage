@@ -6,6 +6,7 @@ import json
 import shutil
 import random
 import logging
+import enum
 import serial
 import serial.tools
 import serial.tools.list_ports
@@ -13,12 +14,17 @@ import threading
 import cv2 as cv
 from PyQt5.QtWidgets import (
     QMainWindow,
+    QDialog,
     QApplication,
     QWidget,
+    QMessageBox,
+    QVBoxLayout,
+    QHBoxLayout,
     QTabWidget,
     QTableWidget,
     QTableWidgetItem,
     QFileDialog,
+    QLabel,
     QPushButton,
     QLineEdit,
     QCheckBox,
@@ -27,15 +33,22 @@ from PyQt5.QtWidgets import (
     QDoubleSpinBox,
     QScrollArea,
     QListWidgetItem,
+    QProgressBar
 )
-from PyQt5.QtCore import Qt, QThread, QFile, pyqtSignal, QSize, QPointF
-from PyQt5.QtGui import QImage, QPixmap, QIcon
+from PyQt5.QtCore import Qt, QThread, QTimer, QFile, pyqtSignal, QSize, QPointF
+from PyQt5.QtGui import QImage, QPixmap, QIcon, QColor
 from functools import partial
 from collections import namedtuple
 
 from ui.MainWindowUI import Ui_MainWindow
+from libs.loading import LoadingDialog
+
+from libs.camera_dlg import CameraDlg
 
 sys.path.append("libs")
+sys.path.append("ui")
+sys.path.append("cameras")
+
 from libs.constants import *
 from libs.canvas import WindowCanvas, Canvas
 from libs.shape import Shape
@@ -50,6 +63,68 @@ from cameras import HIK, SODA, Webcam, get_camera_devices
 from libs.camera_thread import CameraThread
 from libs.light_controller import LCPController, DCPController
 from libs.io_controller import IOController, OutPorts, InPorts, PortState, IOType
+
+class ImportThread(QThread):
+    progress = pyqtSignal(int)  # Signal to update the progress bar
+    finished = pyqtSignal()     # Signal to notify when import is done
+
+    def thread_import(self):
+        # Import your module here
+        import ultralytics
+        from ultralytics import YOLO
+
+    def run(self):
+        threading.Thread(target=self.thread_import, daemon=True).start()
+        # Simulate the import process with a loop
+        for i in range(99):
+            time.sleep(0.1)  # Simulate delay
+            self.progress.emit(i)
+        self.finished.emit()
+
+class ImportProgressBar(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("YOLO Import Progress")
+        self.setGeometry(500, 200, 400, 300)
+
+        self.init_ui()
+        self.start_import_thread()
+
+    def init_ui(self):
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+
+        layout = QVBoxLayout()
+        self.progress_label = QLabel("Importing YOLO module, please wait...")
+        self.progress_label.setAlignment(Qt.AlignCenter)
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setValue(0)
+
+        layout.addWidget(self.progress_label)
+        layout.addWidget(self.progress_bar)
+
+        self.central_widget.setLayout(layout)
+
+    def start_import_thread(self):
+        self.import_thread = ImportThread()
+        self.import_thread.progress.connect(self.update_progress)
+        self.import_thread.finished.connect(self.import_finished)
+        self.import_thread.start()
+
+    def update_progress(self, value):
+        self.progress_bar.setValue(value)
+
+    def import_finished(self):
+        self.progress_label.setText("YOLO module imported successfully!")
+        self.progress_bar.setValue(100)
+        self.close()
+
+app = QApplication(sys.argv)
+load_style_sheet("resources/themes/dark_theme.qss", QApplication.instance())
+
+window = ImportProgressBar()
+window.show()
+app.exec_()
 
 RESULT = namedtuple(
     "result",
@@ -79,6 +154,14 @@ DATA_IMAGE = namedtuple(
     defaults=4 * [None],
 )
 
+class TypeLog(enum.Enum):
+    DEFAULT = 0
+    DEBUG = 1
+    INFO = 2
+    WARNING = 3
+    ERROR = 4
+    CRITICAL = 5
+
 
 class MainWindow(QMainWindow):
     signalResultAuto = pyqtSignal(object)
@@ -86,14 +169,35 @@ class MainWindow(QMainWindow):
 
     signalChangeLabelResult = pyqtSignal(str)
     signalChangeLight = pyqtSignal(object)
-    signalChangeOutputIO = pyqtSignal(object, OutPorts, PortState)
-    signalChangeProcessing = pyqtSignal(object)
-    signalChangeModelAI = pyqtSignal(object)
+
+    signalLogUI = pyqtSignal(TypeLog, str)
+
+    signalShowLoading = pyqtSignal(str)  # Signal để hiển thị loading dialog với thông báo
+    signalHideLoading = pyqtSignal()     # Signal để ẩn loading dialog
+    signalUpdateProgress = pyqtSignal(int)  # Signal để cập nhật tiến trình
+
+    loadProgress = pyqtSignal(int, str)
+    finishProgress = pyqtSignal()
 
     def __init__(self):
         super(MainWindow, self).__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+        
+        # Tạo thanh trạng thái với progress bar
+        self.status_label = QLabel()
+        self.status_label.setText("Project Name")
+        self.status_label.setAlignment(Qt.AlignCenter)
+        self.status_progress_bar = QProgressBar()
+        self.status_progress_bar.setTextVisible(True)
+        self.status_progress_bar.setMaximumWidth(500)
+        self.status_progress_bar.setAlignment(Qt.AlignCenter)
+        self.statusBar().addPermanentWidget(self.status_label)
+        self.statusBar().addPermanentWidget(self.status_progress_bar)
+
+        # Kết nối signals
+        self.loadProgress.connect(self.load_progress)
+        self.finishProgress.connect(self.finish_progress)
 
         self.initParameters()
         self.initUi()
@@ -221,12 +325,25 @@ class MainWindow(QMainWindow):
         self.ui.verticalLayoutImageBinary.addWidget(WindowCanvas(self.canvas_binary))
         self.canvas_dst = Canvas()
         self.ui.verticalLayoutImageDST.addWidget(WindowCanvas(self.canvas_dst))
-        self.canvas_auto = Canvas()
-        self.ui.verticalLayoutScreenAuto.addWidget(WindowCanvas(self.canvas_auto))
+        self.canvas_camera1_teaching = Canvas()
+        self.ui.verticalLayoutScreenTeaching.addWidget(WindowCanvas(self.canvas_camera1_teaching))
+        self.canvas_camera2_teaching = Canvas()
+        self.ui.verticalLayoutScreenTeaching.addWidget(WindowCanvas(self.canvas_camera2_teaching))
+        self.canvas_camera1_auto = Canvas()
+        self.ui.horizontalLayoutScreenAuto.addWidget(WindowCanvas(self.canvas_camera1_auto))
+        self.canvas_camera2_auto = Canvas()
+        self.ui.horizontalLayoutScreenAuto.addWidget(WindowCanvas(self.canvas_camera2_auto))
         self.canvas_input = Canvas()
         self.ui.verticalLayoutCanvasInput.addWidget(WindowCanvas(self.canvas_input))
         self.canvas_output = Canvas()
         self.ui.verticalLayoutCanvasOutput.addWidget(WindowCanvas(self.canvas_output))
+
+        # Add Camera Config
+        self.camera_dlg_1 = CameraDlg(canvas_screen=self.canvas_camera1_teaching)
+        self.camera_dlg_2 = CameraDlg(canvas_screen=self.canvas_camera2_teaching)
+
+        self.ui.tabWidgetCameraConfig.addTab(self.camera_dlg_1, "Camera1")
+        self.ui.tabWidgetCameraConfig.addTab(self.camera_dlg_2, "Camera2")
 
         # Model
         self.initialize_models()
@@ -293,8 +410,8 @@ class MainWindow(QMainWindow):
         self.signalChangeLight.connect(self.handle_change_light)
         self.change_value_light()
 
-        # Kết nối tín hiệu thay đổi confidence
-        self.signalChangeModelAI.connect(self.handle_change_confidence)
+        # Kết nối tín hiệu gửi thông báo
+        self.signalLogUI.connect(self.handle_log_ui)
 
     def load_theme(self):
         self.ui.actionLight.triggered.connect(partial(self.set_theme, "light"))
@@ -317,7 +434,7 @@ class MainWindow(QMainWindow):
             lambda value: self.signalChangeLight.emit((0, value))
         )
         self.ui.spin_channel_1.valueChanged.connect(
-            lambda value: self.signalChangeLight.emit((1, value))
+            lambda value: self.signalChangeLight.emit((1, value)) 
         )
         self.ui.spin_channel_2.valueChanged.connect(
             lambda value: self.signalChangeLight.emit((2, value))
@@ -325,6 +442,18 @@ class MainWindow(QMainWindow):
         self.ui.spin_channel_3.valueChanged.connect(
             lambda value: self.signalChangeLight.emit((3, value))
         )
+
+    def load_progress(self, dt=5, status_name=""):
+        self.status_progress_bar.setTextVisible(True)
+        self.status_label.setText(status_name)
+        self.status_progress_bar.setValue(0)
+        for i in range(0, 100):
+            QTimer.singleShot(dt*i, lambda value=i: self.status_progress_bar.setValue(value+1))
+    def finish_progress(self):
+        self.status_label.setText("Status Label")
+        self.status_progress_bar.setValue(0)
+        self.status_progress_bar.setTextVisible(False)
+        
 
     def initialize_models(self):
         """
@@ -405,6 +534,28 @@ class MainWindow(QMainWindow):
                         "database_path": "database.db",
                         "auto_start": False,
                     },
+                    "camera_config":{
+                        "camera1":{
+                            "device":{
+                                "type":"Webcam",
+                                "id":"0",
+                                "feature":""
+                            },
+                            "lighting":{	
+                                "channels": [10, 10, 10, 10]
+                            }
+                        }, 
+                        "camera2":{
+                            "device":{
+                                "type":"Webcam",
+                                "id":"0",
+                                "feature":""
+                            },
+                            "lighting":{	
+                                "channels": [10, 10, 10, 10]
+                            }
+                        }
+                    }
                 },
                 "font": {
                     "radius": Shape.RADIUS,
@@ -594,17 +745,17 @@ class MainWindow(QMainWindow):
 
     def write_log(self):
         """Ghi thử một số log"""
-        # self.ui_logger_text.textSignal.emit("Một thông báo khác", None)
-        # self.ui_logger_text.textSignal.emit("Một thông báo khác", "DEBUG")
-        # self.ui_logger_text.textSignal.emit("Một thông báo khác", "INFO")
-        # self.ui_logger_text.textSignal.emit("Một thông báo khác", "WARNING")
-        # self.ui_logger_text.textSignal.emit("Một thông báo khác", "ERROR")
-        # self.ui_logger_text.textSignal.emit("Một thông báo khác", "CRITICAL")
-        self.ui_logger.debug("Đây là log DEBUG")
-        self.ui_logger.info("Đây là log INFO")
-        self.ui_logger.warning("Đây là log WARNING")
-        self.ui_logger.error("Đây là log ERROR")
-        self.ui_logger.critical("Đây là log CRITICAL")
+        self.signalLogUI.emit(TypeLog.DEFAULT, "Một thông báo khác")
+        self.signalLogUI.emit(TypeLog.DEBUG, "Một thông báo khác")
+        self.signalLogUI.emit(TypeLog.INFO, "Một thông báo khác")
+        self.signalLogUI.emit(TypeLog.WARNING, "Một thông báo khác")
+        self.signalLogUI.emit(TypeLog.ERROR, "Một thông báo khác")
+        self.signalLogUI.emit(TypeLog.CRITICAL, "Một thông báo khác")
+        # self.ui_logger.debug("Đây là log DEBUG")
+        # self.ui_logger.info("Đây là log INFO")
+        # self.ui_logger.warning("Đây là log WARNING")
+        # self.ui_logger.error("Đây là log ERROR")
+        # self.ui_logger.critical("Đây là log CRITICAL")
 
     def start_elappsed_time(self):
         self.t_start = time.time()
@@ -659,6 +810,8 @@ class MainWindow(QMainWindow):
         Khởi động luồng auto.
         """
         try:
+            self.loadProgress.emit(10, "Start Auto")
+
             self.ui_logger.info("Bắt đầu khởi động hệ thống Auto")
 
             # Cập nhật UI
@@ -666,13 +819,13 @@ class MainWindow(QMainWindow):
             self.ui.combo_model.setEnabled(False)
             self.ui.btn_stop.setEnabled(True)
 
-            self.set_up_auto()
+            self.setup_auto()
             self.start_loop_auto()
 
         except Exception as e:
             self.ui_logger.error(f"Error start auto: {str(e)}")
 
-    def set_up_auto(self):
+    def setup_auto(self):
         if self.ui.btn_start_teaching.text() == "Stop Teaching":
             self.stop_teaching()
 
@@ -714,6 +867,7 @@ class MainWindow(QMainWindow):
             self.stop_loop_auto()
             self.release_loop_auto()
 
+            self.finishProgress.emit()
         except Exception as e:
             self.ui_logger.error(f"Error stop auto: {str(e)}")
 
@@ -857,7 +1011,7 @@ class MainWindow(QMainWindow):
             elif self.current_step_auto == STEP_OUTPUT_AUTO:
                 self.handle_output_auto(config)
             elif self.current_step_auto == STEP_RELEASE_AUTO:
-                self.handle_release_auto(config)
+                self.handle_release_auto()
 
             # Thời gian delay giữa các bước
             time.sleep(0.05)
@@ -1041,7 +1195,7 @@ class MainWindow(QMainWindow):
                 self.ui_logger.debug("Load Result: Output")
 
                 # Ghi log database
-                self.write_log_database(self.final_result)
+                self.write_log_database(self.final_result, config)
 
                 self.ui_logger.debug("Write Result: Output")
 
@@ -1055,7 +1209,7 @@ class MainWindow(QMainWindow):
             self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
             self.b_trigger_auto = False
 
-    def handle_release_auto(self, config):
+    def handle_release_auto(self):
         try:
             elapsed_time = self.get_elappsed_time()
             self.ui_logger.info(f"Auto output time: {elapsed_time:.3f} seconds")
@@ -1082,9 +1236,8 @@ class MainWindow(QMainWindow):
             self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
             self.b_trigger_auto = False
 
-    def write_log_database(self, result: RESULT):
+    def write_log_database(self, result: RESULT, config: dict):
         try:
-            config = self.get_config()
             model_name = self.ui.combo_model.currentText()
             date_now = time.strftime(FOLDER_DATE_FORMAT)
 
@@ -1401,7 +1554,7 @@ class MainWindow(QMainWindow):
 
             # Hiển thị ảnh kết quả
             if result.src is not None:
-                self.canvas_auto.load_pixmap(ndarray2pixmap(result.src))
+                self.canvas_camera2_auto.load_pixmap(ndarray2pixmap(result.src))
 
             if result.binary is not None:
                 self.canvas_binary.load_pixmap(ndarray2pixmap(result.binary))
@@ -1455,14 +1608,27 @@ class MainWindow(QMainWindow):
             self.ui.label_result.setText("Waiting")
             update_style(self.ui.label_result)
 
-    def handle_change_confidence(self, src, dst, confidence):
-        # Thực hiện phát hiện
-        results = self.model_ai.detect(src, conf=confidence, imgsz=640)
-        
-        # Vẽ kết quả
-        dst = plot_results(results, dst, self.model_ai.label_map, self.model_ai.color_map)
+    def handle_log_ui(self, type_log: TypeLog, msg: str):
+        timestamp = time.strftime(DATETIME_FORMAT)
+        msg = f"{timestamp} : {msg}"
+        list_item = QListWidgetItem(msg)
 
-        return dst
+        # Thay đổi màu sắc theo level
+        if type_log == TypeLog.DEBUG:
+            list_item.setForeground(QColor("blue"))
+        elif type_log == TypeLog.INFO:
+            list_item.setForeground(QColor("green"))
+        elif type_log == TypeLog.WARNING:
+            list_item.setForeground(QColor("orange"))
+        elif type_log == TypeLog.ERROR:
+            list_item.setForeground(QColor("red"))
+        elif type_log == TypeLog.CRITICAL:
+            list_item.setForeground(QColor("darkred"))
+        else:
+            list_item
+
+        self.ui.list_widget_log.addItem(list_item)
+        self.ui.list_widget_log.scrollToBottom()
 
     def on_click_refesh(self):
         self.apply_default_config()
@@ -1492,6 +1658,10 @@ class MainWindow(QMainWindow):
         config["modules"] = {}
 
         # Lưu thiết lập liên quan đến camera
+
+        # config["modules"]["camera_config"] = self.camera_dlg_1.get_config()
+
+
         config["modules"]["camera"] = {
             "type": self.ui.combo_type_camera.currentText(),
             "id": self.ui.combo_id_camera.currentText(),
@@ -1537,6 +1707,12 @@ class MainWindow(QMainWindow):
             "model_path": self.ui.combo_model_ai.currentText(),
             "confidence": self.ui.line_confidence.text(),
         }
+
+        # Lưu thiết lập liên quan đến camera config
+        config["modules"]["camera_config"] = {}
+
+        config["modules"]["camera_config"]["camera1"] = self.camera_dlg_1.get_config()
+        config["modules"]["camera_config"]["camera2"] = self.camera_dlg_2.get_config()
 
         # Lưu thiết lập font
         config["font"] = {
@@ -1703,6 +1879,13 @@ class MainWindow(QMainWindow):
                     self.ui.line_confidence.setText(
                         str(model_ai_config.get("confidence", 0.25))
                     )
+
+                # Áp dụng cấu hình camera config
+                if "camera_config" in modules:
+                    camera_config = modules["camera_config"]
+
+                    self.camera_dlg_1.set_config(camera_config["camera1"])
+                    self.camera_dlg_2.set_config(camera_config["camera2"])
 
             # Áp dụng cấu hình font nếu có
             if "font" in config:
@@ -1962,8 +2145,6 @@ class MainWindow(QMainWindow):
                 model_name = self.ui.combo_model.currentText()
 
             # Hiển thị hộp thoại xác nhận
-            from PyQt5.QtWidgets import QMessageBox
-
             reply = QMessageBox.question(
                 self,
                 "Xác nhận xóa",
@@ -2031,9 +2212,6 @@ class MainWindow(QMainWindow):
             # Nếu không có tên model, lấy từ combobox
             if model_name is None:
                 model_name = self.ui.combo_model.currentText()
-
-             # Hiển thị hộp thoại xác nhận
-            from PyQt5.QtWidgets import QMessageBox
 
             reply = QMessageBox.question(
                 self,
@@ -2656,9 +2834,6 @@ class MainWindow(QMainWindow):
             log_dir = config["modules"]["system"]["log_dir"]
             database_path = os.path.join(log_dir, config["modules"]["system"]["database_path"])
 
-            # Hiển thị hộp thoại xác nhận
-            from PyQt5.QtWidgets import QMessageBox
-
             reply = QMessageBox.question(
                 self,
                 f"Tạo Database",
@@ -2736,16 +2911,29 @@ class MainWindow(QMainWindow):
                 self.ui.table_widget_database.setItem(i, j, QTableWidgetItem(r[j]))
 
     def closeEvent(self, event):
-        # Stop camera thread if running
-        if hasattr(self, 'camera_thread') and self.camera_thread is not None:
-            self.camera_thread.stop_camera()
-            self.camera_thread.wait()  # Wait for thread to finish
-        return super().closeEvent(event)
+        reply = QMessageBox.question(
+            self, 
+            'Confirm Exit', 
+            'Are you sure you want to exit?',
+            QMessageBox.Yes | QMessageBox.No, 
+            QMessageBox.No
+        )
 
+        if reply == QMessageBox.Yes:
+            # User chose Yes - accept the close event and exit
+            # First do cleanup
+            if hasattr(self, 'camera_thread') and self.camera_thread is not None:
+                self.camera_thread.stop_camera()
+                self.camera_thread.wait()  # Wait for thread to finish
+                
+            event.accept()
+        else:
+            # User chose No - ignore the close event and continue
+            event.ignore()
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
     window = MainWindow()
+    window.showMaximized()
     window.setWindowTitle("Project Name")
     window.setWindowIcon(QIcon("resources/icons/cyber-eye.png"))
     load_style_sheet("resources/themes/light_theme.qss", QApplication.instance())

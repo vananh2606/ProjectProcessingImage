@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>650</height>
+    <width>812</width>
+    <height>765</height>
    </rect>
   </property>
   <property name="font">
@@ -23,8 +23,14 @@
    <layout class="QVBoxLayout" name="verticalLayoutMain">
     <item>
      <widget class="QTabWidget" name="tabWidgetMain">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <property name="movable">
        <bool>true</bool>
@@ -33,44 +39,8 @@
        <attribute name="title">
         <string>Auto</string>
        </attribute>
-       <layout class="QGridLayout" name="gridLayoutAuto" rowstretch="1,12,4" columnstretch="2,3,2">
-        <item row="0" column="0" colspan="3">
-         <widget class="QGroupBox" name="groupBoxInfo">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="title">
-           <string>Information Auto</string>
-          </property>
-          <layout class="QHBoxLayout" name="horizontalLayoutInfo" stretch="2,4,2">
-           <item>
-            <widget class="QLabel" name="label_version">
-             <property name="text">
-              <string>Version</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="label_name_project">
-             <property name="text">
-              <string>Project Name</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="label_time">
-             <property name="text">
-              <string>Time</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item row="2" column="2">
+       <layout class="QGridLayout" name="gridLayoutAuto" rowstretch="1,1,12,4" columnstretch="2,3,2">
+        <item row="3" column="2">
          <widget class="QGroupBox" name="groupBoxResult">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -104,7 +74,7 @@
           </layout>
          </widget>
         </item>
-        <item row="2" column="1">
+        <item row="3" column="1">
          <widget class="QGroupBox" name="groupBoxDetail">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -254,7 +224,7 @@
           </layout>
          </widget>
         </item>
-        <item row="2" column="0">
+        <item row="3" column="0">
          <widget class="QGroupBox" name="groupBoxBtnAuto">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -341,7 +311,43 @@
           </layout>
          </widget>
         </item>
-        <item row="1" column="0" colspan="3">
+        <item row="0" column="0" colspan="3">
+         <widget class="QGroupBox" name="groupBoxInfo">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="title">
+           <string>Information Auto</string>
+          </property>
+          <layout class="QHBoxLayout" name="horizontalLayoutInfo" stretch="2,4,2">
+           <item>
+            <widget class="QLabel" name="label_version">
+             <property name="text">
+              <string>Version</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_name_project">
+             <property name="text">
+              <string>Project Name</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_time">
+             <property name="text">
+              <string>Time</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item row="2" column="0" colspan="3">
          <widget class="QGroupBox" name="groupBoxAuto">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -352,7 +358,41 @@
           <property name="title">
            <string>Screen Auto</string>
           </property>
-          <layout class="QVBoxLayout" name="verticalLayoutScreenAuto"/>
+          <layout class="QHBoxLayout" name="horizontalLayoutScreenAuto"/>
+         </widget>
+        </item>
+        <item row="1" column="0" colspan="3">
+         <widget class="QGroupBox" name="groupBoxModel">
+          <property name="title">
+           <string>Model</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_9" columnstretch="5,1">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_model">
+             <property name="font">
+              <font>
+               <pointsize>10</pointsize>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Model</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QComboBox" name="combo_model">
+             <property name="font">
+              <font>
+               <pointsize>10</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+            </widget>
+           </item>
+          </layout>
          </widget>
         </item>
        </layout>
@@ -503,6 +543,12 @@
               </attribute>
               <layout class="QVBoxLayout" name="verticalLayoutImageSRC"/>
              </widget>
+             <widget class="QWidget" name="tabScreenCamera">
+              <attribute name="title">
+               <string>Screen Camera</string>
+              </attribute>
+              <layout class="QVBoxLayout" name="verticalLayoutScreenTeaching"/>
+             </widget>
             </widget>
            </item>
           </layout>
@@ -529,10 +575,13 @@
               </size>
              </property>
              <property name="currentIndex">
-              <number>6</number>
+              <number>0</number>
              </property>
              <property name="movable">
               <bool>true</bool>
+             </property>
+             <property name="tabBarAutoHide">
+              <bool>false</bool>
              </property>
              <widget class="QWidget" name="tabCamera">
               <attribute name="title">
@@ -629,7 +678,7 @@
                 </widget>
                </item>
                <item row="1" column="0">
-                <widget class="QLabel" name="label_id">
+                <widget class="QLabel" name="label_id_after">
                  <property name="sizePolicy">
                   <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
                    <horstretch>0</horstretch>
@@ -889,6 +938,60 @@
                </item>
               </layout>
              </widget>
+             <widget class="QWidget" name="tabAND">
+              <attribute name="title">
+               <string>AND</string>
+              </attribute>
+              <layout class="QGridLayout" name="gridLayout_7">
+               <item row="0" column="1">
+                <widget class="QComboBox" name="combo_comport_and">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="1" colspan="2">
+                <widget class="QPushButton" name="btn_open_and">
+                 <property name="text">
+                  <string>Open</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="0">
+                <widget class="QLabel" name="label_status_and">
+                 <property name="text">
+                  <string>Status AND</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_com_and">
+                 <property name="text">
+                  <string>COM &amp; BAUD</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="2">
+                <widget class="QComboBox" name="combo_baudrate_and"/>
+               </item>
+               <item row="1" column="0">
+                <widget class="QLabel" name="label_min_max">
+                 <property name="text">
+                  <string>MIN &amp; MAX</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="1">
+                <widget class="QLineEdit" name="line_min"/>
+               </item>
+               <item row="1" column="2">
+                <widget class="QLineEdit" name="line_max"/>
+               </item>
+              </layout>
+             </widget>
              <widget class="QWidget" name="tabServer">
               <attribute name="title">
                <string>Server</string>
@@ -1136,56 +1239,70 @@
               </attribute>
               <layout class="QGridLayout" name="gridLayout_5">
                <item row="0" column="0">
-                <widget class="QLabel" name="label_2">
+                <widget class="QLabel" name="label_color">
                  <property name="text">
                   <string>Color</string>
                  </property>
                 </widget>
                </item>
                <item row="1" column="0">
-                <widget class="QLabel" name="label_3">
+                <widget class="QLabel" name="label_blur">
                  <property name="text">
                   <string>Blur</string>
                  </property>
                 </widget>
                </item>
                <item row="2" column="0">
-                <widget class="QLabel" name="label_4">
+                <widget class="QLabel" name="label_threshold">
                  <property name="text">
                   <string>Threshold</string>
                  </property>
                 </widget>
                </item>
                <item row="3" column="0">
-                <widget class="QLabel" name="label_5">
+                <widget class="QLabel" name="label_morphological">
                  <property name="text">
                   <string>Morphological</string>
                  </property>
                 </widget>
                </item>
                <item row="3" column="1">
-                <widget class="QComboBox" name="comboBox_4"/>
+                <widget class="QComboBox" name="combo_morphological"/>
                </item>
                <item row="3" column="2" colspan="2">
-                <widget class="QSpinBox" name="spinBox_4"/>
+                <widget class="QSpinBox" name="spin_iteration"/>
                </item>
                <item row="3" column="4">
-                <widget class="QSpinBox" name="spinBox_3"/>
+                <widget class="QSpinBox" name="spin_kernel_size"/>
                </item>
                <item row="0" column="1" colspan="4">
-                <widget class="QComboBox" name="comboBox"/>
+                <widget class="QComboBox" name="combo_color"/>
                </item>
                <item row="2" column="4">
-                <widget class="QSpinBox" name="spinBox_2"/>
+                <widget class="QSpinBox" name="spin_value_threshold"/>
                </item>
                <item row="1" column="4">
-                <widget class="QSpinBox" name="spinBox"/>
+                <widget class="QSpinBox" name="spin_kernel_blur"/>
                </item>
                <item row="1" column="1" colspan="3">
-                <widget class="QComboBox" name="comboBox_2"/>
+                <widget class="QComboBox" name="combo_blur"/>
                </item>
                <item row="2" column="1" colspan="3">
-                <widget class="QComboBox" name="comboBox_3"/>
+                <widget class="QComboBox" name="combo_threshold"/>
+               </item>
+              </layout>
+             </widget>
+             <widget class="QWidget" name="tabCameraConfig">
+              <attribute name="title">
+               <string>Camera Config</string>
+              </attribute>
+              <layout class="QGridLayout" name="gridLayout_6">
+               <item row="0" column="0">
+                <widget class="QTabWidget" name="tabWidgetCameraConfig">
+                 <property name="currentIndex">
+                  <number>-1</number>
+                 </property>
+                </widget>
                </item>
               </layout>
              </widget>
@@ -1896,7 +2013,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>800</width>
+     <width>812</width>
      <height>21</height>
     </rect>
    </property>
@@ -1950,70 +2067,6 @@
    <addaction name="menuAbout"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <widget class="QDockWidget" name="dockWidgetViewModelLog">
-   <property name="font">
-    <font>
-     <pointsize>10</pointsize>
-     <weight>75</weight>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="floating">
-    <bool>false</bool>
-   </property>
-   <property name="features">
-    <set>QDockWidget::AllDockWidgetFeatures</set>
-   </property>
-   <property name="allowedAreas">
-    <set>Qt::AllDockWidgetAreas</set>
-   </property>
-   <property name="windowTitle">
-    <string>View Model Log</string>
-   </property>
-   <attribute name="dockWidgetArea">
-    <number>2</number>
-   </attribute>
-   <widget class="QWidget" name="dockWidgetContentsViewModelLog">
-    <layout class="QGridLayout" name="gridLayoutViewModelLog" rowstretch="0,0" columnstretch="1,2,0">
-     <item row="0" column="0">
-      <widget class="QLabel" name="label_model">
-       <property name="font">
-        <font>
-         <pointsize>10</pointsize>
-         <weight>75</weight>
-         <bold>true</bold>
-        </font>
-       </property>
-       <property name="text">
-        <string>Model</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="0" colspan="3">
-      <widget class="QListWidget" name="list_widget_log">
-       <property name="font">
-        <font>
-         <pointsize>10</pointsize>
-         <weight>50</weight>
-         <bold>false</bold>
-        </font>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="1">
-      <widget class="QComboBox" name="combo_model">
-       <property name="font">
-        <font>
-         <pointsize>10</pointsize>
-         <weight>50</weight>
-         <bold>false</bold>
-        </font>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </widget>
-  </widget>
   <widget class="QDockWidget" name="dockWidgetListImage">
    <property name="font">
     <font>
@@ -2082,6 +2135,35 @@
    </attribute>
    <widget class="QWidget" name="dockWidgetContentsImageDST">
     <layout class="QVBoxLayout" name="verticalLayoutImageDST"/>
+   </widget>
+  </widget>
+  <widget class="QDockWidget" name="dockWidgetViewlLog">
+   <property name="font">
+    <font>
+     <weight>75</weight>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="windowTitle">
+    <string>Log</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>8</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContentsLog">
+    <layout class="QGridLayout" name="gridLayout_8" columnstretch="5,0">
+     <item row="0" column="0" colspan="2">
+      <widget class="QListWidget" name="list_widget_log">
+       <property name="font">
+        <font>
+         <pointsize>10</pointsize>
+         <weight>50</weight>
+         <bold>false</bold>
+        </font>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </widget>
   </widget>
   <action name="actionSave_Config">

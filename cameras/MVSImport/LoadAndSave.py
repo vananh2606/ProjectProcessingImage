@@ -4,8 +4,9 @@ import sys
 
 from ctypes import *
 
-# sys.path.append("../MvImport")
-from cameras.MVSImport.MvCameraControl_class import *
+sys.path.append("cameras/MVSImport")
+from MvCameraControl_class import *
+# from cameras.MVSImport.MvCameraControl_class import *
 
 
 def save_feature():

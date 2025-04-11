@@ -1,6 +1,10 @@
-from cameras.base_camera import *
-from cameras.MVSImport.MvCameraControl_class import *
-from cameras.MVSImport.CamOperation_class import *
+import sys 
+
+sys.path.append("cameras")
+
+from base_camera import *
+from MVSImport.MvCameraControl_class import *
+from MVSImport.CamOperation_class import *
 
 
 class HIK(BaseCamera):

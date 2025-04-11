@@ -1,0 +1,50 @@
+/* Style sheet cho LoadingDialog */
+
+/* Style cho main Dialog */
+#DialogLoading {
+    background-color: rgb(155, 155, 155);
+    border-radius: 10px;
+}
+
+/* Container chính giữa */
+#centralWidget {
+    background-color: rgb(155, 155, 155);
+    border-radius: 10px;
+    border: 1px solid rgba(200, 200, 200, 150);
+    margin: 30px;
+}
+
+/* Style cho Label thông báo */
+#labelMessage {
+    background-color: rgb(155, 155, 155);
+    color: #333333;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 5px;
+}
+
+/* Style cho ProgressBar */
+#progressBar {
+    border: 1px solid #bbbbbb;
+    border-radius: 5px;
+    text-align: center;
+    background-color: #f0f0f0;
+    min-height: 12px;
+    max-height: 12px;
+    margin-left: 15px;
+    margin-right: 15px;
+}
+
+#progressBar::chunk {
+    background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, 
+                      stop:0 #3498db, stop:1 #8e44ad);
+    border-radius: 5px;
+}
+
+/* Style cho Label Loading (chứa GIF) */
+#labelLoading {
+    background-color: transparent;
+    min-width: 128px;
+    min-height: 128px;
+}

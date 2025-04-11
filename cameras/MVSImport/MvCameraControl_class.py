@@ -9,10 +9,10 @@ sys.path.append("cameras/")
 
 from ctypes import *
 
-from cameras.MVSImport.PixelType_header import *
-from cameras.MVSImport.CameraParams_const import *
-from cameras.MVSImport.CameraParams_header import *
-from cameras.MVSImport.MvErrorDefine_const import *
+from MVSImport.PixelType_header import *
+from MVSImport.CameraParams_const import *
+from MVSImport.CameraParams_header import *
+from MVSImport.MvErrorDefine_const import *
 
 MvCamCtrldll = WinDLL(
     r"C:\Program Files (x86)\Common Files\MVS\Runtime\Win64_x64\MvCameraControl.dll"

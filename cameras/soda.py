@@ -1,4 +1,7 @@
-from cameras.base_camera import *
+import sys 
+
+sys.path.append("cameras")
+from base_camera import *
 from pypylon import pylon, genicam
 
 

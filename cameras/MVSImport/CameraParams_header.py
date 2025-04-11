@@ -2,8 +2,12 @@
 # flags '-c -d -v C:\test_h\CameraParams.xml -o CameraParams_header.py'
 from ctypes import *
 from enum import Enum
-from cameras.MVSImport.CameraParams_const import *
-from cameras.MVSImport.PixelType_header import *
+
+import sys
+
+sys.path.append("cameras/")
+from MVSImport.CameraParams_const import *
+from MVSImport.PixelType_header import *
 
 STRING = c_char_p
 

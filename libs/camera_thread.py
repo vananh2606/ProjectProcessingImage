@@ -1,11 +1,14 @@
 from PyQt5.QtCore import QThread, pyqtSignal
 import cv2 as cv
 import time
+import sys 
 
-from cameras.hik import HIK
-from cameras.soda import SODA
-from cameras.webcam import Webcam
-from cameras.base_camera import NO_ERROR
+sys.path.append("cameras")
+
+from hik import HIK
+from soda import SODA
+from webcam import Webcam
+from base_camera import NO_ERROR
 
 
 class CameraThread(QThread):
