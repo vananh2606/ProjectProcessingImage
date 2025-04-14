@@ -30,7 +30,7 @@
        </sizepolicy>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <property name="movable">
        <bool>true</bool>
@@ -575,7 +575,7 @@
               </size>
              </property>
              <property name="currentIndex">
-              <number>0</number>
+              <number>7</number>
              </property>
              <property name="movable">
               <bool>true</bool>
@@ -938,13 +938,13 @@
                </item>
               </layout>
              </widget>
-             <widget class="QWidget" name="tabAND">
+             <widget class="QWidget" name="tabWeight">
               <attribute name="title">
-               <string>AND</string>
+               <string>Weight</string>
               </attribute>
               <layout class="QGridLayout" name="gridLayout_7">
                <item row="0" column="1">
-                <widget class="QComboBox" name="combo_comport_and">
+                <widget class="QComboBox" name="combo_comport_weight">
                  <property name="minimumSize">
                   <size>
                    <width>0</width>
@@ -953,29 +953,29 @@
                  </property>
                 </widget>
                </item>
-               <item row="2" column="1" colspan="2">
-                <widget class="QPushButton" name="btn_open_and">
-                 <property name="text">
-                  <string>Open</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="2" column="0">
-                <widget class="QLabel" name="label_status_and">
-                 <property name="text">
-                  <string>Status AND</string>
-                 </property>
-                </widget>
-               </item>
                <item row="0" column="0">
-                <widget class="QLabel" name="label_com_and">
+                <widget class="QLabel" name="label_com_weight">
                  <property name="text">
                   <string>COM &amp; BAUD</string>
                  </property>
                 </widget>
                </item>
                <item row="0" column="2">
-                <widget class="QComboBox" name="combo_baudrate_and"/>
+                <widget class="QComboBox" name="combo_baudrate_weight"/>
+               </item>
+               <item row="3" column="0">
+                <widget class="QLabel" name="label_status_and">
+                 <property name="text">
+                  <string>Status Weight</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="1" colspan="2">
+                <widget class="QPushButton" name="btn_open_weight">
+                 <property name="text">
+                  <string>Open</string>
+                 </property>
+                </widget>
                </item>
                <item row="1" column="0">
                 <widget class="QLabel" name="label_min_max">
@@ -985,10 +985,35 @@
                 </widget>
                </item>
                <item row="1" column="1">
-                <widget class="QLineEdit" name="line_min"/>
+                <widget class="QLineEdit" name="line_min_weight">
+                 <property name="alignment">
+                  <set>Qt::AlignCenter</set>
+                 </property>
+                </widget>
                </item>
                <item row="1" column="2">
-                <widget class="QLineEdit" name="line_max"/>
+                <widget class="QLineEdit" name="line_max_weight">
+                 <property name="alignment">
+                  <set>Qt::AlignCenter</set>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="0">
+                <widget class="QLabel" name="label_value_weight">
+                 <property name="text">
+                  <string>VALUE</string>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignCenter</set>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="1" colspan="2">
+                <widget class="QLineEdit" name="line_value_weight">
+                 <property name="alignment">
+                  <set>Qt::AlignCenter</set>
+                 </property>
+                </widget>
                </item>
               </layout>
              </widget>
@@ -1237,7 +1262,7 @@
               <attribute name="title">
                <string>Processing</string>
               </attribute>
-              <layout class="QGridLayout" name="gridLayout_5">
+              <layout class="QGridLayout" name="gridLayout_5" columnstretch="1,5,2,1,1">
                <item row="0" column="0">
                 <widget class="QLabel" name="label_color">
                  <property name="text">
@@ -1267,7 +1292,14 @@
                 </widget>
                </item>
                <item row="3" column="1">
-                <widget class="QComboBox" name="combo_morphological"/>
+                <widget class="QComboBox" name="combo_morphological">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>25</height>
+                  </size>
+                 </property>
+                </widget>
                </item>
                <item row="3" column="2" colspan="2">
                 <widget class="QSpinBox" name="spin_iteration"/>
@@ -1276,7 +1308,14 @@
                 <widget class="QSpinBox" name="spin_kernel_size"/>
                </item>
                <item row="0" column="1" colspan="4">
-                <widget class="QComboBox" name="combo_color"/>
+                <widget class="QComboBox" name="combo_color">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>25</height>
+                  </size>
+                 </property>
+                </widget>
                </item>
                <item row="2" column="4">
                 <widget class="QSpinBox" name="spin_value_threshold"/>
@@ -1285,10 +1324,24 @@
                 <widget class="QSpinBox" name="spin_kernel_blur"/>
                </item>
                <item row="1" column="1" colspan="3">
-                <widget class="QComboBox" name="combo_blur"/>
+                <widget class="QComboBox" name="combo_blur">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>25</height>
+                  </size>
+                 </property>
+                </widget>
                </item>
                <item row="2" column="1" colspan="3">
-                <widget class="QComboBox" name="combo_threshold"/>
+                <widget class="QComboBox" name="combo_threshold">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>25</height>
+                  </size>
+                 </property>
+                </widget>
                </item>
               </layout>
              </widget>

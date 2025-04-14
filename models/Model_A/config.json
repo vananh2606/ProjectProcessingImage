@@ -8,7 +8,7 @@
         },
         "lighting": {
             "controller_light": "DCP",
-            "comport_light": "COM10",
+            "comport_light": "COM9",
             "baudrate_light": "19200",
             "delay": 100,
             "channels": [
@@ -19,29 +19,52 @@
             ]
         },
         "io": {
-            "comport_io": "COM8",
+            "comport_io": "COM9",
             "baudrate_io": "19200"
+        },
+        "weight": {
+            "comport_weight": "COM10",
+            "baudrate_weight": "9600",
+            "min_weight": "0.100",
+            "max_weight": "0.300",
+            "value_weight": "0.229"
         },
         "server": {
             "host": "127.0.0.1",
             "port": "8080"
         },
         "system": {
-            "log_dir": "A:\\ProjectPython\\ProjectProcessingImage\\log_database",
+            "log_dir": "A:\\Project\\ProjectProcessingImage\\log_database",
             "log_size": "10",
             "database_path": "database.db",
             "auto_start": true
         },
         "model_ai": {
             "model_path": "best",
-            "confidence": "0.80"
+            "confidence": "0.25"
+        },
+        "processing": {
+            "color": "Gray",
+            "blur": {
+                "type_blur": "GaussianBlur",
+                "kernel_size_blur": 5
+            },
+            "threshold": {
+                "type_threshold": "ThreshBinary",
+                "value_threshold": 127
+            },
+            "morphological": {
+                "type_morph": "Erode",
+                "iteration": 1,
+                "kernel_size_morph": 3
+            }
         },
         "camera_config": {
             "camera1": {
                 "device": {
-                    "type": "HIK",
-                    "id": "DA5691963",
-                    "feature": "Black"
+                    "type": "Webcam",
+                    "id": "0",
+                    "feature": ""
                 },
                 "lighting": {
                     "channels": [
@@ -56,7 +79,7 @@
                 "device": {
                     "type": "HIK",
                     "id": "DA5691963",
-                    "feature": "White"
+                    "feature": "Black"
                 },
                 "lighting": {
                     "channels": [

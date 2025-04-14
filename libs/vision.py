@@ -299,9 +299,7 @@ class YoloInference():
             ))
 
         results = sorted(results, key=lambda x: x.conf, reverse=True)
-        # 6 set on jig
-        # if len(results) > 6:
-        #     results = results[:6]
+
         return results
     
     def detect_multi(self, mats, conf=0.25, imgsz=640, 

@@ -210,10 +210,9 @@ class IOController(QObject):
 if __name__ == "__main__":
     import random
 
-    lcp = IOController(com="COM9", baud=19200)
+    # lcp = IOController(com="COM9", baud=19200)
+    lcp = IOController(com="COM9", baud=9600)
     print(lcp.open())
-    lcp.write_out(OutPorts.Out_1, PortState.On)
-
     # while True:
     #     msg = ["PASS", "FAIL", ""][random.randint(0, 2)]
 

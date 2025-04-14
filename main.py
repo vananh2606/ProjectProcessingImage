@@ -63,6 +63,7 @@ from cameras import HIK, SODA, Webcam, get_camera_devices
 from libs.camera_thread import CameraThread
 from libs.light_controller import LCPController, DCPController
 from libs.io_controller import IOController, OutPorts, InPorts, PortState, IOType
+from libs.weight_controller import WeightController
 
 class ImportThread(QThread):
     progress = pyqtSignal(int)  # Signal to update the progress bar
@@ -172,10 +173,6 @@ class MainWindow(QMainWindow):
 
     signalLogUI = pyqtSignal(TypeLog, str)
 
-    signalShowLoading = pyqtSignal(str)  # Signal để hiển thị loading dialog với thông báo
-    signalHideLoading = pyqtSignal()     # Signal để ẩn loading dialog
-    signalUpdateProgress = pyqtSignal(int)  # Signal để cập nhật tiến trình
-
     loadProgress = pyqtSignal(int, str)
     finishProgress = pyqtSignal()
 
@@ -209,14 +206,17 @@ class MainWindow(QMainWindow):
         self.log_path = "logs\\logfile.log"
         self.ui_logger = Logger(name=self.project_name, log_file=self.log_path)
 
-        # IO Controller
-        self.io_controller = None
-
         # Camera
         self.camera_thread = None
 
         # Lighting
         self.light_controller = None
+
+        # IO Controller
+        self.io_controller = None
+
+        # Weight Controller
+        self.weight_controller = None
 
         # Server
         self.tcp_server = None
@@ -270,11 +270,16 @@ class MainWindow(QMainWindow):
         self.ui.btn_start_teaching.setProperty("class", "success")
         self.ui.btn_open_light.setProperty("class", "success")
         self.ui.btn_open_io.setProperty("class", "success")
+        self.ui.btn_open_weight.setProperty("class", "success")
         self.ui.btn_connect_server.setProperty("class", "success")
         self.ui.btn_send_client.setProperty("class", "primary")
         self.ui.btn_create_database.setProperty("class", "primary")
         self.ui.btn_connect_database.setProperty("class", "success")
         self.ui.btn_filter_data.setProperty("class", "primary")
+
+        # Label
+        self.ui.label_result.setProperty("class", "waiting")
+        self.ui.label_value_weight.setProperty("class", "waiting")
 
         # IO
         self.ui.btn_output_1.setProperty("class", "success")
@@ -366,6 +371,7 @@ class MainWindow(QMainWindow):
         self.ui.btn_start_teaching.clicked.connect(self.on_click_start_teaching)
         self.ui.btn_open_light.clicked.connect(self.on_click_open_light)
         self.ui.btn_open_io.clicked.connect(self.on_click_open_io)
+        self.ui.btn_open_weight.clicked.connect(self.on_click_open_weight)
         self.ui.btn_connect_server.clicked.connect(self.on_click_connect_server)
         self.ui.btn_send_client.clicked.connect(self.on_click_send_client)
         self.ui.btn_create_database.clicked.connect(self.create_database)
@@ -527,12 +533,40 @@ class MainWindow(QMainWindow):
                         "comport_io": "COM10",
                         "baudrate_io": "19200",
                     },
+                    "weight": {
+                        "comport_weight": "COM10",
+                        "baudrate_weight": "19200",
+                        "min_weight": "0.1",
+                        "max_weight": "0.3",
+                        "value_weight": "0.2",
+                    },
                     "server": {"host": "127.0.0.1", "port": "8080"},
                     "system": {
                         "log_dir": "log_database",
                         "log_size": "10",
                         "database_path": "database.db",
                         "auto_start": False,
+                    },
+                    "model_ai": {
+                        "model_path": "yolov8n",
+                        "confidence": "0.25",
+                    },
+                    "processing": {
+                        "color": "Gray",
+                        "blur": {
+                            "type_blur": "GaussianBlur",
+                            "kernel_size_blur": 5,
+                        },
+                        "threshold": {
+                            "type_threshold": "ThreshBinary",
+                            "value_threshold": 127,
+                        },
+                        "morphological": {
+                            "type_morph": "Erode",
+                            # "type_morph": "Dilate",
+                            "iteration": 1,
+                            "kernel_size_morph": 3,
+                        },
                     },
                     "camera_config":{
                         "camera1":{
@@ -661,6 +695,22 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.ui_logger.error(f"Lỗi khi khởi tạo io: {str(e)}")
             return False
+    
+    def init_weight(self, com_port, baud_rate):
+        try:
+            # Ghi log thông số io
+            self.ui_logger.info(
+                f"Khởi tạo Weight: COM={com_port}, Baud={baud_rate}"
+            )
+
+            # Khởi tạo bộ điều khiển đèn với thông số từ giao diện
+            self.weight_controller = WeightController(com=com_port, baud=baud_rate)
+
+            return True
+
+        except Exception as e:
+            self.ui_logger.error(f"Lỗi khi khởi tạo weight: {str(e)}")
+            return False
 
     def init_server(self, host, port):
         """
@@ -740,8 +790,6 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.ui_logger.error(f"Lỗi khi khởi tạo Model AI: {str(e)}")
             return False
-
-
 
     def write_log(self):
         """Ghi thử một số log"""
@@ -1001,7 +1049,7 @@ class MainWindow(QMainWindow):
                 self.ui_logger.debug("Auto thread stopped")
                 break
 
-            # Xử lý theo từng bước
+            # Xử lý theo từng bước 
             if self.current_step_auto == STEP_WAIT_TRIGGER_AUTO:
                 self.handle_wait_trigger_auto()
             elif self.current_step_auto == STEP_PREPROCESS_AUTO:
@@ -1440,6 +1488,7 @@ class MainWindow(QMainWindow):
             if self.current_image is not None:
                 src = self.current_image
 
+                
                 # Convert image
                 gray = cv.cvtColor(src, cv.COLOR_BGR2GRAY)
 
@@ -1661,7 +1710,6 @@ class MainWindow(QMainWindow):
 
         # config["modules"]["camera_config"] = self.camera_dlg_1.get_config()
 
-
         config["modules"]["camera"] = {
             "type": self.ui.combo_type_camera.currentText(),
             "id": self.ui.combo_id_camera.currentText(),
@@ -1688,6 +1736,15 @@ class MainWindow(QMainWindow):
             "baudrate_io": self.ui.combo_baudrate_io.currentText(),
         }
 
+        # Lưu thiết lập liên quan đến weight
+        config["modules"]["weight"] = {
+            "comport_weight": self.ui.combo_comport_weight.currentText(),
+            "baudrate_weight": self.ui.combo_baudrate_weight.currentText(),
+            "min_weight": self.ui.line_min_weight.text(),
+            "max_weight": self.ui.line_max_weight.text(),
+            "value_weight": self.ui.line_value_weight.text(),
+        }
+
         # Lưu thiết lập liên quan đến server
         config["modules"]["server"] = {
             "host": self.ui.line_host_server.text(),
@@ -1708,6 +1765,23 @@ class MainWindow(QMainWindow):
             "confidence": self.ui.line_confidence.text(),
         }
 
+        # Lưu thiết lập liên quan đến processing
+        config["modules"]["processing"] = {
+            "color": self.ui.combo_color.currentText(),
+            "blur": {
+                "type_blur": self.ui.combo_blur.currentText(),
+                "kernel_size_blur": self.ui.spin_kernel_blur.value(),
+            },
+            "threshold": {
+                "type_threshold": self.ui.combo_threshold.currentText(),
+                "value_threshold": self.ui.spin_value_threshold.value(),
+            },
+            "morphological": {
+                "type_morph": self.ui.combo_morphological.currentText(),
+                "iteration": self.ui.spin_iteration.value(),
+                "kernel_size_morph": self.ui.spin_kernel_size.value(),
+            },
+        }
         # Lưu thiết lập liên quan đến camera config
         config["modules"]["camera_config"] = {}
 
@@ -1843,6 +1917,22 @@ class MainWindow(QMainWindow):
                         self.ui.combo_baudrate_io, io_config.get("baudrate_io", "19200")
                     )
 
+                # Áp dụng cấu hình weight
+                if "weight" in modules:
+                    weight_config = modules["weight"]
+                    comports, baudrates = self.find_comports_and_baurates()
+                    self.add_combox_item(self.ui.combo_comport_weight, comports)
+                    self.add_combox_item(self.ui.combo_baudrate_weight, baudrates)
+                    self.set_combobox_text(
+                        self.ui.combo_comport_weight, weight_config.get("comport_weight", "COM10")
+                    )
+                    self.set_combobox_text(
+                        self.ui.combo_baudrate_weight, weight_config.get("baudrate_weight", "9600")
+                    )
+                    self.ui.line_min_weight.setText(str(weight_config.get("min_weight", 0.1)))
+                    self.ui.line_max_weight.setText(str(weight_config.get("max_weight", 0.3)))
+                    self.ui.line_value_weight.setText(str(weight_config.get("value_weight", 0.2)))
+
                 # Áp dụng cấu hình server
                 if "server" in modules:
                     server_config = modules["server"]
@@ -1879,6 +1969,56 @@ class MainWindow(QMainWindow):
                     self.ui.line_confidence.setText(
                         str(model_ai_config.get("confidence", 0.25))
                     )
+
+                # Áp dụng cầu hình processing
+                if "processing" in modules:
+                    processing_config = modules["processing"]
+                    list_color = ["Gray", "HSV", "RGB", "BGR"]
+                    self.add_combox_item(self.ui.combo_color, list_color)
+                    self.set_combobox_text(
+                        self.ui.combo_color,
+                        processing_config.get("color", "Gray"),
+                    )
+                    
+                    blur_config = processing_config["blur"]
+                    list_blur = ["GaussianBlur", "MedianBlur", "AverageBlur"]
+                    self.add_combox_item(self.ui.combo_blur, list_blur)
+                    self.set_combobox_text(
+                        self.ui.combo_blur,
+                        blur_config.get("type_blur", "GaussianBlur"),
+                    )
+                    self.ui.spin_kernel_blur.setRange(1, 51)
+                    self.ui.spin_kernel_blur.setSingleStep(2)
+                    self.ui.spin_kernel_blur.setValue(blur_config.get("kernel_size_blur", 5))
+
+                    threshold_config = processing_config["threshold"]
+                    list_threshold = [
+                        "ThreshBinary",
+                        "ThreshBinaryInverted",
+                        "ThreshTruncate",
+                        "ThreshToZero",
+                        "ThreshToZeroInverted",
+                    ]
+                    self.add_combox_item(self.ui.combo_threshold, list_threshold)
+                    self.set_combobox_text(
+                        self.ui.combo_threshold,
+                        threshold_config.get("type_threshold", "ThreshBinary"),
+                    )
+                    self.ui.spin_value_threshold.setRange(0, 255)
+                    self.ui.spin_value_threshold.setValue(threshold_config.get("value_threshold", 127))
+                    
+                    morphological_config = processing_config["morphological"]
+                    list_morph = ["Erode", "Dilate", "Open", "Close"]
+                    self.add_combox_item(self.ui.combo_morphological, list_morph)
+                    self.set_combobox_text(
+                        self.ui.combo_morphological,
+                        morphological_config.get("type_morph", "Erode"),
+                    )
+                    self.ui.spin_iteration.setRange(0, 50)
+                    self.ui.spin_iteration.setValue(morphological_config.get("iteration", 1))
+                    self.ui.spin_kernel_size.setRange(1, 51)
+                    self.ui.spin_kernel_size.setSingleStep(2)
+                    self.ui.spin_kernel_size.setValue(morphological_config.get("kernel_size_morph", 3))
 
                 # Áp dụng cấu hình camera config
                 if "camera_config" in modules:
@@ -1974,7 +2114,6 @@ class MainWindow(QMainWindow):
 
     def on_change_camera_type(self):
         """Xử lý sự kiện khi thay đổi lựa chọn trong combo_type_camera."""
-        print("on_change_camera_type")
         type = self.ui.combo_type_camera.currentText()
         self.load_camera_devices(type)
 
@@ -2002,7 +2141,6 @@ class MainWindow(QMainWindow):
         """
         Xử lý sự kiện khi thay đổi lựa chọn trong combo_model.
         """
-        print("on_change_model")
         model_name = self.ui.combo_model.currentText()
         self.load_model(model_name)
 
@@ -2010,7 +2148,6 @@ class MainWindow(QMainWindow):
         """
         Xử lý sự kiện khi thay đổi lựa chọn trong combo_model_setting.
         """
-        print("on_change_model_setting")
         model_name = self.ui.combo_model_setting.currentText()
         self.load_model(model_name)
 
@@ -2142,7 +2279,7 @@ class MainWindow(QMainWindow):
         try:
             # Nếu không có tên model, lấy từ combobox
             if model_name is None:
-                model_name = self.ui.combo_model.currentText()
+                model_name = self.ui.combo_model_setting.currentText()
 
             # Hiển thị hộp thoại xác nhận
             reply = QMessageBox.question(
@@ -2211,7 +2348,7 @@ class MainWindow(QMainWindow):
         try:
             # Nếu không có tên model, lấy từ combobox
             if model_name is None:
-                model_name = self.ui.combo_model.currentText()
+                model_name = self.ui.combo_model_setting.currentText()
 
             reply = QMessageBox.question(
                 self,
@@ -2745,6 +2882,86 @@ class MainWindow(QMainWindow):
         button.setText("On")
         button.setProperty("class", "success")
         update_style(button)
+
+    def on_click_open_weight(self):
+        if self.ui.btn_open_weight.text() == "Open":
+            self.open_weight()
+        else:
+            self.close_weight()
+
+    def open_weight(self):
+        try:
+            # Lấy thông số từ giao diện
+            comport_weight = self.ui.combo_comport_weight.currentText()
+            baudrate_weight = int(self.ui.combo_baudrate_weight.currentText())
+            self.init_weight(comport_weight, baudrate_weight)
+
+            # Mở kết nối với bộ điều khiển
+            status = self.weight_controller.open()
+
+            self.weight_controller.dataReceived.connect(self.handle_change_value_weight)
+
+            self.ui.btn_open_weight.setText("Close")
+            self.ui.btn_open_weight.setProperty("class", "danger")
+            update_style(self.ui.btn_open_weight)
+
+            if status:
+                self.ui_logger.info("Weight controller connected successfully")
+            else:
+                self.ui_logger.warning("Failed to connect to Weight controller")
+
+        except Exception as e:
+            self.ui_logger.error(f"Error Open Weight: {e}")
+
+    def close_weight(self):
+        try:
+            # Đóng kết nối với bộ điều khiển
+            status = self.weight_controller.close()
+
+            self.ui.btn_open_weight.setText("Open")
+            self.ui.btn_open_weight.setProperty("class", "success")
+            update_style(self.ui.btn_open_weight)
+
+            self.ui.label_value_weight.setProperty("class", "waiting")
+            update_style(self.ui.label_value_weight)
+
+            if status:
+                self.ui_logger.info("Weight controller disconnected successfully")
+            else:
+                self.ui_logger.warning("Failed to disconnect from Weight controller")
+        except Exception as e:
+            self.ui_logger.error(f"Error Close Weight: {e}")
+
+    def handle_change_value_weight(self, data: str):
+        try:
+            # Nếu có tiền tố ST/US
+            if ',' in data:
+                status, raw_weight = data.split(',', 1)
+            else:
+                status = 'UNKNOWN'
+                raw_weight = data
+            
+            # Loại bỏ đơn vị (kg, g, ...)
+            for unit in ['kg', 'g', 'lb']:
+                if unit in raw_weight:
+                    raw_weight = raw_weight.replace(unit, '').strip()
+                    break
+            
+            # Loại bỏ dấu + nếu có
+            weight = float(raw_weight.replace('+', '').strip())
+
+            self.ui_logger.info(f"[{status}] Trọng lượng: {weight}")
+
+            # Cập nhật giao diện
+            self.ui.line_value_weight.setText(f"{weight:.3f}")
+            if weight > float(self.ui.line_min_weight.text()) and weight < float(self.ui.line_max_weight.text()):
+                self.ui.label_value_weight.setProperty("class", "pass")
+                update_style(self.ui.label_value_weight)
+            else:
+                self.ui.label_value_weight.setProperty("class", "fail")
+                update_style(self.ui.label_value_weight)
+        except Exception as e:
+            self.ui_logger.error(f"Lỗi xử lý chuỗi value weight: {e}")
 
     def on_click_connect_server(self):
         if self.ui.btn_connect_server.text() == "Connect":

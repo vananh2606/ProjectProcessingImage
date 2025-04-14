@@ -1,12 +1,12 @@
 from PyQt5.QtWidgets import QWidget, QApplication
-# from PyQt5.QtCore import *
-# from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 
 import os
 import sys
 sys.path.append("./ui")
 sys.path.append("libs")
-sys.path.append("./cameras")
+sys.path.append("./")
 
 
 from CameraUI import Ui_FormCamera
@@ -90,7 +90,6 @@ class CameraDlg(QWidget):
                 ],
             }
         }
-        print(camera_config)
 
         return camera_config
 
@@ -221,7 +220,6 @@ class CameraDlg(QWidget):
 
     def on_change_camera_type(self):
         """Xử lý sự kiện khi thay đổi lựa chọn trong combo_type_camera."""
-        print("on_change_camera_type")
         type = self.ui.combo_type_camera.currentText()
         self.load_camera_devices(type)
 
@@ -325,9 +323,9 @@ class CameraDlg(QWidget):
 
 
 if __name__ == "__main__":
-    import sys
-
     app = QApplication(sys.argv)
-    win = CameraDlg()
+    canvas = Canvas()
+    canvas.load_pixmap(QPixmap(640, 480))
+    win = CameraDlg(canvas)
     win.show()
     sys.exit(app.exec_())
