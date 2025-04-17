@@ -47,6 +47,8 @@ class WeightController(QObject):
                 if self.comport.in_waiting > 0:
                     data = self.comport.readline().decode('utf-8').strip()
                     self.dataReceived.emit(data)
+                else:
+                    time.sleep(0.05)  # avoid busy loop
             except Exception as ex:
                 print(f"Error reading from port: {ex}")
                 time.sleep(1)  # Longer delay after error
@@ -55,7 +57,7 @@ class WeightController(QObject):
 def testWeightController():
     weightController = WeightController(com="COM10", baud=9600)
     print(weightController.open())
-
+    time.sleep(10)
 
 if __name__ == "__main__":
     testWeightController()

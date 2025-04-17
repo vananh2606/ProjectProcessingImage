@@ -163,6 +163,118 @@ class TypeLog(enum.Enum):
     ERROR = 4
     CRITICAL = 5
 
+class ColorType(enum.Enum):
+    GRAY = (cv.COLOR_BGR2GRAY, "GRAY")
+    RGB = (cv.COLOR_BGR2RGB, "RGB")
+    BGR = (cv.COLOR_RGB2BGR, "BGR")
+    HSV = (cv.COLOR_BGR2HSV, "HSV")
+
+    def __init__(self, value, label):
+        self._value_ = value
+        self.label = label
+
+    @classmethod
+    def from_label(cls, label: str):
+        for item in cls:
+            if item.label == label:
+                return item
+        raise ValueError(f"Không tìm thấy kiểu color từ label: {label}")
+
+    @classmethod
+    def from_value(cls, value: int):
+        for item in cls:
+            if item.value == value:
+                return item
+        raise ValueError(f"Không tìm thấy kiểu color từ giá trị: {value}")
+    
+    @classmethod
+    def list_labels(cls):
+        return [item.label for item in cls]
+    
+class BlurType(enum.Enum):
+    GAUSSIAN = (cv.GaussianBlur, "Gaussian Blur")
+    MEDIAN = (cv.medianBlur, "Median Blur")
+    BILATERAL = (cv.blur, "Average Blur")
+
+    def __init__(self, value, label):
+        self._value_ = value
+        self.label = label
+
+    @classmethod
+    def from_label(cls, label: str):
+        for item in cls:
+            if item.label == label:
+                return item
+        raise ValueError(f"Không tìm thấy kiểu blur từ label: {label}")
+
+    @classmethod
+    def from_value(cls, value: int):
+        for item in cls:
+            if item.value == value:
+                return item
+        raise ValueError(f"Không tìm thấy kiểu blur từ giá trị: {value}")
+    
+    @classmethod
+    def list_labels(cls):
+        return [item.label for item in cls]
+
+class ThresholdType(enum.Enum):
+    BINARY = (cv.THRESH_BINARY, "Thresh Binary")
+    BINARY_INV = (cv.THRESH_BINARY_INV, "Thresh Binary Inverted")
+    TRUNC = (cv.THRESH_TRUNC, "Thresh Truncate")
+    TOZERO = (cv.THRESH_TOZERO, "Thresh To Zero")
+    TOZERO_INV = (cv.THRESH_TOZERO_INV, "Thresh To Zero Inverted")
+
+    def __init__(self, value, label):
+        self._value_ = value
+        self.label = label
+
+    @classmethod
+    def from_label(cls, label: str):
+        for item in cls:
+            if item.label == label:
+                return item
+        raise ValueError(f"Không tìm thấy kiểu threshold từ label: {label}")
+
+    @classmethod
+    def from_value(cls, value: int):
+        for item in cls:
+            if item.value == value:
+                return item
+        raise ValueError(f"Không tìm thấy kiểu threshold từ giá trị: {value}")
+    
+    @classmethod
+    def list_labels(cls):
+        return [item.label for item in cls]
+    
+class MorphType(enum.Enum):
+    ERODE = (cv.MORPH_ERODE, "Erode")
+    DILATE = (cv.MORPH_DILATE, "Dilate")
+    OPEN = (cv.MORPH_OPEN, "Open")
+    CLOSE = (cv.MORPH_CLOSE, "Close")
+
+    def __init__(self, value, label):
+        self._value_ = value
+        self.label = label
+    
+    @classmethod
+    def from_label(cls, label: str):
+        for item in cls:
+            if item.label == label:
+                return item
+        raise ValueError(f"Không tìm thấy kiểu morph từ label: {label}")
+    
+    @classmethod
+    def from_value(cls, value: int):
+        for item in cls:
+            if item.value == value:
+                return item
+        raise ValueError(f"Không tìm thấy kiểu morph từ giá trị: {value}")
+    
+    @classmethod
+    def list_labels(cls):
+        return [item.label for item in cls] 
+
 
 class MainWindow(QMainWindow):
     signalResultAuto = pyqtSignal(object)
@@ -552,13 +664,13 @@ class MainWindow(QMainWindow):
                         "confidence": "0.25",
                     },
                     "processing": {
-                        "color": "Gray",
+                        "color": "GRAY",
                         "blur": {
-                            "type_blur": "GaussianBlur",
+                            "type_blur": "Gaussian Blur",
                             "kernel_size_blur": 5,
                         },
                         "threshold": {
-                            "type_threshold": "ThreshBinary",
+                            "type_threshold": "Thresh Binary",
                             "value_threshold": 127,
                         },
                         "morphological": {
@@ -1139,19 +1251,26 @@ class MainWindow(QMainWindow):
             if self.current_image is not None:
                 src = self.current_image
 
-                # Convert image
-                gray = cv.cvtColor(src, cv.COLOR_BGR2GRAY)
+                color_type = config["modules"]["processing"]["color"]
+                gray = cv.cvtColor(src, ColorType.from_label(color_type).value)
 
-                # Blur
-                blur = cv.GaussianBlur(gray, (5, 5), 0)
+                blur_type = config["modules"]["processing"]["blur"]["type_blur"]
+                kernel_blur = config["modules"]["processing"]["blur"]["kernel_size_blur"]
+                blur = BlurType.from_label(blur_type).value(gray, (kernel_blur, kernel_blur), 0)
 
-                # Threshold
-                _, thresh = cv.threshold(blur, 127, 255, cv.THRESH_BINARY)
+                threshold_type = config["modules"]["processing"]["threshold"]["type_threshold"]
+                value_threshold = config["modules"]["processing"]["threshold"]["value_threshold"]
+                _, thresh = cv.threshold(blur, value_threshold, 255, ThresholdType.from_label(threshold_type).value)
 
-                # Morphological Operations
-                kernel = cv.getStructuringElement(cv.MORPH_RECT, (3, 3))
-                binary = cv.erode(thresh, kernel, iterations=1)
-                # binary = cv.dilate(binary, kernel, iterations=1)
+                morph_type = config["modules"]["processing"]["morphological"]["type_morph"]
+                iteration = config["modules"]["processing"]["morphological"]["iteration"]
+                kernel_size = config["modules"]["processing"]["morphological"]["kernel_size_morph"]
+                kernel = cv.getStructuringElement(cv.MORPH_RECT, (kernel_size, kernel_size))
+                # if morph_type == "Erode":
+                #     binary = cv.erode(thresh, kernel, iterations=iteration)
+                # elif morph_type == "Dilate":
+                #     binary = cv.dilate(thresh, kernel, iterations=iteration)
+                binary = cv.morphologyEx(thresh, MorphType.from_label(morph_type).value, kernel, iterations=iteration)
 
                 self.ui_logger.debug("Processing Image: Preprocess")
 
@@ -1187,8 +1306,8 @@ class MainWindow(QMainWindow):
                     model="AUTO",  # Chế độ auto không sử dụng model
                     code="AUTO-" + time.strftime("%Y%m%d-%H%M%S"),
                     src=src,
-                    dst=dst,  # Thay bằng ảnh đã xử lý
                     binary=binary,  # Thay bằng ảnh nhị phân thực tế
+                    dst=dst,  # Thay bằng ảnh đã xử lý
                     result=msg,  # Thay bằng kết quả thực tế (OK/NG)
                     time_check=time.strftime(DATETIME_FORMAT),
                     error_type=None,  # Nếu có lỗi, ghi loại lỗi ở đây
@@ -1200,7 +1319,7 @@ class MainWindow(QMainWindow):
                 # Phát tín hiệu kết quả auto
                 self.signalResultAuto.emit(self.final_result)
 
-            print("handle_processing complete")        
+            # print("handle_processing complete")        
             # Chuyển sang bước tiếp theo
             self.current_step_auto = STEP_OUTPUT_AUTO
 
@@ -1264,9 +1383,7 @@ class MainWindow(QMainWindow):
             self.start_elappsed_time()
             self.ui_logger.debug("Step Auto: Release")
 
-            if self.final_result is not None:
-                # Giải phóng tài nguyên đã khởi tạo
-                self.final_result = None
+            self.final_result = None
 
             self.ui_logger.debug("Reset Result: Release")
 
@@ -1488,20 +1605,31 @@ class MainWindow(QMainWindow):
             if self.current_image is not None:
                 src = self.current_image
 
-                
-                # Convert image
-                gray = cv.cvtColor(src, cv.COLOR_BGR2GRAY)
+                color_type = self.ui.combo_color.currentText()
+                gray = cv.cvtColor(src, ColorType.from_label(color_type).value)
 
-                # Blur
-                blur = cv.GaussianBlur(gray, (5, 5), 0)
+                blur_type = self.ui.combo_blur.currentText()
+                kernel_blur = self.ui.spin_kernel_blur.value()
+                if blur_type == "Gaussian Blur":
+                    blur = cv.GaussianBlur(gray, (kernel_blur, kernel_blur), 0)
+                elif blur_type == "Median Blur":
+                    blur = cv.medianBlur(gray, kernel_blur)
+                elif blur_type == "Average Blur":
+                    blur = cv.blur(gray, (kernel_blur, kernel_blur))
 
-                # Threshold
-                _, thresh = cv.threshold(blur, 127, 255, cv.THRESH_BINARY)
+                threshold_type = self.ui.combo_threshold.currentText()
+                value_threshold = self.ui.spin_value_threshold.value()
+                _, thresh = cv.threshold(blur, value_threshold, 255, ThresholdType.from_label(threshold_type).value)
 
-                # Morphological Operations
-                kernel = cv.getStructuringElement(cv.MORPH_RECT, (3, 3))
-                binary = cv.erode(thresh, kernel, iterations=1)
-                # binary = cv.dilate(binary, kernel, iterations=1)
+                morph_type = self.ui.combo_morphological.currentText()
+                iteration = self.ui.spin_iteration.value()
+                kernel_size = self.ui.spin_kernel_size.value()
+                kernel = cv.getStructuringElement(cv.MORPH_RECT, (kernel_size, kernel_size))
+                # if morph_type == "Erode":
+                #     binary = cv.erode(thresh, kernel, iterations=iteration)
+                # elif morph_type == "Dilate":
+                #     binary = cv.dilate(thresh, kernel, iterations=iteration)
+                binary = cv.morphologyEx(thresh, MorphType.from_label(morph_type).value, kernel, iterations=iteration)
 
                 dst = src.copy()
 
@@ -1521,15 +1649,15 @@ class MainWindow(QMainWindow):
                 # Vẽ kết quả
                 dst = plot_results(results, dst, self.model_ai.label_map, self.model_ai.color_map)
 
-                 # Tạo kết quả cuối cùng cho teaching
+                # Tạo kết quả cuối cùng cho teaching
                 self.final_result = RESULT(
                     camera=self.ui.combo_type_camera.currentText(),
                     model="TEACHING",  # Chế độ teaching không sử dụng model
                     code="TEACHING-" + time.strftime("%Y%m%d-%H%M%S"),
                     src=src,
-                    dst=dst,  # Thay bằng ảnh đã xử lý
                     binary=binary,  # Thay bằng ảnh nhị phân thực tế
-                    result="msg",  # Thay bằng kết quả thực tế (OK/NG)
+                    dst=dst,  # Thay bằng ảnh đã xử lý
+                    result="",  # Thay bằng kết quả thực tế (OK/NG)
                     time_check=time.strftime(DATETIME_FORMAT),
                     error_type=None,  # Nếu có lỗi, ghi loại lỗi ở đây
                     config=self.get_config(),  # Config hiện tại từ UI
@@ -1964,7 +2092,7 @@ class MainWindow(QMainWindow):
                     self.add_combox_item(self.ui.combo_model_ai, model_ai)
                     self.set_combobox_text(
                         self.ui.combo_model_ai,
-                        model_ai_config.get("model", "model.pt"),
+                        model_ai_config.get("model_path", "yolov8n.pt"),
                     )
                     self.ui.line_confidence.setText(
                         str(model_ai_config.get("confidence", 0.25))
@@ -1973,42 +2101,36 @@ class MainWindow(QMainWindow):
                 # Áp dụng cầu hình processing
                 if "processing" in modules:
                     processing_config = modules["processing"]
-                    list_color = ["Gray", "HSV", "RGB", "BGR"]
+                    list_color = ColorType.list_labels()
                     self.add_combox_item(self.ui.combo_color, list_color)
                     self.set_combobox_text(
                         self.ui.combo_color,
-                        processing_config.get("color", "Gray"),
+                        processing_config.get("color", "GRAY"),
                     )
                     
                     blur_config = processing_config["blur"]
-                    list_blur = ["GaussianBlur", "MedianBlur", "AverageBlur"]
+                    list_blur = BlurType.list_labels()
                     self.add_combox_item(self.ui.combo_blur, list_blur)
                     self.set_combobox_text(
                         self.ui.combo_blur,
-                        blur_config.get("type_blur", "GaussianBlur"),
+                        blur_config.get("type_blur", "Gaussian Blur"),
                     )
-                    self.ui.spin_kernel_blur.setRange(1, 51)
+                    self.ui.spin_kernel_blur.setRange(1, 101)
                     self.ui.spin_kernel_blur.setSingleStep(2)
                     self.ui.spin_kernel_blur.setValue(blur_config.get("kernel_size_blur", 5))
 
                     threshold_config = processing_config["threshold"]
-                    list_threshold = [
-                        "ThreshBinary",
-                        "ThreshBinaryInverted",
-                        "ThreshTruncate",
-                        "ThreshToZero",
-                        "ThreshToZeroInverted",
-                    ]
+                    list_threshold = ThresholdType.list_labels()
                     self.add_combox_item(self.ui.combo_threshold, list_threshold)
                     self.set_combobox_text(
                         self.ui.combo_threshold,
-                        threshold_config.get("type_threshold", "ThreshBinary"),
+                        threshold_config.get("type_threshold", "Thresh Binary"),
                     )
                     self.ui.spin_value_threshold.setRange(0, 255)
                     self.ui.spin_value_threshold.setValue(threshold_config.get("value_threshold", 127))
                     
                     morphological_config = processing_config["morphological"]
-                    list_morph = ["Erode", "Dilate", "Open", "Close"]
+                    list_morph = MorphType.list_labels()
                     self.add_combox_item(self.ui.combo_morphological, list_morph)
                     self.set_combobox_text(
                         self.ui.combo_morphological,
@@ -2016,7 +2138,7 @@ class MainWindow(QMainWindow):
                     )
                     self.ui.spin_iteration.setRange(0, 50)
                     self.ui.spin_iteration.setValue(morphological_config.get("iteration", 1))
-                    self.ui.spin_kernel_size.setRange(1, 51)
+                    self.ui.spin_kernel_size.setRange(1, 101)
                     self.ui.spin_kernel_size.setSingleStep(2)
                     self.ui.spin_kernel_size.setValue(morphological_config.get("kernel_size_morph", 3))
 

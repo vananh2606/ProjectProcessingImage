@@ -2,9 +2,9 @@
     "shapes": {},
     "modules": {
         "camera": {
-            "type": "HIK",
-            "id": "DA5691963",
-            "feature": "White"
+            "type": "Webcam",
+            "id": "0",
+            "feature": ""
         },
         "lighting": {
             "controller_light": "DCP",
@@ -22,19 +22,74 @@
             "comport_io": "COM9",
             "baudrate_io": "19200"
         },
+        "weight": {
+            "comport_weight": "COM10",
+            "baudrate_weight": "9600",
+            "min_weight": "0.100",
+            "max_weight": "0.300",
+            "value_weight": "0.229"
+        },
         "server": {
             "host": "127.0.0.1",
             "port": "8080"
         },
         "system": {
-            "log_dir": "A:\\Project\\ProjectProcessingImage\\log_database",
+            "log_dir": "A:\\ProjectPython\\ProjectProcessingImage\\log_database",
             "log_size": "10",
             "database_path": "database.db",
             "auto_start": true
         },
         "model_ai": {
-            "model_path": "yolov8n-seg",
+            "model_path": "yolov8n",
             "confidence": "0.25"
+        },
+        "processing": {
+            "color": "GRAY",
+            "blur": {
+                "type_blur": "Average Blur",
+                "kernel_size_blur": 5
+            },
+            "threshold": {
+                "type_threshold": "Thresh Binary",
+                "value_threshold": 127
+            },
+            "morphological": {
+                "type_morph": "Erode",
+                "iteration": 1,
+                "kernel_size_morph": 3
+            }
+        },
+        "camera_config": {
+            "camera1": {
+                "device": {
+                    "type": "Webcam",
+                    "id": "0",
+                    "feature": ""
+                },
+                "lighting": {
+                    "channels": [
+                        10,
+                        10,
+                        10,
+                        10
+                    ]
+                }
+            },
+            "camera2": {
+                "device": {
+                    "type": "HIK",
+                    "id": "DA5691963",
+                    "feature": "Black"
+                },
+                "lighting": {
+                    "channels": [
+                        10,
+                        10,
+                        10,
+                        10
+                    ]
+                }
+            }
         }
     },
     "font": {

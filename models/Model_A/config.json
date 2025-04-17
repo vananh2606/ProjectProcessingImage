@@ -10,7 +10,7 @@
             "controller_light": "DCP",
             "comport_light": "COM9",
             "baudrate_light": "19200",
-            "delay": 100,
+            "delay": 200,
             "channels": [
                 100,
                 10,
@@ -34,7 +34,7 @@
             "port": "8080"
         },
         "system": {
-            "log_dir": "A:\\Project\\ProjectProcessingImage\\log_database",
+            "log_dir": "A:\\ProjectPython\\ProjectProcessingImage\\log_database",
             "log_size": "10",
             "database_path": "database.db",
             "auto_start": true
@@ -44,13 +44,13 @@
             "confidence": "0.25"
         },
         "processing": {
-            "color": "Gray",
+            "color": "GRAY",
             "blur": {
-                "type_blur": "GaussianBlur",
+                "type_blur": "Gaussian Blur",
                 "kernel_size_blur": 5
             },
             "threshold": {
-                "type_threshold": "ThreshBinary",
+                "type_threshold": "Thresh Binary",
                 "value_threshold": 127
             },
             "morphological": {
