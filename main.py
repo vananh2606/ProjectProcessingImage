@@ -320,6 +320,8 @@ class MainWindow(QMainWindow):
 
         # Camera
         self.camera_thread = None
+        self.camera1 = None
+        self.camera2 = None
 
         # Lighting
         self.light_controller = None
@@ -329,6 +331,7 @@ class MainWindow(QMainWindow):
 
         # Weight Controller
         self.weight_controller = None
+        self.weight = None
 
         # Server
         self.tcp_server = None
@@ -342,6 +345,9 @@ class MainWindow(QMainWindow):
 
         # Threading
         self._b_trigger_auto = False
+        self._b_trigger_weight_auto = False
+        self._b_trigger_optic_auto = False
+        self._b_trigger_unitbox_auto = False
         self._b_stop_auto = False
         self._b_trigger_teaching = False
         self._b_stop_teaching = False
@@ -392,6 +398,7 @@ class MainWindow(QMainWindow):
         # Label
         self.ui.label_result.setProperty("class", "waiting")
         self.ui.label_value_weight.setProperty("class", "waiting")
+        self.ui.label_weight.setProperty("class", "waiting")
 
         # IO
         self.ui.btn_output_1.setProperty("class", "success")
@@ -902,6 +909,70 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.ui_logger.error(f"Lỗi khi khởi tạo Model AI: {str(e)}")
             return False
+        
+    def init_camera_config(self, camera_config: dict):
+        """
+        Khởi tạo camera với thông số từ giao diện.
+        """
+        try:
+            camera_config1 = camera_config["camera1"]
+            camera_type1 = camera_config1["device"]["type"]
+            camera_id1 = camera_config1["device"]["id"]
+            camera_feature1 = camera_config1["device"]["feature"]
+
+            camera_config2 = camera_config["camera2"]
+            camera_type2 = camera_config2["device"]["type"]
+            camera_id2 = camera_config2["device"]["id"]
+            camera_feature2 = camera_config2["device"]["feature"]
+
+            # Ghi log thông số camera
+            self.ui_logger.info(
+                f"Khởi tạo camera1: Type={camera_type1}, ID={camera_id1}, Feature={camera_feature1}"
+            )
+            self.ui_logger.info(
+                f"Khởi tạo camera2: Type={camera_type2}, ID={camera_id2}, Feature={camera_feature2}"
+            )
+
+            # Khởi tạo camera thread với thông số từ giao diện
+            self.init_camera_thread(self.camera1, camera_type1, camera_id1, camera_feature1)
+            self.init_camera_thread(self.camera2, camera_type2, camera_id2, camera_feature2)
+            
+            return True
+
+        except Exception as e:
+            self.ui_logger.error(f"Lỗi khi khởi tạo camera: {str(e)}")
+            return False
+        
+    def init_camera_thread(self, camera, camera_type, camera_id, camera_feature):
+        if camera_type == "Webcam":
+            camera = CameraThread(
+                camera_type, {"id": camera_id, "feature": camera_feature,}
+            )
+        elif camera_type == "HIK":
+            # Cấu hình đặc biệt cho camera HIK nếu cần
+            camera = CameraThread(
+                camera_type,
+                {
+                    "id": camera_id,
+                    "feature": f"resources/cameras/HIK/{camera_feature}.ini",
+                },
+            )
+        elif camera_type == "SODA":
+            # Cấu hình đặc biệt cho camera SODA nếu cần
+            camera = CameraThread(
+                camera_type,
+                {
+                    "id": camera_id,
+                    "feature": f"resources/cameras/SODA/{camera_feature}.ini",
+                },
+            )
+        else:
+            # Mặc định sử dụng Webcam
+            self.ui_logger.warning(
+                f"Loại camera {camera_type} không được hỗ trợ, sử dụng Webcam mặc định"
+            )
+            camera = CameraThread("Webcam", {"id": "0", "feature": ""})
+
 
     def write_log(self):
         """Ghi thử một số log"""
@@ -933,6 +1004,36 @@ class MainWindow(QMainWindow):
         if not isinstance(boolean, bool):
             raise self.ui_logger.error("Biến phải là kiểu bool!")
         self._b_trigger_auto = boolean
+
+    @property
+    def b_trigger_weight_auto(self):
+        return self._b_trigger_weight_auto
+
+    @b_trigger_weight_auto.setter
+    def b_trigger_weight_auto(self, boolean):
+        if not isinstance(boolean, bool):
+            raise self.ui_logger.error("Biến phải là kiểu bool!")
+        self._b_trigger_weight_auto = boolean
+
+    @property
+    def b_trigger_optic_auto(self):
+        return self._b_trigger_optic_auto
+
+    @b_trigger_optic_auto.setter
+    def b_trigger_optic_auto(self, boolean):
+        if not isinstance(boolean, bool):
+            raise self.ui_logger.error("Biến phải là kiểu bool!")
+        self._b_trigger_optic_auto = boolean
+
+    @property
+    def b_trigger_unitbox_auto(self):
+        return self._b_trigger_unitbox_auto
+
+    @b_trigger_unitbox_auto.setter
+    def b_trigger_unitbox_auto(self, boolean):
+        if not isinstance(boolean, bool):
+            raise self.ui_logger.error("Biến phải là kiểu bool!")
+        self._b_trigger_unitbox_auto = boolean
 
     @property
     def b_stop_auto(self):
@@ -1032,11 +1133,11 @@ class MainWindow(QMainWindow):
             self.ui_logger.error(f"Error stop auto: {str(e)}")
 
     def release_loop_auto(self):
-        self.io_controller.write_out(OutPorts.Out_1, PortState.Off)  
-        time.sleep(0.05)
-        self.io_controller.write_out(OutPorts.Out_2, PortState.Off)  
+        self.io_controller.write_out(OutPorts.Out_4, PortState.Off)  
         time.sleep(0.05)
         self.io_controller.write_out(OutPorts.Out_3, PortState.Off)  
+        time.sleep(0.05)
+        self.io_controller.write_out(OutPorts.Out_2, PortState.Off)  
         time.sleep(0.05)
 
         if self.camera_thread is not None:
@@ -1047,6 +1148,8 @@ class MainWindow(QMainWindow):
             self.disconnect_server()
         if self.io_controller is not None:
             self.close_io()
+        if self.weight_controller is not None:
+            self.close_weight()
         # self.ui.btn_start_teaching.setEnabled(True)
         self.ui.btn_open_camera.setEnabled(True)
         # self.ui.btn_open_light.setEnabled(True)
@@ -1073,6 +1176,15 @@ class MainWindow(QMainWindow):
         baud_rate_io = int(config["modules"]["io"]["baudrate_io"])
         self.init_io(com_port_io, baud_rate_io)
 
+        # Init Weight
+        com_port_weight = config["modules"]["weight"]["comport_weight"]
+        baud_rate_weight = int(config["modules"]["weight"]["baudrate_weight"])
+        self.init_weight(com_port_weight, baud_rate_weight)
+        min_weight = config["modules"]["weight"]["min_weight"]
+        max_weight = config["modules"]["weight"]["max_weight"]
+        self.ui.label_value_min.setText(min_weight)
+        self.ui.label_value_max.setText(max_weight)
+
         # Init Server
         host = config["modules"]["server"]["host"]
         port = int(config["modules"]["server"]["port"])
@@ -1081,6 +1193,9 @@ class MainWindow(QMainWindow):
         # Set initial states
         self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
         self.b_trigger_auto = False
+        self.b_trigger_weight_auto = False
+        self.b_trigger_optic_auto = False
+        self.b_trigger_unitbox_auto = False
         self.b_stop_auto = False
         self.final_result = None
 
@@ -1111,6 +1226,12 @@ class MainWindow(QMainWindow):
             t4.join()
 
         time.sleep(0.2)
+        if self.weight_controller is not None:
+            t5 = threading.Thread(target=self.open_weight_controller_auto, daemon=True)
+            t5.start()
+            t5.join()
+
+        time.sleep(0.2)
         threading.Thread(target=self.loop_auto, daemon=True).start()
 
     def open_camera_auto(self):
@@ -1124,12 +1245,16 @@ class MainWindow(QMainWindow):
         self.tcp_server.dataReceived.connect(self.wait_data_received_from_client)
 
     def wait_data_received_from_client(self, host, address, data):
-        if data == "Check":
-            self.b_trigger_auto = True
+        if data == "Check Weight":
+            self.b_trigger_weight_auto = True
+        elif data == "Check Optic":
+            self.b_trigger_optic_auto = True
+        elif data == "Check UnitBox":
+            self.b_trigger_unitbox_auto = True
 
     def open_io_controller_auto(self):
         self.io_controller.open()
-        self.io_controller.write_out(OutPorts.Out_1, PortState.On)
+        self.io_controller.write_out(OutPorts.Out_4, PortState.On)
         self.io_controller.inputSignal.connect(
             self.wait_data_received_from_io_controller
         )
@@ -1137,7 +1262,46 @@ class MainWindow(QMainWindow):
     def wait_data_received_from_io_controller(self, commands, states):
         for command, state in zip(commands, states):
             if command == 'In_1' and state == PortState.On:
-                self.b_trigger_auto = True
+                self.b_trigger_weight_auto = True
+            elif command == 'In_2' and state == PortState.On:
+                self.b_trigger_optic_auto = True
+            elif command == 'In_3' and state == PortState.On:
+                self.b_trigger_unitbox_auto = True
+    
+    def open_weight_controller_auto(self):
+        self.weight_controller.open()
+        self.weight_controller.dataReceived.connect(self.wait_weight_received_from_weight_controller)
+
+    def wait_weight_received_from_weight_controller(self, data):
+        try:
+            # Nếu có tiền tố ST/US
+            if ',' in data:
+                status, raw_weight = data.split(',', 1)
+            else:
+                status = 'UNKNOWN'
+                raw_weight = data
+            
+            # Loại bỏ đơn vị (kg, g, ...)
+            for unit in ['kg', 'g', 'lb']:
+                if unit in raw_weight:
+                    raw_weight = raw_weight.replace(unit, '').strip()
+                    break
+            
+            # Loại bỏ dấu + nếu có
+            weight = float(raw_weight.replace('+', '').strip())
+
+            self.ui_logger.info(f"[{status}] Trọng lượng: {weight}")
+
+            # Cập nhật giao diện
+            self.ui.label_value_weight_auto.setText(f"{weight:.3f}")
+            if weight > float(self.ui.label_value_min.text()) and weight < float(self.ui.label_value_max.text()):
+                self.ui.label_weight.setProperty("class", "pass")
+                update_style(self.ui.label_weight)
+            else:
+                self.ui.label_weight.setProperty("class", "fail")
+                update_style(self.ui.label_weight)
+        except Exception as e:
+            self.ui_logger.error(f"Lỗi xử lý chuỗi value weight: {e}")
 
     def loop_auto(self):
         # Load configuration once at the beginning
@@ -1164,12 +1328,19 @@ class MainWindow(QMainWindow):
             # Xử lý theo từng bước 
             if self.current_step_auto == STEP_WAIT_TRIGGER_AUTO:
                 self.handle_wait_trigger_auto()
-            elif self.current_step_auto == STEP_PREPROCESS_AUTO:
-                self.handle_preprocess_auto(config)
-            elif self.current_step_auto == STEP_PROCESSING_AUTO:
-                self.handle_processing_auto(config)
-            elif self.current_step_auto == STEP_OUTPUT_AUTO:
-                self.handle_output_auto(config)
+
+            elif self.current_step_auto == STEP_CHECK_WEIGHT_AUTO:
+                self.handle_check_weight_auto(config)
+            elif self.current_step_auto == STEP_OUTPUT_WEIGHT_AUTO:
+                self.handle_output_weight_auto(config)
+
+            elif self.current_step_auto == STEP_PREPROCESS_OPTIC_AUTO:
+                self.handle_preprocess_optic_auto(config)
+            elif self.current_step_auto == STEP_PROCESSING_OPTIC_AUTO:
+                self.handle_processing_optic_auto(config)
+            elif self.current_step_auto == STEP_OUTPUT_OPTIC_AUTO:
+                self.handle_output_optic_auto(config)
+
             elif self.current_step_auto == STEP_RELEASE_AUTO:
                 self.handle_release_auto()
 
@@ -1180,20 +1351,45 @@ class MainWindow(QMainWindow):
         # Đảm bảo loop auto dừng hoàn toàn
         self.b_stop_auto = True
         self.b_trigger_auto = False
+        self.b_trigger_weight_auto = False
+        self.b_trigger_optic_auto = False
+        self.b_trigger_unitbox_auto = False
         
         # Hủy bỏ kết quả hiện tại nếu có
         if hasattr(self, 'final_result') and self.final_result is not None:
             self.final_result = None
+
+        self.ui.label_weight.setProperty("class", "waiting")
+        update_style(self.ui.label_weight)
+
     def handle_wait_trigger_auto(self):
-        if self.b_trigger_auto:
-            self.ui_logger.debug("Step Auto: Wait Trigger")
-            self.b_trigger_auto = False
+        if self.b_trigger_weight_auto:
+            self.ui_logger.debug("Step Auto: Wait Trigger Weight")
+            self.b_trigger_weight_auto = False
             self.signalChangeLabelResult.emit("Waiting...")
             self.start_elappsed_time()
-            # print("handle_wait_trigger complete")
-            self.current_step_auto = STEP_PREPROCESS_AUTO
 
-    def handle_preprocess_auto(self, config):
+            self.current_step_auto = STEP_CHECK_WEIGHT_AUTO
+
+        if self.b_trigger_optic_auto:
+            self.ui_logger.debug("Step Auto: Wait Trigger Optic")
+            self.b_trigger_optic_auto = False
+            self.signalChangeLabelResult.emit("Waiting...")
+            self.start_elappsed_time()
+
+            self.current_step_auto = STEP_PREPROCESS_OPTIC_AUTO
+
+    def handle_check_weight_auto(self, config):
+        self.weight = self.ui.label_value_weight_auto.text()
+        if self.weight > float(config["modules"]["weight"]["min_weight"]) and self.weight < float(config["modules"]["weight"]["max_weight"]):
+            self.current_step_auto = STEP_OUTPUT_WEIGHT_AUTO
+        else:
+            pass
+
+    def handle_output_weight_auto(self, config):
+        pass
+
+    def handle_preprocess_optic_auto(self, config):
         try:
             elapsed_time = self.get_elappsed_time()
             self.ui_logger.info(f"Auto wait trigger time: {elapsed_time:.3f} seconds")
@@ -1231,105 +1427,99 @@ class MainWindow(QMainWindow):
                     if value > 0:
                         self.light_controller.off_channel(i)
 
-            # print("handle_preprocess complete")
-            # Chuyển sang bước tiếp theo
-            self.current_step_auto = STEP_PROCESSING_AUTO
+            self.current_step_auto = STEP_PROCESSING_OPTIC_AUTO
         except Exception as e:
             self.ui_logger.error(f"Auto preprocessing error: {str(e)}")
             # Trong trường hợp lỗi, quay lại bước chờ trigger
             self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
             self.b_trigger_auto = False
+            self.b_trigger_weight_auto = False
+            self.b_trigger_optic_auto = False
+            self.b_trigger_unitbox_auto = False
 
-    def handle_processing_auto(self, config):
+    def handle_processing_optic_auto(self, config):
         try:
             elapsed_time = self.get_elappsed_time()
             self.ui_logger.info(f"Auto preprocess time: {elapsed_time:.3f} seconds")
             self.start_elappsed_time()
             self.ui_logger.debug("Step Auto: Processing")
 
-            # Hiển thị kết quả trung gian lên canvas
-            if self.current_image is not None:
-                src = self.current_image
+            src = self.current_image
 
-                color_type = config["modules"]["processing"]["color"]
-                gray = cv.cvtColor(src, ColorType.from_label(color_type).value)
+            color_type = config["modules"]["processing"]["color"]
+            gray = cv.cvtColor(src, ColorType.from_label(color_type).value)
 
-                blur_type = config["modules"]["processing"]["blur"]["type_blur"]
-                kernel_blur = config["modules"]["processing"]["blur"]["kernel_size_blur"]
-                blur = BlurType.from_label(blur_type).value(gray, (kernel_blur, kernel_blur), 0)
+            blur_type = config["modules"]["processing"]["blur"]["type_blur"]
+            kernel_blur = config["modules"]["processing"]["blur"]["kernel_size_blur"]
+            blur = BlurType.from_label(blur_type).value(gray, (kernel_blur, kernel_blur), 0)
 
-                threshold_type = config["modules"]["processing"]["threshold"]["type_threshold"]
-                value_threshold = config["modules"]["processing"]["threshold"]["value_threshold"]
-                _, thresh = cv.threshold(blur, value_threshold, 255, ThresholdType.from_label(threshold_type).value)
+            threshold_type = config["modules"]["processing"]["threshold"]["type_threshold"]
+            value_threshold = config["modules"]["processing"]["threshold"]["value_threshold"]
+            _, thresh = cv.threshold(blur, value_threshold, 255, ThresholdType.from_label(threshold_type).value)
 
-                morph_type = config["modules"]["processing"]["morphological"]["type_morph"]
-                iteration = config["modules"]["processing"]["morphological"]["iteration"]
-                kernel_size = config["modules"]["processing"]["morphological"]["kernel_size_morph"]
-                kernel = cv.getStructuringElement(cv.MORPH_RECT, (kernel_size, kernel_size))
-                # if morph_type == "Erode":
-                #     binary = cv.erode(thresh, kernel, iterations=iteration)
-                # elif morph_type == "Dilate":
-                #     binary = cv.dilate(thresh, kernel, iterations=iteration)
-                binary = cv.morphologyEx(thresh, MorphType.from_label(morph_type).value, kernel, iterations=iteration)
+            morph_type = config["modules"]["processing"]["morphological"]["type_morph"]
+            iteration = config["modules"]["processing"]["morphological"]["iteration"]
+            kernel_size = config["modules"]["processing"]["morphological"]["kernel_size_morph"]
+            kernel = cv.getStructuringElement(cv.MORPH_RECT, (kernel_size, kernel_size))
+            # if morph_type == "Erode":
+            #     binary = cv.erode(thresh, kernel, iterations=iteration)
+            # elif morph_type == "Dilate":
+            #     binary = cv.dilate(thresh, kernel, iterations=iteration)
+            binary = cv.morphologyEx(thresh, MorphType.from_label(morph_type).value, kernel, iterations=iteration)
 
-                self.ui_logger.debug("Processing Image: Preprocess")
+            dst = src.copy()
 
-                dst = src.copy()
+            # # Find contours
+            # cnts, _ = cv.findContours(
+            #     binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE
+            # )
 
-                # # Find contours
-                # cnts, _ = cv.findContours(
-                #     binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE
-                # )
+            # # Draw contours
+            # cv.drawContours(dst, cnts, -1, (0, 255, 0), 2)
 
-                # # Draw contours
-                # cv.drawContours(dst, cnts, -1, (0, 255, 0), 2)
+            # Thực hiện phát hiện
+            results = self.model_ai.detect(src, conf=float(config["modules"]["model_ai"]["confidence"]), imgsz=640)
+            
+            # Vẽ kết quả
+            dst = plot_results(results, dst, self.model_ai.label_map, self.model_ai.color_map)
 
-                # Thực hiện phát hiện
-                results = self.model_ai.detect(src, conf=float(config["modules"]["model_ai"]["confidence"]), imgsz=640)
-                
-                # Vẽ kết quả
-                dst = plot_results(results, dst, self.model_ai.label_map, self.model_ai.color_map)
+            random_result = random.randint(0, 2)
+            if random_result == 0:
+                msg = "PASS"
+            elif random_result == 1: 
+                msg = "FAIL"
+            else:
+                msg = "WAIT"
 
-                self.ui_logger.debug("Detecion Image: Preprocess")
+            # Tạo kết quả cuối cùng cho auto
+            self.final_result = RESULT(
+                camera=config["modules"]["camera"]["type"],
+                model="AUTO",  # Chế độ auto không sử dụng model
+                code="AUTO-" + time.strftime("%Y%m%d-%H%M%S"),
+                src=src,
+                binary=binary,  # Thay bằng ảnh nhị phân thực tế
+                dst=dst,  # Thay bằng ảnh đã xử lý
+                result=msg,  # Thay bằng kết quả thực tế (OK/NG)
+                time_check=time.strftime(DATETIME_FORMAT),
+                error_type=None,  # Nếu có lỗi, ghi loại lỗi ở đây
+                config=config,  # Config hiện tại từ UI
+            )
 
-                random_result = random.randint(0, 2)
-                if random_result == 0:
-                    msg = "PASS"
-                elif random_result == 1: 
-                    msg = "FAIL"
-                else:
-                    msg = "WAIT"
+            # Phát tín hiệu kết quả auto
+            self.signalResultAuto.emit(self.final_result)
 
-                # Tạo kết quả cuối cùng cho auto
-                self.final_result = RESULT(
-                    camera=config["modules"]["camera"]["type"],
-                    model="AUTO",  # Chế độ auto không sử dụng model
-                    code="AUTO-" + time.strftime("%Y%m%d-%H%M%S"),
-                    src=src,
-                    binary=binary,  # Thay bằng ảnh nhị phân thực tế
-                    dst=dst,  # Thay bằng ảnh đã xử lý
-                    result=msg,  # Thay bằng kết quả thực tế (OK/NG)
-                    time_check=time.strftime(DATETIME_FORMAT),
-                    error_type=None,  # Nếu có lỗi, ghi loại lỗi ở đây
-                    config=config,  # Config hiện tại từ UI
-                )
-
-                self.ui_logger.debug("Result Image: Preprocess")
-
-                # Phát tín hiệu kết quả auto
-                self.signalResultAuto.emit(self.final_result)
-
-            # print("handle_processing complete")        
-            # Chuyển sang bước tiếp theo
-            self.current_step_auto = STEP_OUTPUT_AUTO
+            self.current_step_auto = STEP_OUTPUT_OPTIC_AUTO
 
         except Exception as e:
             self.ui_logger.error(f"Auto processing error: {str(e)}")
             # Trong trường hợp lỗi, quay lại bước chờ trigger
             self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
             self.b_trigger_auto = False
+            self.b_trigger_weight_auto = False
+            self.b_trigger_optic_auto = False
+            self.b_trigger_unitbox_auto = False
 
-    def handle_output_auto(self, config):
+    def handle_output_optic_auto(self, config):
         try:
             elapsed_time = self.get_elappsed_time()
             self.ui_logger.info(f"Auto processing time: {elapsed_time:.3f} seconds")
@@ -1339,35 +1529,29 @@ class MainWindow(QMainWindow):
             if self.final_result is not None:
                 if self.final_result.result == "PASS":
                     self.signalChangeLabelResult.emit("Pass")
+                    self.io_controller.write_out(OutPorts.Out_3, PortState.Off)
+                    time.sleep(0.05)
                     self.io_controller.write_out(OutPorts.Out_2, PortState.Off)
                     time.sleep(0.05)
-                    self.io_controller.write_out(OutPorts.Out_3, PortState.Off)
-                    time.sleep(0.05)
-                    self.io_controller.write_out(OutPorts.Out_1, PortState.On) 
+                    self.io_controller.write_out(OutPorts.Out_4, PortState.On) 
                 elif self.final_result.result  == "FAIL": 
                     self.signalChangeLabelResult.emit("Fail")
-                    self.io_controller.write_out(OutPorts.Out_1, PortState.Off)
-                    time.sleep(0.05)
-                    self.io_controller.write_out(OutPorts.Out_3, PortState.Off)
-                    time.sleep(0.05)
-                    self.io_controller.write_out(OutPorts.Out_2, PortState.On)  
-                else:
-                    self.signalChangeLabelResult.emit("Wait")
-                    self.io_controller.write_out(OutPorts.Out_1, PortState.Off)
+                    self.io_controller.write_out(OutPorts.Out_4, PortState.Off)
                     time.sleep(0.05)
                     self.io_controller.write_out(OutPorts.Out_2, PortState.Off)
                     time.sleep(0.05)
                     self.io_controller.write_out(OutPorts.Out_3, PortState.On)  
-            
-                self.ui_logger.debug("Load Result: Output")
+                else:
+                    self.signalChangeLabelResult.emit("Wait")
+                    self.io_controller.write_out(OutPorts.Out_4, PortState.Off)
+                    time.sleep(0.05)
+                    self.io_controller.write_out(OutPorts.Out_3, PortState.Off)
+                    time.sleep(0.05)
+                    self.io_controller.write_out(OutPorts.Out_2, PortState.On)  
 
                 # Ghi log database
                 self.write_log_database(self.final_result, config)
 
-                self.ui_logger.debug("Write Result: Output")
-
-            # print("handle_output complete")
-            # Chuyển sang bước tiếp theo
             self.current_step_auto = STEP_RELEASE_AUTO
 
         except Exception as e:
@@ -1375,6 +1559,9 @@ class MainWindow(QMainWindow):
             # Trong trường hợp lỗi, quay lại bước chờ trigger
             self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
             self.b_trigger_auto = False
+            self.b_trigger_weight_auto = False
+            self.b_trigger_optic_auto = False
+            self.b_trigger_unitbox_auto = False
 
     def handle_release_auto(self):
         try:
@@ -1383,23 +1570,25 @@ class MainWindow(QMainWindow):
             self.start_elappsed_time()
             self.ui_logger.debug("Step Auto: Release")
 
-            self.final_result = None
+            self.weight = None
 
-            self.ui_logger.debug("Reset Result: Release")
+            self.final_result = None
 
             # Đặt lại trạng thái trigger
             self.b_trigger_auto = False
+            self.b_trigger_weight_auto = False
+            self.b_trigger_optic_auto = False
+            self.b_trigger_unitbox_auto = False
 
-            self.ui_logger.debug("Reset Trigger: Release")
-
-            # print("handle_release complete")
-            # Chuyển sang bước chờ trigger
             self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
         except Exception as e:
             self.ui_logger.error(f"Auto release error: {str(e)}")
             # Trong trường hợp lỗi, quay lại bước chờ trigger
             self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
             self.b_trigger_auto = False
+            self.b_trigger_weight_auto = False
+            self.b_trigger_optic_auto = False
+            self.b_trigger_unitbox_auto = False
 
     def write_log_database(self, result: RESULT, config: dict):
         try:
@@ -1463,6 +1652,9 @@ class MainWindow(QMainWindow):
             # Dừng luồng auto
             self.b_stop_auto = True
             self.b_trigger_auto = False
+            self.b_trigger_weight_auto = False
+            self.b_trigger_optic_auto = False
+            self.b_trigger_unitbox_auto = False
 
             # Cập nhật UI
             self.ui.btn_start.setEnabled(True)

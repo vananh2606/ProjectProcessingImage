@@ -8,7 +8,7 @@
         },
         "lighting": {
             "controller_light": "DCP",
-            "comport_light": "COM9",
+            "comport_light": "COM8",
             "baudrate_light": "19200",
             "delay": 200,
             "channels": [
@@ -25,8 +25,8 @@
         "weight": {
             "comport_weight": "COM10",
             "baudrate_weight": "9600",
-            "min_weight": "0.100",
-            "max_weight": "0.300",
+            "min_weight": "0.200",
+            "max_weight": "0.400",
             "value_weight": "0.229"
         },
         "server": {

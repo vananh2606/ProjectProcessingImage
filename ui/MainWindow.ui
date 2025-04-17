@@ -30,7 +30,7 @@
        </sizepolicy>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <property name="movable">
        <bool>true</bool>
@@ -39,7 +39,41 @@
        <attribute name="title">
         <string>Auto</string>
        </attribute>
-       <layout class="QGridLayout" name="gridLayoutAuto" rowstretch="1,1,12,4" columnstretch="2,3,2">
+       <layout class="QGridLayout" name="gridLayoutAuto" rowstretch="1,1,8,2" columnstretch="2,3,2">
+        <item row="1" column="0" colspan="3">
+         <widget class="QGroupBox" name="groupBoxModel">
+          <property name="title">
+           <string>Model</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_9" columnstretch="5,1">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_model">
+             <property name="font">
+              <font>
+               <pointsize>10</pointsize>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Model</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QComboBox" name="combo_model">
+             <property name="font">
+              <font>
+               <pointsize>10</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
         <item row="3" column="2">
          <widget class="QGroupBox" name="groupBoxResult">
           <property name="sizePolicy">
@@ -64,7 +98,7 @@
               <enum>QFrame::Box</enum>
              </property>
              <property name="text">
-              <string>Pass Fail</string>
+              <string>Waiting</string>
              </property>
              <property name="alignment">
               <set>Qt::AlignCenter</set>
@@ -74,154 +108,18 @@
           </layout>
          </widget>
         </item>
-        <item row="3" column="1">
-         <widget class="QGroupBox" name="groupBoxDetail">
+        <item row="2" column="0" colspan="3">
+         <widget class="QGroupBox" name="groupBoxAuto">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
+            <horstretch>10</horstretch>
+            <verstretch>15</verstretch>
            </sizepolicy>
           </property>
           <property name="title">
-           <string>Detail</string>
+           <string>Screen Auto</string>
           </property>
-          <layout class="QGridLayout" name="gridLayoutDetail" rowstretch="0,0,0,0,0,0" columnstretch="1,3">
-           <property name="spacing">
-            <number>10</number>
-           </property>
-           <item row="4" column="1">
-            <widget class="QLabel" name="label_text_total">
-             <property name="text">
-              <string>TextLabel</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignCenter</set>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="1">
-            <widget class="QLabel" name="label_text_rate">
-             <property name="text">
-              <string>TextLabel</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignCenter</set>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="0">
-            <widget class="QLabel" name="label_Rate">
-             <property name="font">
-              <font>
-               <weight>50</weight>
-               <italic>false</italic>
-               <bold>false</bold>
-              </font>
-             </property>
-             <property name="layoutDirection">
-              <enum>Qt::LeftToRight</enum>
-             </property>
-             <property name="frameShape">
-              <enum>QFrame::NoFrame</enum>
-             </property>
-             <property name="text">
-              <string>Rate:</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="1">
-            <widget class="QLabel" name="label_text_ng">
-             <property name="text">
-              <string>TextLabel</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignCenter</set>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="0">
-            <widget class="QLabel" name="label_Total">
-             <property name="font">
-              <font>
-               <weight>50</weight>
-               <italic>false</italic>
-               <bold>false</bold>
-              </font>
-             </property>
-             <property name="layoutDirection">
-              <enum>Qt::LeftToRight</enum>
-             </property>
-             <property name="frameShape">
-              <enum>QFrame::NoFrame</enum>
-             </property>
-             <property name="text">
-              <string>Total:</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QLabel" name="label_text_ok">
-             <property name="text">
-              <string>TextLabel</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignCenter</set>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="0">
-            <widget class="QLabel" name="label_NG">
-             <property name="font">
-              <font>
-               <weight>50</weight>
-               <italic>false</italic>
-               <bold>false</bold>
-              </font>
-             </property>
-             <property name="layoutDirection">
-              <enum>Qt::LeftToRight</enum>
-             </property>
-             <property name="frameShape">
-              <enum>QFrame::NoFrame</enum>
-             </property>
-             <property name="text">
-              <string>NG:</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_OK">
-             <property name="font">
-              <font>
-               <weight>50</weight>
-               <italic>false</italic>
-               <bold>false</bold>
-              </font>
-             </property>
-             <property name="layoutDirection">
-              <enum>Qt::LeftToRight</enum>
-             </property>
-             <property name="frameShape">
-              <enum>QFrame::NoFrame</enum>
-             </property>
-             <property name="text">
-              <string>OK:</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-             </property>
-            </widget>
-           </item>
-          </layout>
+          <layout class="QHBoxLayout" name="horizontalLayoutScreenAuto"/>
          </widget>
         </item>
         <item row="3" column="0">
@@ -347,48 +245,174 @@
           </layout>
          </widget>
         </item>
-        <item row="2" column="0" colspan="3">
-         <widget class="QGroupBox" name="groupBoxAuto">
+        <item row="3" column="1">
+         <widget class="QGroupBox" name="groupBoxDetail">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-            <horstretch>10</horstretch>
-            <verstretch>15</verstretch>
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
            </sizepolicy>
           </property>
           <property name="title">
-           <string>Screen Auto</string>
+           <string>Detail</string>
           </property>
-          <layout class="QHBoxLayout" name="horizontalLayoutScreenAuto"/>
-         </widget>
-        </item>
-        <item row="1" column="0" colspan="3">
-         <widget class="QGroupBox" name="groupBoxModel">
-          <property name="title">
-           <string>Model</string>
-          </property>
-          <layout class="QGridLayout" name="gridLayout_9" columnstretch="5,1">
+          <layout class="QGridLayout" name="gridLayout_10" columnstretch="1,1,1">
            <item row="0" column="0">
-            <widget class="QLabel" name="label_model">
-             <property name="font">
-              <font>
-               <pointsize>10</pointsize>
-               <weight>75</weight>
-               <bold>true</bold>
-              </font>
-             </property>
+            <widget class="QLabel" name="label_min">
              <property name="text">
-              <string>Model</string>
+              <string>Min</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignCenter</set>
              </property>
             </widget>
            </item>
            <item row="0" column="1">
-            <widget class="QComboBox" name="combo_model">
+            <widget class="QLabel" name="label_max">
+             <property name="text">
+              <string>Max</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="2">
+            <widget class="QLabel" name="label_weight">
+             <property name="text">
+              <string>Weight</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_value_min">
+             <property name="text">
+              <string>0.100</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QLabel" name="label_value_max">
+             <property name="text">
+              <string>0.300</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="2">
+            <widget class="QLabel" name="label_value_weight_auto">
+             <property name="text">
+              <string>0.200</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_optic">
              <property name="font">
               <font>
-               <pointsize>10</pointsize>
                <weight>50</weight>
+               <italic>false</italic>
                <bold>false</bold>
               </font>
+             </property>
+             <property name="layoutDirection">
+              <enum>Qt::LeftToRight</enum>
+             </property>
+             <property name="frameShape">
+              <enum>QFrame::NoFrame</enum>
+             </property>
+             <property name="text">
+              <string>Optic</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QLabel" name="label_empty">
+             <property name="font">
+              <font>
+               <weight>50</weight>
+               <italic>false</italic>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="layoutDirection">
+              <enum>Qt::LeftToRight</enum>
+             </property>
+             <property name="frameShape">
+              <enum>QFrame::NoFrame</enum>
+             </property>
+             <property name="text">
+              <string>Empty</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="2">
+            <widget class="QLabel" name="label_total">
+             <property name="font">
+              <font>
+               <weight>50</weight>
+               <italic>false</italic>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="layoutDirection">
+              <enum>Qt::LeftToRight</enum>
+             </property>
+             <property name="frameShape">
+              <enum>QFrame::NoFrame</enum>
+             </property>
+             <property name="text">
+              <string>Total</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="label_value_optic">
+             <property name="text">
+              <string>5</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1">
+            <widget class="QLabel" name="label_value_empty">
+             <property name="text">
+              <string>0</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="2">
+            <widget class="QLabel" name="label_value_total">
+             <property name="text">
+              <string>5</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignCenter</set>
              </property>
             </widget>
            </item>
@@ -575,7 +599,7 @@
               </size>
              </property>
              <property name="currentIndex">
-              <number>7</number>
+              <number>0</number>
              </property>
              <property name="movable">
               <bool>true</bool>
