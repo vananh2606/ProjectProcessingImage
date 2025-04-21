@@ -4,7 +4,7 @@
         "camera": {
             "type": "HIK",
             "id": "DA5691963",
-            "feature": "White"
+            "feature": "Gray"
         },
         "lighting": {
             "controller_light": "DCP",
@@ -25,8 +25,8 @@
         "weight": {
             "comport_weight": "COM10",
             "baudrate_weight": "9600",
-            "min_weight": "0.200",
-            "max_weight": "0.400",
+            "min_weight": "0.100",
+            "max_weight": "0.300",
             "value_weight": "0.229"
         },
         "server": {
@@ -40,8 +40,8 @@
             "auto_start": true
         },
         "model_ai": {
-            "model_path": "best",
-            "confidence": "0.25"
+            "model_path": "best_plus",
+            "confidence": "0.75"
         },
         "processing": {
             "color": "GRAY",
@@ -79,7 +79,7 @@
                 "device": {
                     "type": "HIK",
                     "id": "DA5691963",
-                    "feature": "Black"
+                    "feature": "Gray"
                 },
                 "lighting": {
                     "channels": [
