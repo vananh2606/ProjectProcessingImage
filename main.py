@@ -45,26 +45,6 @@ from libs.loading import LoadingDialog
 
 from libs.camera_dlg import CameraDlg
 
-sys.path.append("libs")
-sys.path.append("ui")
-sys.path.append("cameras")
-
-from libs.constants import *
-from libs.canvas import WindowCanvas, Canvas
-from libs.shape import Shape
-from libs.ui_utils import load_style_sheet, update_style, add_scroll, ndarray2pixmap
-from libs.utils import scan_dir
-from libs.logger import Logger
-from libs.image_converter import ImageConverter
-from libs.tcp_server import Server
-from libs.vision import YoloInference, plot_results
-from libs.database_lite import *
-from cameras import HIK, SODA, Webcam, get_camera_devices
-from libs.camera_thread import CameraThread
-from libs.light_controller import LCPController, DCPController
-from libs.io_controller import IOController, OutPorts, InPorts, PortState, IOType
-from libs.weight_controller import WeightController
-
 class ImportThread(QThread):
     progress = pyqtSignal(int)  # Signal to update the progress bar
     finished = pyqtSignal()     # Signal to notify when import is done
@@ -120,6 +100,26 @@ class ImportProgressBar(QMainWindow):
         self.progress_bar.setValue(100)
         self.close()
 
+sys.path.append("libs")
+sys.path.append("ui")
+sys.path.append("cameras")
+
+from libs.constants import *
+from libs.canvas import WindowCanvas, Canvas
+from libs.shape import Shape
+from libs.ui_utils import load_style_sheet, update_style, add_scroll, ndarray2pixmap
+from libs.utils import scan_dir
+from libs.logger import Logger
+from libs.image_converter import ImageConverter
+from libs.tcp_server import Server
+from libs.vision import YoloInference, plot_results
+from libs.database_lite import *
+from cameras import HIK, SODA, Webcam, get_camera_devices
+from libs.camera_thread import CameraThread
+from libs.light_controller import LCPController, DCPController
+from libs.io_controller import IOController, OutPorts, InPorts, PortState, IOType
+from libs.weight_controller import WeightController
+
 app = QApplication(sys.argv)
 load_style_sheet("resources/themes/dark_theme.qss", QApplication.instance())
 
@@ -130,14 +130,15 @@ app.exec_()
 RESULT = namedtuple(
     "result",
     [
-        "camera",
-        "model",
-        "code",
+        "step",
+        "time_check",
+        "model_name",
+        "result",
         "src",
         "binary",
         "dst",
-        "result",
-        "time_check",
+        "code_sn",
+        "weight",
         "error_type",
         "config",
     ],
@@ -699,6 +700,7 @@ class MainWindow(QMainWindow):
                                 "feature":""
                             },
                             "lighting":{	
+                                "delay": 200,
                                 "channels": [10, 10, 10, 10]
                             }
                         }, 
@@ -709,6 +711,7 @@ class MainWindow(QMainWindow):
                                 "feature":""
                             },
                             "lighting":{	
+                                "delay": 200,
                                 "channels": [10, 10, 10, 10]
                             }
                         }
@@ -1095,7 +1098,7 @@ class MainWindow(QMainWindow):
         Khởi động luồng auto.
         """
         try:
-            self.loadProgress.emit(10, "Start Auto")
+            self.loadProgress.emit(30, "Start Auto")
 
             self.ui_logger.info("Bắt đầu khởi động hệ thống Auto")
 
@@ -1362,8 +1365,10 @@ class MainWindow(QMainWindow):
             if self.current_step_auto == STEP_WAIT_TRIGGER_AUTO:
                 self.handle_wait_trigger_auto()
 
-            elif self.current_step_auto == STEP_CHECK_WEIGHT_AUTO:
-                self.handle_check_weight_auto(config)
+            elif self.current_step_auto == STEP_PREPROCESS_WEIGHT_AUTO:
+                self.handle_preprocess_weight_auto(config)
+            elif self.current_step_auto == STEP_PROCESSING_WEIGHT_AUTO:
+                self.handle_processing_weight_auto(config)
             elif self.current_step_auto == STEP_OUTPUT_WEIGHT_AUTO:
                 self.handle_output_weight_auto(config)
 
@@ -1400,7 +1405,7 @@ class MainWindow(QMainWindow):
             self.b_trigger_weight_auto = False
             self.signalChangeLabelResult.emit("Waiting...")
 
-            self.current_step_auto = STEP_CHECK_WEIGHT_AUTO
+            self.current_step_auto = STEP_PREPROCESS_WEIGHT_AUTO
 
         if self.b_trigger_optic_auto:
             self.ui_logger.debug("Step Auto: Wait Trigger Optic")
@@ -1409,65 +1414,16 @@ class MainWindow(QMainWindow):
 
             self.current_step_auto = STEP_PREPROCESS_OPTIC_AUTO
 
-    def handle_check_weight_auto(self, config):
-        type_light = config["modules"]["lighting"]["controller_light"]
-        channel_0 = config["modules"]["lighting"]["channels"][0]
-        channel_1 = config["modules"]["lighting"]["channels"][1]
-        channel_2 = config["modules"]["lighting"]["channels"][2]
-        channel_3 = config["modules"]["lighting"]["channels"][3]
-        channels = [channel_0, channel_1, channel_2, channel_3]
-
-        # Mở đèn
-        if self.light_controller is not None:
-            for i, value in enumerate(channels):
-                if value > 0:
-                    if type_light == "LCP":
-                        self.light_controller.on_channel(i)
-                        self.light_controller.set_light_value(i, value)
-                    else:  # DCP controller
-                        self.light_controller.on_channel(i, value)
-
-        delay_lighting = config["modules"]["lighting"]["delay"] / 1000
-
-        time.sleep(delay_lighting)
-
-        # Lấy ảnh hiện tại từ camera
-        if self.camera1 is not None:
-            self.current_image_camera1 = self.camera1.grab_camera()
-
-        # Tắt đèn
-        if self.light_controller is not None:
-            for i, value in enumerate(channels):
-                if value > 0:
-                    self.light_controller.off_channel(i)
-
-        time.sleep(0.05)
-
-        src = self.current_image_camera1
-        self.signalWeightAuto.emit(src)
-        
-        self.weight = float(self.ui.label_value_weight_auto.text())
-        if self.weight > float(config["modules"]["weight"]["min_weight"]) and self.weight < float(config["modules"]["weight"]["max_weight"]):
-            self.current_step_auto = STEP_OUTPUT_WEIGHT_AUTO
-        else:
-            self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
-            self.b_trigger_weight_auto = False
-            self.b_trigger_optic_auto = False                  
-            self.b_trigger_unitbox_auto = False
-
-    def handle_output_weight_auto(self, config):
-        self.current_step_auto = STEP_RELEASE_AUTO
-
-    def handle_preprocess_optic_auto(self, config):
+    def handle_preprocess_weight_auto(self, config):
         try:
             self.start_elappsed_time()
-            self.ui_logger.debug("Step Auto: Preprocess")
+            self.ui_logger.debug("Step Auto: Preprocess Weight")
 
             type_light = config["modules"]["lighting"]["controller_light"]
-            channel_0 = config["modules"]["lighting"]["channels"][0]
-            channel_1 = config["modules"]["lighting"]["channels"][1]
-            channel_2 = config["modules"]["lighting"]["channels"][2]
-            channel_3 = config["modules"]["lighting"]["channels"][3]
+            channel_0 = config["modules"]["camera_config"]["camera1"]["lighting"]["channels"][0]
+            channel_1 = config["modules"]["camera_config"]["camera1"]["lighting"]["channels"][1]
+            channel_2 = config["modules"]["camera_config"]["camera1"]["lighting"]["channels"][2]
+            channel_3 = config["modules"]["camera_config"]["camera1"]["lighting"]["channels"][3]
             channels = [channel_0, channel_1, channel_2, channel_3]
 
             # Mở đèn
@@ -1480,7 +1436,140 @@ class MainWindow(QMainWindow):
                         else:  # DCP controller
                             self.light_controller.on_channel(i, value)
 
-            delay_lighting = config["modules"]["lighting"]["delay"] / 1000
+            delay_lighting = config["modules"]["camera_config"]["camera1"]["lighting"]["delay"] / 1000
+
+            time.sleep(delay_lighting)
+
+            # Lấy ảnh hiện tại từ camera
+            if self.camera1 is not None:
+                self.current_image_camera1 = self.camera1.grab_camera()
+
+            # Tắt đèn
+            if self.light_controller is not None:
+                for i, value in enumerate(channels):
+                    if value > 0:
+                        self.light_controller.off_channel(i)
+            self.current_step_auto = STEP_PROCESSING_WEIGHT_AUTO
+            elapsed_time = self.get_elappsed_time()
+            self.ui_logger.info(f"Auto preprocess weight time: {elapsed_time:.3f} seconds")
+        except Exception as e:
+            self.ui_logger.error(f"Auto preprocess weight error: {str(e)}")
+            # Trong trường hợp lỗi, quay lại bước chờ trigger
+            self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
+            self.b_trigger_weight_auto = False
+            self.b_trigger_optic_auto = False
+            self.b_trigger_unitbox_auto = False
+
+    def handle_processing_weight_auto(self, config):
+        try: 
+            self.start_elappsed_time()
+            self.ui_logger.debug("Step Auto: Processing Weight")
+
+            self.weight = float(self.ui.label_value_weight_auto.text())
+            min_weight = float(config["modules"]["weight"]["min_weight"])
+            max_weight = float(config["modules"]["weight"]["max_weight"])
+            if self.weight > min_weight and self.weight < max_weight:
+                msg = "PASS"
+            else:
+                msg = "FAIL"
+
+            src = self.current_image_camera1
+            dst = src.copy()
+            # dst = cv.putText(dst, "Weight", )
+
+            # Tạo kết quả cuối cùng cho auto
+            self.final_result = RESULT(
+                step="WEIGHT",
+                time_check=time.strftime(DATETIME_FORMAT),
+                model_name=self.ui.combo_model.currentText(),
+                result=msg,
+                src=src,
+                binary=None,
+                dst=dst,
+                code_sn="",
+                weight=str(self.weight),
+                error_type=None,
+                config=config,
+            )
+
+            self.signalWeightAuto.emit(self.final_result)
+
+            self.current_step_auto = STEP_OUTPUT_WEIGHT_AUTO
+            elapsed_time = self.get_elappsed_time()
+            self.ui_logger.info(f"Auto processing weight time: {elapsed_time:.3f} seconds")
+        except Exception as e:
+            self.ui_logger.error(f"Auto processing weight error: {str(e)}")
+            # Trong trường hợp lỗi, quay lại bước chờ trigger
+            self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
+            self.b_trigger_weight_auto = False
+            self.b_trigger_optic_auto = False
+            self.b_trigger_unitbox_auto = False
+
+    def handle_output_weight_auto(self, config):
+        try:
+            self.start_elappsed_time()
+            self.ui_logger.debug("Step Auto: Output Weight")
+
+            if self.final_result is not None:
+                if self.final_result.result == "PASS":
+                    self.signalChangeLabelResult.emit("Pass")
+                    self.io_controller.write_out(OutPorts.Out_3, PortState.Off)
+                    time.sleep(0.05)
+                    self.io_controller.write_out(OutPorts.Out_2, PortState.Off)
+                    time.sleep(0.05)
+                    self.io_controller.write_out(OutPorts.Out_4, PortState.On) 
+                elif self.final_result.result  == "FAIL": 
+                    self.signalChangeLabelResult.emit("Fail")
+                    self.io_controller.write_out(OutPorts.Out_4, PortState.Off)
+                    time.sleep(0.05)
+                    self.io_controller.write_out(OutPorts.Out_2, PortState.Off)
+                    time.sleep(0.05)
+                    self.io_controller.write_out(OutPorts.Out_3, PortState.On)  
+                else:
+                    self.signalChangeLabelResult.emit("Wait")
+                    self.io_controller.write_out(OutPorts.Out_4, PortState.Off)
+                    time.sleep(0.05)
+                    self.io_controller.write_out(OutPorts.Out_3, PortState.Off)
+                    time.sleep(0.05)
+                    self.io_controller.write_out(OutPorts.Out_2, PortState.On)  
+
+                # Ghi log database
+                self.write_log_database(self.final_result, config)
+
+            self.current_step_auto = STEP_RELEASE_AUTO
+            elapsed_time = self.get_elappsed_time()
+            self.ui_logger.info(f"Auto output weight time: {elapsed_time:.3f} seconds")
+        except Exception as e:
+            self.ui_logger.error(f"Auto output weight error: {str(e)}")
+            # Trong trường hợp lỗi, quay lại bước chờ trigger
+            self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
+            self.b_trigger_weight_auto = False
+            self.b_trigger_optic_auto = False
+            self.b_trigger_unitbox_auto = False
+
+    def handle_preprocess_optic_auto(self, config):
+        try:
+            self.start_elappsed_time()
+            self.ui_logger.debug("Step Auto: Preprocess Optic")
+
+            type_light = config["modules"]["lighting"]["controller_light"]
+            channel_0 = config["modules"]["camera_config"]["camera2"]["lighting"]["channels"][0]
+            channel_1 = config["modules"]["camera_config"]["camera2"]["lighting"]["channels"][1]
+            channel_2 = config["modules"]["camera_config"]["camera2"]["lighting"]["channels"][2]
+            channel_3 = config["modules"]["camera_config"]["camera2"]["lighting"]["channels"][3]
+            channels = [channel_0, channel_1, channel_2, channel_3]
+
+            # Mở đèn
+            if self.light_controller is not None:
+                for i, value in enumerate(channels):
+                    if value > 0:
+                        if type_light == "LCP":
+                            self.light_controller.on_channel(i)
+                            self.light_controller.set_light_value(i, value)
+                        else:  # DCP controller
+                            self.light_controller.on_channel(i, value)
+
+            delay_lighting = config["modules"]["camera_config"]["camera2"]["lighting"]["delay"] / 1000
 
             time.sleep(delay_lighting)
 
@@ -1508,7 +1597,7 @@ class MainWindow(QMainWindow):
     def handle_processing_optic_auto(self, config):
         try:
             self.start_elappsed_time()
-            self.ui_logger.debug("Step Auto: Processing")
+            self.ui_logger.debug("Step Auto: Processing Optic")
 
             src = self.current_image_camera2
 
@@ -1527,10 +1616,6 @@ class MainWindow(QMainWindow):
             iteration = config["modules"]["processing"]["morphological"]["iteration"]
             kernel_size = config["modules"]["processing"]["morphological"]["kernel_size_morph"]
             kernel = cv.getStructuringElement(cv.MORPH_RECT, (kernel_size, kernel_size))
-            # if morph_type == "Erode":
-            #     binary = cv.erode(thresh, kernel, iterations=iteration)
-            # elif morph_type == "Dilate":
-            #     binary = cv.dilate(thresh, kernel, iterations=iteration)
             binary = cv.morphologyEx(thresh, MorphType.from_label(morph_type).value, kernel, iterations=iteration)
 
             dst = src.copy()
@@ -1549,26 +1634,47 @@ class MainWindow(QMainWindow):
             # Vẽ kết quả
             dst = plot_results(results, dst, self.model_ai.label_map, self.model_ai.color_map)
 
-            random_result = random.randint(0, 2)
-            if random_result == 0:
-                msg = "PASS"
-            elif random_result == 1: 
+            count_empty = 0
+            count_optic = 0
+
+            for dnn in results:
+                if dnn.class_index == 0:
+                    count_empty += 1
+                elif dnn.class_index == 1:
+                    count_optic += 1
+
+            self.ui.label_value_empty.setText(str(count_empty))
+            self.ui.label_value_optic.setText(str(count_optic))
+            self.ui.label_value_total.setText(str(count_optic + count_empty))
+
+            # Ghi lỗi
+            if count_optic + count_empty != 5 or count_empty > 0:
                 msg = "FAIL"
-            else:
-                msg = "WAIT"
+            elif count_optic == 5:
+                msg = "PASS"
+
+
+            # random_result = random.randint(0, 2)
+            # if random_result == 0:
+            #     msg = "PASS"
+            # elif random_result == 1: 
+            #     msg = "FAIL"
+            # else:
+            #     msg = "WAIT"
 
             # Tạo kết quả cuối cùng cho auto
             self.final_result = RESULT(
-                camera=config["modules"]["camera"]["type"],
-                model="AUTO",  # Chế độ auto không sử dụng model
-                code="AUTO-" + time.strftime("%Y%m%d-%H%M%S"),
-                src=src,
-                binary=binary,  # Thay bằng ảnh nhị phân thực tế
-                dst=dst,  # Thay bằng ảnh đã xử lý
-                result=msg,  # Thay bằng kết quả thực tế (OK/NG)
+                step="OPTIC",
                 time_check=time.strftime(DATETIME_FORMAT),
-                error_type=None,  # Nếu có lỗi, ghi loại lỗi ở đây
-                config=config,  # Config hiện tại từ UI
+                model_name=self.ui.combo_model.currentText(),
+                result=msg,
+                src=src,
+                binary=None,
+                dst=dst,
+                code_sn="",
+                weight="",
+                error_type=None,
+                config=config,
             )
 
             # Phát tín hiệu kết quả auto
@@ -1588,7 +1694,7 @@ class MainWindow(QMainWindow):
     def handle_output_optic_auto(self, config):
         try:
             self.start_elappsed_time()
-            self.ui_logger.debug("Step Auto: Output")
+            self.ui_logger.debug("Step Auto: Output Optic")
 
             if self.final_result is not None:
                 if self.final_result.result == "PASS":
@@ -1642,8 +1748,6 @@ class MainWindow(QMainWindow):
             self.b_trigger_unitbox_auto = False
 
             self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
-            elapsed_time = self.get_elappsed_time()
-            self.ui_logger.info(f"Auto release time: {elapsed_time:.3f} seconds")
         except Exception as e:
             self.ui_logger.error(f"Auto release error: {str(e)}")
             # Trong trường hợp lỗi, quay lại bước chờ trigger
@@ -1654,7 +1758,7 @@ class MainWindow(QMainWindow):
 
     def write_log_database(self, result: RESULT, config: dict):
         try:
-            model_name = self.ui.combo_model.currentText()
+            model_name = result.model_name
             date_now = time.strftime(FOLDER_DATE_FORMAT)
 
             modules = config["modules"]
@@ -1668,25 +1772,26 @@ class MainWindow(QMainWindow):
             if result is not None:
                 os.makedirs(log_dir, exist_ok=True)
 
-                image_folder = os.path.join(log_dir, "images", model_name, date_now)
+                image_folder = os.path.join(log_dir, "images", date_now, model_name, result.step)
                 os.makedirs(image_folder, exist_ok=True)
 
-                filename = time.strftime(FILENAME_FORMAT)
-                image_path = f"{image_folder}/{filename}"
+                filename = result.result + "_" + time.strftime(FILENAME_FORMAT)
+                image_path = f"{image_folder}\\{filename}"
                 cv.imwrite(image_path, result.src)
 
-                image_folder_output = f"{image_folder}/output"
-                os.makedirs(image_folder_output, exist_ok=True)
-                image_path_output = os.path.join(image_folder_output, filename.replace(".jpg", "_output.jpg"))
-                cv.imwrite(image_path_output, result.dst)
+                if result.dst is not None:
+                    image_folder_output = f"{image_folder}\\output"
+                    os.makedirs(image_folder_output, exist_ok=True)
+                    image_path_output = os.path.join(image_folder_output, filename.replace(".jpg", "_output.jpg"))
+                    cv.imwrite(image_path_output, result.dst)
 
                 threading.Thread(target=self.scan_log_dir, args=(log_dir, log_size), daemon=True).start()
 
                 database_path = os.path.join(log_dir, modules["system"]["database_path"])
                 conn = create_db(database_path)
 
-                values = ("Project", model_name, result.result, result.time_check, image_path, "", "")
-                sql = "INSERT INTO history (camera, model, result, time_check, img_path, code, error_type) VALUES (?, ?, ?, ?, ?, ?, ?)"
+                values = (result.step, result.time_check, result.model_name, result.result, image_path, result.code_sn, result.weight, result.error_type)
+                sql = "INSERT INTO history (step, time_check, model_name, result, img_path, code_sn, weight, error_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
                 insert(conn, sql, values)
         except Exception as e:
             self.ui_logger.error(f"Error write log database: {str(e)}")
@@ -1806,7 +1911,7 @@ class MainWindow(QMainWindow):
                 self.handle_release_teaching()
 
             # Thời gian delay giữa các bước
-            time.sleep(0.1)
+            time.sleep(0.05)
 
     def stop_loop_teaching(self):
         self.b_stop_teaching = True
@@ -1909,16 +2014,10 @@ class MainWindow(QMainWindow):
 
                 # Tạo kết quả cuối cùng cho teaching
                 self.final_result = RESULT(
-                    camera=self.ui.combo_type_camera.currentText(),
-                    model="TEACHING",  # Chế độ teaching không sử dụng model
-                    code="TEACHING-" + time.strftime("%Y%m%d-%H%M%S"),
                     src=src,
-                    binary=binary,  # Thay bằng ảnh nhị phân thực tế
-                    dst=dst,  # Thay bằng ảnh đã xử lý
-                    result="",  # Thay bằng kết quả thực tế (OK/NG)
-                    time_check=time.strftime(DATETIME_FORMAT),
-                    error_type=None,  # Nếu có lỗi, ghi loại lỗi ở đây
-                    config=self.get_config(),  # Config hiện tại từ UI
+                    binary=binary,
+                    dst=dst,
+                    config=self.get_config(),
                 )
 
                 # Phát tín hiệu kết quả teaching
@@ -1978,11 +2077,11 @@ class MainWindow(QMainWindow):
             self.current_step_teaching = STEP_WAIT_TRIGGER_TEACHING
             self.b_trigger_teaching = False
 
-    def handle_weight_auto(self, src):
+    def handle_weight_auto(self, result):
         try:
             # Hiển thị ảnh kết quả
-            if src is not None:
-                self.canvas_camera1_auto.load_pixmap(ndarray2pixmap(src))
+            if result.src is not None:
+                self.canvas_camera1_auto.load_pixmap(ndarray2pixmap(result.src))
 
         except Exception as e:
             self.ui_logger.error(f"Lỗi khi xử lý kết quả weight auto: {str(e)}")
@@ -3422,7 +3521,7 @@ class MainWindow(QMainWindow):
 
             conn = create_db(self.database_path)
             conn.close()
-            self.ui.table_widget_database.clear()
+            # self.ui.table_widget_database.clear()
             self.database_path = ""
             self.ui_logger.info(f"Disconnect database success")
 
@@ -3487,6 +3586,10 @@ class MainWindow(QMainWindow):
         if self.database_path != "":
             date_from = self.ui.date_time_from.dateTime().toString("yyyy/MM/dd hh:mm:ss")
             date_to = self.ui.date_time_to.dateTime().toString("yyyy/MM/dd hh:mm:ss")
+
+            step = self.ui.combo_step.currentText()
+            if step == "ALL":
+                step = ""
             
             result = self.ui.combo_result_type.currentText()
             if result == "ALL":
@@ -3498,12 +3601,13 @@ class MainWindow(QMainWindow):
 
             key_word = self.ui.line_keyword.text()
 
-            sql = f"SELECT camera,model,result,time_check,img_path,code,error_type FROM history WHERE \
+            sql = f"SELECT step,time_check,model_name,result,img_path,code_sn,weight,error_type FROM history WHERE \
                     (time_check BETWEEN '{date_from}' AND '{date_to}') \
+                    AND (step LIKE '%{step}%') \
                     AND (result LIKE '%{result}%') \
-                    AND (result=='PASS' OR error_type LIKE '%{error_type}%') \
-                    AND (code LIKE '%{key_word}%' OR error_type LIKE '%{key_word}%' OR img_path LIKE '%{key_word}%' OR time_check LIKE '%{key_word}%') \
+                    AND (time_check LIKE '%{key_word}%' OR model_name LIKE '%{key_word}%' OR result LIKE '%{key_word}%' OR code_sn LIKE '%{key_word}%' OR weight LIKE '%{key_word}%' OR img_path LIKE '%{key_word}%' OR error_type LIKE '%{key_word}%') \
                     "
+                    # AND (error_type LIKE '%{error_type}%') \
             conn = create_db(self.database_path)
             rows = select(conn, sql)
             self.update_rows(rows)

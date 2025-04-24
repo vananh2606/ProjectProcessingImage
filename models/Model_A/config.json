@@ -8,7 +8,7 @@
         },
         "lighting": {
             "controller_light": "DCP",
-            "comport_light": "COM8",
+            "comport_light": "COM14",
             "baudrate_light": "19200",
             "delay": 200,
             "channels": [
@@ -19,7 +19,7 @@
             ]
         },
         "io": {
-            "comport_io": "COM9",
+            "comport_io": "COM15",
             "baudrate_io": "19200"
         },
         "weight": {
@@ -27,7 +27,7 @@
             "baudrate_weight": "9600",
             "min_weight": "0.100",
             "max_weight": "0.300",
-            "value_weight": "0.229"
+            "value_weight": "0.491"
         },
         "server": {
             "host": "127.0.0.1",
@@ -67,6 +67,7 @@
                     "feature": ""
                 },
                 "lighting": {
+                    "delay": 200,
                     "channels": [
                         10,
                         10,
@@ -82,6 +83,7 @@
                     "feature": "Gray"
                 },
                 "lighting": {
+                    "delay": 200,
                     "channels": [
                         10,
                         10,

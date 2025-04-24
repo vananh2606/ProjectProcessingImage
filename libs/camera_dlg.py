@@ -82,6 +82,7 @@ class CameraDlg(QWidget):
                 "feature": self.ui.combo_feature.currentText()
             },
             "lighting":{
+                "delay": self.ui.spin_delay.value(),
                 "channels": [
                     self.ui.spin_channel_0.value(),
                     self.ui.spin_channel_1.value(),
@@ -121,6 +122,8 @@ class CameraDlg(QWidget):
         # Áp dụng cấu hình lighting
         if "lighting" in config:
             lighting_config = config["lighting"]
+            # Đặt giá trị cho spinbox
+            self.ui.spin_delay.setValue(lighting_config.get("delay", 200))
             # Đặt giá trị cho các kênh
             channels = lighting_config.get("channels", [10, 10, 10, 10])
             if len(channels) >= 4:
