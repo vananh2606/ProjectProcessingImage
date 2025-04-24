@@ -117,8 +117,9 @@ from libs.database_lite import *
 from cameras import HIK, SODA, Webcam, get_camera_devices
 from libs.camera_thread import CameraThread
 from libs.light_controller import LCPController, DCPController
-from libs.io_controller import IOController, OutPorts, InPorts, PortState, IOType
 from libs.weight_controller import WeightController
+from libs.vision_controller import VisionController
+from libs.io_controller import IOController, OutPorts, InPorts, PortState, IOType
 
 app = QApplication(sys.argv)
 load_style_sheet("resources/themes/dark_theme.qss", QApplication.instance())
@@ -329,12 +330,16 @@ class MainWindow(QMainWindow):
         # Lighting
         self.light_controller = None
 
-        # IO Controller
-        self.io_controller = None
-
         # Weight Controller
         self.weight_controller = None
         self.weight = None
+
+        # Vision Master
+        self.vision_master_controller = None
+        self.dataVM = None
+
+        # IO Controller
+        self.io_controller = None
 
         # Server
         self.tcp_server = None
@@ -391,8 +396,10 @@ class MainWindow(QMainWindow):
         self.ui.btn_refesh.setProperty("class", "primary")
         self.ui.btn_start_teaching.setProperty("class", "success")
         self.ui.btn_open_light.setProperty("class", "success")
-        self.ui.btn_open_io.setProperty("class", "success")
         self.ui.btn_open_weight.setProperty("class", "success")
+        self.ui.btn_open_vision_master.setProperty("class", "success")
+        self.ui.btn_trigger_vision_master.setProperty("class", "primary")
+        self.ui.btn_open_io.setProperty("class", "success")
         self.ui.btn_connect_server.setProperty("class", "success")
         self.ui.btn_send_client.setProperty("class", "primary")
         self.ui.btn_create_database.setProperty("class", "primary")
@@ -493,8 +500,10 @@ class MainWindow(QMainWindow):
         self.ui.btn_refesh.clicked.connect(self.on_click_refesh)
         self.ui.btn_start_teaching.clicked.connect(self.on_click_start_teaching)
         self.ui.btn_open_light.clicked.connect(self.on_click_open_light)
-        self.ui.btn_open_io.clicked.connect(self.on_click_open_io)
         self.ui.btn_open_weight.clicked.connect(self.on_click_open_weight)
+        self.ui.btn_open_vision_master.clicked.connect(self.on_click_open_vision_master)
+        self.ui.btn_trigger_vision_master.clicked.connect(self.on_click_trigger_vision_master)
+        self.ui.btn_open_io.clicked.connect(self.on_click_open_io)
         self.ui.btn_connect_server.clicked.connect(self.on_click_connect_server)
         self.ui.btn_send_client.clicked.connect(self.on_click_send_client)
         self.ui.btn_create_database.clicked.connect(self.create_database)
@@ -653,16 +662,21 @@ class MainWindow(QMainWindow):
                         "delay": 100,
                         "channels": [10, 10, 10, 10],
                     },
-                    "io": {
-                        "comport_io": "COM10",
-                        "baudrate_io": "19200",
-                    },
                     "weight": {
                         "comport_weight": "COM10",
                         "baudrate_weight": "19200",
                         "min_weight": "0.1",
                         "max_weight": "0.3",
                         "value_weight": "0.2",
+                    },
+                    "vision_master": {
+                        "comport_vision_master": "COM10",
+                        "baudrate_vision_master": "9600",
+                        "string_trigger": "TRIGGER",
+                    },
+                    "io": {
+                        "comport_io": "COM10",
+                        "baudrate_io": "19200",
                     },
                     "server": {"host": "127.0.0.1", "port": "8080"},
                     "system": {
@@ -805,22 +819,6 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.ui_logger.error(f"Lỗi khi khởi tạo lighting: {str(e)}")
             return False
-
-    def init_io(self, com_port, baud_rate):
-        try:
-            # Ghi log thông số io
-            self.ui_logger.info(
-                f"Khởi tạo IO: COM={com_port}, Baud={baud_rate}"
-            )
-
-            # Khởi tạo bộ điều khiển đèn với thông số từ giao diện
-            self.io_controller = IOController(com=com_port, baud=baud_rate)
-
-            return True
-
-        except Exception as e:
-            self.ui_logger.error(f"Lỗi khi khởi tạo io: {str(e)}")
-            return False
     
     def init_weight(self, com_port, baud_rate):
         try:
@@ -838,6 +836,38 @@ class MainWindow(QMainWindow):
             self.ui_logger.error(f"Lỗi khi khởi tạo weight: {str(e)}")
             return False
 
+    def init_vision_master(self, com_port, baud_rate, strTrigger="TRIGGER"):
+        try:
+            # Ghi log thông số io
+            self.ui_logger.info(
+                f"Khởi tạo Vision Master: COM={com_port}, Baud={baud_rate}"
+            )
+
+            # Khởi tạo bộ điều khiển đèn với thông số từ giao diện
+            self.vision_master_controller = VisionController(com=com_port, baud=baud_rate, strTrigger=strTrigger)
+
+            return True
+
+        except Exception as e:
+            self.ui_logger.error(f"Lỗi khi khởi tạo vision master: {str(e)}")
+            return False
+
+    def init_io(self, com_port, baud_rate):
+        try:
+            # Ghi log thông số io
+            self.ui_logger.info(
+                f"Khởi tạo IO: COM={com_port}, Baud={baud_rate}"
+            )
+
+            # Khởi tạo bộ điều khiển đèn với thông số từ giao diện
+            self.io_controller = IOController(com=com_port, baud=baud_rate)
+
+            return True
+
+        except Exception as e:
+            self.ui_logger.error(f"Lỗi khi khởi tạo io: {str(e)}")
+            return False
+    
     def init_server(self, host, port):
         """
         Khởi tạo server với thông số từ giao diện.
@@ -1098,7 +1128,7 @@ class MainWindow(QMainWindow):
         Khởi động luồng auto.
         """
         try:
-            self.loadProgress.emit(30, "Start Auto")
+            self.loadProgress.emit(50, "Start Auto")
 
             self.ui_logger.info("Bắt đầu khởi động hệ thống Auto")
 
@@ -1182,6 +1212,8 @@ class MainWindow(QMainWindow):
             self.close_io()
         if self.weight_controller is not None:
             self.close_weight()
+        if self.vision_master_controller is not None:
+            self.close_vision_master()
         # self.ui.btn_start_teaching.setEnabled(True)
         self.ui.btn_open_camera.setEnabled(True)
         # self.ui.btn_open_light.setEnabled(True)
@@ -1207,11 +1239,6 @@ class MainWindow(QMainWindow):
         baud_rate_light = int(config["modules"]["lighting"]["baudrate_light"])
         self.init_lighting(light_controller_type, com_port_light, baud_rate_light)
 
-        # Init IO Controller
-        com_port_io = config["modules"]["io"]["comport_io"]
-        baud_rate_io = int(config["modules"]["io"]["baudrate_io"])
-        self.init_io(com_port_io, baud_rate_io)
-
         # Init Weight
         com_port_weight = config["modules"]["weight"]["comport_weight"]
         baud_rate_weight = int(config["modules"]["weight"]["baudrate_weight"])
@@ -1220,6 +1247,17 @@ class MainWindow(QMainWindow):
         max_weight = config["modules"]["weight"]["max_weight"]
         self.ui.label_value_min.setText(min_weight)
         self.ui.label_value_max.setText(max_weight)
+
+        # Init Vision Master
+        com_port_vision_master = config["modules"]["vision_master"]["comport_vision_master"]
+        baud_rate_vision_master = int(config["modules"]["vision_master"]["baudrate_vision_master"])
+        strTrigger = config["modules"]["vision_master"]["string_trigger"]
+        self.init_vision_master(com_port_vision_master, baud_rate_vision_master, strTrigger)
+
+        # Init IO Controller
+        com_port_io = config["modules"]["io"]["comport_io"]
+        baud_rate_io = int(config["modules"]["io"]["baudrate_io"])
+        self.init_io(com_port_io, baud_rate_io)
 
         # Init Server
         host = config["modules"]["server"]["host"]
@@ -1265,6 +1303,11 @@ class MainWindow(QMainWindow):
             t5 = threading.Thread(target=self.open_weight_controller_auto, daemon=True)
             t5.start()
             t5.join()
+
+        if self.vision_master_controller is not None:
+            t6 = threading.Thread(target=self.open_vision_master_controller_auto, daemon=True)
+            t6.start()
+            t6.join()
 
         time.sleep(0.2)
         threading.Thread(target=self.loop_auto, daemon=True).start()
@@ -1339,6 +1382,19 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.ui_logger.error(f"Lỗi xử lý chuỗi value weight: {e}")
 
+    def open_vision_master_controller_auto(self):
+        self.vision_master_controller.open()
+        self.vision_master_controller.dataReceived.connect(self.wait_data_received_from_vision_master_controller)
+
+    def wait_data_received_from_vision_master_controller(self, data):
+        try:
+            dataVM = [item for item in data.split(";") if len(item) >=  13]
+            list_model_code = ';'.join(dataVM)
+            self.dataVM = list_model_code
+            # self.ui_logger.info(f"Data Vision Master: {self.dataVM}")
+        except Exception as e:
+            self.ui_logger.error(f"Lỗi xử lý chuỗi value vision master: {e}")
+
     def loop_auto(self):
         # Load configuration once at the beginning
         config = self.load_config(model_setting=False)
@@ -1379,6 +1435,13 @@ class MainWindow(QMainWindow):
             elif self.current_step_auto == STEP_OUTPUT_OPTIC_AUTO:
                 self.handle_output_optic_auto(config)
 
+            elif self.current_step_auto == STEP_PREPROCESS_UNITBOX_AUTO:
+                self.handle_preprocess_unitbox_auto(config)
+            elif self.current_step_auto == STEP_PROCESSING_UNITBOX_AUTO:
+                self.handle_processing_unitbox_auto(config)
+            elif self.current_step_auto == STEP_OUTPUT_UNITBOX_AUTO:
+                self.handle_output_unitbox_auto(config)
+
             elif self.current_step_auto == STEP_RELEASE_AUTO:
                 self.handle_release_auto()
 
@@ -1413,6 +1476,13 @@ class MainWindow(QMainWindow):
             self.signalChangeLabelResult.emit("Waiting...")
 
             self.current_step_auto = STEP_PREPROCESS_OPTIC_AUTO
+
+        if self.b_trigger_unitbox_auto:
+            self.ui_logger.debug("Step Auto: Wait Trigger UnitBox")
+            self.b_trigger_unitbox_auto = False
+            self.signalChangeLabelResult.emit("Waiting...")
+
+            self.current_step_auto = STEP_PREPROCESS_UNITBOX_AUTO
 
     def handle_preprocess_weight_auto(self, config):
         try:
@@ -1669,7 +1739,7 @@ class MainWindow(QMainWindow):
                 model_name=self.ui.combo_model.currentText(),
                 result=msg,
                 src=src,
-                binary=None,
+                binary=binary,
                 dst=dst,
                 code_sn="",
                 weight="",
@@ -1733,12 +1803,196 @@ class MainWindow(QMainWindow):
             self.b_trigger_optic_auto = False
             self.b_trigger_unitbox_auto = False
 
+    def handle_preprocess_unitbox_auto(self, config):
+        try:
+            self.start_elappsed_time()
+            self.ui_logger.debug("Step Auto: Preprocess UnitBox")
+
+            type_light = config["modules"]["lighting"]["controller_light"]
+            channel_0 = config["modules"]["camera_config"]["camera2"]["lighting"]["channels"][0]
+            channel_1 = config["modules"]["camera_config"]["camera2"]["lighting"]["channels"][1]
+            channel_2 = config["modules"]["camera_config"]["camera2"]["lighting"]["channels"][2]
+            channel_3 = config["modules"]["camera_config"]["camera2"]["lighting"]["channels"][3]
+            channels = [channel_0, channel_1, channel_2, channel_3]
+
+            # Mở đèn
+            if self.light_controller is not None:
+                for i, value in enumerate(channels):
+                    if value > 0:
+                        if type_light == "LCP":
+                            self.light_controller.on_channel(i)
+                            self.light_controller.set_light_value(i, value)
+                        else:  # DCP controller
+                            self.light_controller.on_channel(i, value)
+
+            delay_lighting = config["modules"]["camera_config"]["camera2"]["lighting"]["delay"] / 1000
+
+            time.sleep(delay_lighting)
+
+            # Lấy ảnh hiện tại từ camera
+            if self.camera2 is not None:
+                self.current_image_camera2 = self.camera2.grab_camera()
+
+            # Tắt đèn
+            if self.light_controller is not None:
+                for i, value in enumerate(channels):
+                    if value > 0:
+                        self.light_controller.off_channel(i)
+
+            self.current_step_auto = STEP_PROCESSING_UNITBOX_AUTO
+            elapsed_time = self.get_elappsed_time()
+            self.ui_logger.info(f"Auto preprocess unitbox time: {elapsed_time:.3f} seconds")
+        except Exception as e:
+            self.ui_logger.error(f"Auto preprocess unitbox error: {str(e)}")
+            # Trong trường hợp lỗi, quay lại bước chờ trigger
+            self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
+            self.b_trigger_weight_auto = False
+            self.b_trigger_optic_auto = False
+            self.b_trigger_unitbox_auto = False
+
+    def handle_processing_unitbox_auto(self, config):
+        try:
+            self.start_elappsed_time()
+            self.ui_logger.debug("Step Auto: Processing UnitBox")
+
+            src = self.current_image_camera2
+            
+            color_type = config["modules"]["processing"]["color"]
+            gray = cv.cvtColor(src, ColorType.from_label(color_type).value)
+
+            blur_type = config["modules"]["processing"]["blur"]["type_blur"]
+            kernel_blur = config["modules"]["processing"]["blur"]["kernel_size_blur"]
+            blur = BlurType.from_label(blur_type).value(gray, (kernel_blur, kernel_blur), 0)
+
+            threshold_type = config["modules"]["processing"]["threshold"]["type_threshold"]
+            value_threshold = config["modules"]["processing"]["threshold"]["value_threshold"]
+            _, thresh = cv.threshold(blur, value_threshold, 255, ThresholdType.from_label(threshold_type).value)
+
+            morph_type = config["modules"]["processing"]["morphological"]["type_morph"]
+            iteration = config["modules"]["processing"]["morphological"]["iteration"]
+            kernel_size = config["modules"]["processing"]["morphological"]["kernel_size_morph"]
+            kernel = cv.getStructuringElement(cv.MORPH_RECT, (kernel_size, kernel_size))
+            binary = cv.morphologyEx(thresh, MorphType.from_label(morph_type).value, kernel, iterations=iteration)
+            
+            # # Find contours
+            # cnts, _ = cv.findContours(
+            #     binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE
+            # )
+
+            # # Draw contours
+            # cv.drawContours(dst, cnts, -1, (0, 255, 0), 2)
+
+            # Đường dẫn thư mục lưu ảnh barcode
+            InputBarCodePath = r"A:\ProjectPython\ProjectProcessingImage\resources\UnitBox\Input"
+
+            # Xoá tất cả các file trong thư mục
+            for filename in os.listdir(InputBarCodePath):
+                file_path = os.path.join(InputBarCodePath, filename)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+
+            # Giả sử src là ảnh barcode mà bạn đã xử lý
+            filename = "BarCode.jpg"  # Thêm đuôi file để đảm bảo có thể mở được
+            image_path = os.path.join(InputBarCodePath, filename)
+
+            # Lưu ảnh
+            cv.imwrite(image_path, src)
+
+            time.sleep(0.05)
+            # Send Trigger Vission Master
+            self.vision_master_controller.send_trigger()
+
+            time.sleep(0.5)
+            # Ghi lỗi
+            parts = self.dataVM.strip().split(";")
+            if all(p == parts[0] for p in parts) == True and len(parts) == 5:
+                msg = "PASS"
+            elif all(p == parts[0] for p in parts) == False or len(parts) != 5:
+                msg = "FAIL"
+
+            time.sleep(1)
+            # Đường dẫn thư mục load ảnh outputbarcode
+            OutputBarCodePath = r"A:\ProjectPython\ProjectProcessingImage\resources\UnitBox\Output\OutputBarCode.jpg"
+            dst = cv.imread(OutputBarCodePath)
+
+            # Tạo kết quả cuối cùng cho auto
+            self.final_result = RESULT(
+                step="UNITBOX",
+                time_check=time.strftime(DATETIME_FORMAT),
+                model_name=self.ui.combo_model.currentText(),
+                result=msg,
+                src=src,
+                binary=binary,
+                dst=dst,
+                code_sn="",
+                weight="",
+                error_type=None,
+                config=config,
+            )
+
+            # Phát tín hiệu kết quả auto
+            self.signalResultOpticAuto.emit(self.final_result)
+
+            self.current_step_auto = STEP_OUTPUT_UNITBOX_AUTO
+            elapsed_time = self.get_elappsed_time()
+            self.ui_logger.info(f"Auto processing unitbox time: {elapsed_time:.3f} seconds")
+        except Exception as e:
+            self.ui_logger.error(f"Auto processing unitbox error: {str(e)}")
+            # Trong trường hợp lỗi, quay lại bước chờ trigger
+            self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
+            self.b_trigger_weight_auto = False
+            self.b_trigger_optic_auto = False
+            self.b_trigger_unitbox_auto = False
+
+    
+    def handle_output_unitbox_auto(self, config):
+        try:
+            self.start_elappsed_time()
+            self.ui_logger.debug("Step Auto: Output UnitBox")
+
+            if self.final_result is not None:
+                if self.final_result.result == "PASS":
+                    self.signalChangeLabelResult.emit("Pass")
+                    self.io_controller.write_out(OutPorts.Out_3, PortState.Off)
+                    time.sleep(0.05)
+                    self.io_controller.write_out(OutPorts.Out_2, PortState.Off)
+                    time.sleep(0.05)
+                    self.io_controller.write_out(OutPorts.Out_4, PortState.On) 
+                elif self.final_result.result  == "FAIL": 
+                    self.signalChangeLabelResult.emit("Fail")
+                    self.io_controller.write_out(OutPorts.Out_4, PortState.Off)
+                    time.sleep(0.05)
+                    self.io_controller.write_out(OutPorts.Out_2, PortState.Off)
+                    time.sleep(0.05)
+                    self.io_controller.write_out(OutPorts.Out_3, PortState.On)  
+                else:
+                    self.signalChangeLabelResult.emit("Wait")
+                    self.io_controller.write_out(OutPorts.Out_4, PortState.Off)
+                    time.sleep(0.05)
+                    self.io_controller.write_out(OutPorts.Out_3, PortState.Off)
+                    time.sleep(0.05)
+                    self.io_controller.write_out(OutPorts.Out_2, PortState.On)  
+
+                # Ghi log database
+                self.write_log_database(self.final_result, config)
+
+            self.current_step_auto = STEP_RELEASE_AUTO
+            elapsed_time = self.get_elappsed_time()
+            self.ui_logger.info(f"Auto output unitbox time: {elapsed_time:.3f} seconds")
+        except Exception as e:
+            self.ui_logger.error(f"Auto output unitbox error: {str(e)}")
+            # Trong trường hợp lỗi, quay lại bước chờ trigger
+            self.current_step_auto = STEP_WAIT_TRIGGER_AUTO
+            self.b_trigger_weight_auto = False
+            self.b_trigger_optic_auto = False
+            self.b_trigger_unitbox_auto = False
+
     def handle_release_auto(self):
         try:
             self.start_elappsed_time()
             self.ui_logger.debug("Step Auto: Release")
 
-            self.weight = None
+            self.weight = None 
 
             self.final_result = None
 
@@ -2222,12 +2476,6 @@ class MainWindow(QMainWindow):
             ],
         }
 
-        # Lưu thiết lập liên quan đến io
-        config["modules"]["io"] = {
-            "comport_io": self.ui.combo_comport_io.currentText(),
-            "baudrate_io": self.ui.combo_baudrate_io.currentText(),
-        }
-
         # Lưu thiết lập liên quan đến weight
         config["modules"]["weight"] = {
             "comport_weight": self.ui.combo_comport_weight.currentText(),
@@ -2235,6 +2483,19 @@ class MainWindow(QMainWindow):
             "min_weight": self.ui.line_min_weight.text(),
             "max_weight": self.ui.line_max_weight.text(),
             "value_weight": self.ui.line_value_weight.text(),
+        }
+
+        # Lưu thiết lập liên quan đến vision master
+        config["modules"]["vision_master"] = {
+            "comport_vision_master": self.ui.combo_comport_vision_master.currentText(),
+            "baudrate_vision_master": self.ui.combo_baudrate_vision_master.currentText(),
+            "string_trigger": self.ui.line_string_trigger.text(),
+        }
+
+        # Lưu thiết lập liên quan đến io
+        config["modules"]["io"] = {
+            "comport_io": self.ui.combo_comport_io.currentText(),
+            "baudrate_io": self.ui.combo_baudrate_io.currentText(),
         }
 
         # Lưu thiết lập liên quan đến server
@@ -2396,19 +2657,6 @@ class MainWindow(QMainWindow):
                         self.ui.spin_channel_2.setValue(channels[2])
                         self.ui.spin_channel_3.setValue(channels[3])
 
-                # Áp dụng cấu hình io
-                if "io" in modules:
-                    io_config = modules["io"]
-                    comports, baudrates = self.find_comports_and_baurates()
-                    self.add_combox_item(self.ui.combo_comport_io, comports)
-                    self.add_combox_item(self.ui.combo_baudrate_io, baudrates)
-                    self.set_combobox_text(
-                        self.ui.combo_comport_io, io_config.get("comport_io", "COM10")
-                    )
-                    self.set_combobox_text(
-                        self.ui.combo_baudrate_io, io_config.get("baudrate_io", "19200")
-                    )
-
                 # Áp dụng cấu hình weight
                 if "weight" in modules:
                     weight_config = modules["weight"]
@@ -2424,6 +2672,34 @@ class MainWindow(QMainWindow):
                     self.ui.line_min_weight.setText(str(weight_config.get("min_weight", 0.1)))
                     self.ui.line_max_weight.setText(str(weight_config.get("max_weight", 0.3)))
                     self.ui.line_value_weight.setText(str(weight_config.get("value_weight", 0.2)))
+                
+                # Áp dụng cấu hình vision master
+                if "vision_master" in modules:
+                    vision_master_config = modules["vision_master"]
+                    comports = ["COM9", "COM10", "COM11", "COM12", "COM13", "COM14", "COM15"]
+                    baudrates = ["9600", "19200", "38400", "57600", "115200"]
+                    self.add_combox_item(self.ui.combo_comport_vision_master, comports)
+                    self.add_combox_item(self.ui.combo_baudrate_vision_master, baudrates)
+                    self.set_combobox_text(
+                        self.ui.combo_comport_vision_master, vision_master_config.get("comport_vision_master", "COM13")
+                    )
+                    self.set_combobox_text(
+                        self.ui.combo_baudrate_vision_master, vision_master_config.get("baudrate_vision_master", "9600")
+                    )
+                    self.ui.line_string_trigger.setText(str(vision_master_config.get("string_trigger", "TRIGGER")))
+
+                # Áp dụng cấu hình io
+                if "io" in modules:
+                    io_config = modules["io"]
+                    comports, baudrates = self.find_comports_and_baurates()
+                    self.add_combox_item(self.ui.combo_comport_io, comports)
+                    self.add_combox_item(self.ui.combo_baudrate_io, baudrates)
+                    self.set_combobox_text(
+                        self.ui.combo_comport_io, io_config.get("comport_io", "COM10")
+                    )
+                    self.set_combobox_text(
+                        self.ui.combo_baudrate_io, io_config.get("baudrate_io", "19200")
+                    )
 
                 # Áp dụng cấu hình server
                 if "server" in modules:
@@ -3448,6 +3724,67 @@ class MainWindow(QMainWindow):
                 update_style(self.ui.label_value_weight)
         except Exception as e:
             self.ui_logger.error(f"Lỗi xử lý chuỗi value weight: {e}")
+
+    def on_click_open_vision_master(self):
+        if self.ui.btn_open_vision_master.text() == "Open":
+            self.open_vision_master()
+        else:
+            self.close_vision_master()
+
+    def open_vision_master(self):
+        try:
+            # Lấy thông số từ giao diện
+            comport_vision_master = self.ui.combo_comport_vision_master.currentText()
+            baudrate_vision_master = int(self.ui.combo_baudrate_vision_master.currentText())
+            string_trigger = self.ui.line_string_trigger.text()
+            self.init_vision_master(comport_vision_master, baudrate_vision_master, string_trigger)
+
+            # Mở kết nối với bộ điều khiển
+            status = self.vision_master_controller.open()
+
+            self.vision_master_controller.dataReceived.connect(self.handle_change_value_vision_master)
+
+            self.ui.btn_open_vision_master.setText("Close")
+            self.ui.btn_open_vision_master.setProperty("class", "danger")
+            update_style(self.ui.btn_open_vision_master)
+
+            if status:
+                self.ui_logger.info("Vision Master connected successfully")
+            else:
+                self.ui_logger.warning("Failed to connect to Vision Master")
+
+        except Exception as e:
+            self.ui_logger.error(f"Error Open Vision Master: {e}")
+
+    def close_vision_master(self):
+        try:
+            # Đóng kết nối với bộ điều khiển
+            status = self.vision_master_controller.close()
+
+            self.ui.btn_open_vision_master.setText("Open")
+            self.ui.btn_open_vision_master.setProperty("class", "success")
+            update_style(self.ui.btn_open_vision_master)
+
+            if status:
+                self.ui_logger.info("Vision Master disconnected successfully")
+            else:   
+                self.ui_logger.warning("Failed to disconnect from Vision Master")
+
+        except Exception as e:  
+            self.ui_logger.error(f"Error Close Vision Master: {e}")
+
+    def handle_change_value_vision_master(self, data: str):
+        try:
+            dataVM = [item for item in data.split(";") if len(item) >=  13]
+            self.ui_logger.debug(f"Vision Master: {dataVM}")
+        except Exception as e:
+            self.ui_logger.error(f"Lỗi xử lý chuỗi value vision master: {e}")
+            
+    def on_click_trigger_vision_master(self):
+        try:
+            self.vision_master_controller.send_trigger()
+        except Exception as e:
+            self.ui_logger.error(f"Error Trigger Vision Master: {e}")
 
     def on_click_connect_server(self):
         if self.ui.btn_connect_server.text() == "Connect":

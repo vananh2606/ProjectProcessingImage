@@ -1022,20 +1022,6 @@
                  </property>
                 </widget>
                </item>
-               <item row="2" column="0">
-                <widget class="QLabel" name="label_status__vision_master">
-                 <property name="text">
-                  <string>Vision Master</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="2" column="1" colspan="2">
-                <widget class="QPushButton" name="btn_open_vision_master">
-                 <property name="text">
-                  <string>Open</string>
-                 </property>
-                </widget>
-               </item>
                <item row="0" column="1">
                 <widget class="QComboBox" name="combo_comport_vision_master">
                  <property name="minimumSize">
@@ -1046,13 +1032,34 @@
                  </property>
                 </widget>
                </item>
-               <item row="0" column="2">
-                <widget class="QComboBox" name="combo_baudrate_vision_master"/>
-               </item>
                <item row="1" column="0">
                 <widget class="QLabel" name="label_string_trigger">
                  <property name="text">
                   <string>String Trigger</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="2">
+                <widget class="QComboBox" name="combo_baudrate_vision_master"/>
+               </item>
+               <item row="3" column="0">
+                <widget class="QLabel" name="label_status__vision_master">
+                 <property name="text">
+                  <string>Vision Master</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="1">
+                <widget class="QPushButton" name="btn_open_vision_master">
+                 <property name="text">
+                  <string>Open</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="2">
+                <widget class="QPushButton" name="btn_trigger_vision_master">
+                 <property name="text">
+                  <string>Trigger</string>
                  </property>
                 </widget>
                </item>

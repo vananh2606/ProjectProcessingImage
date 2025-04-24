@@ -45,7 +45,7 @@ class VisionController(QObject):
             try:
                 if self.comport.in_waiting > 0:
                     data = self.comport.readline().decode('utf-8').strip()
-                    print(data)
+                    # print(data)
                     self.dataReceived.emit(data)
                 else:
                     time.sleep(0.05)
@@ -58,7 +58,7 @@ class VisionController(QObject):
         if self.is_open():
             try:
                 self.comport.write((self.strTrigger).encode('utf-8'))
-                print(f"Sent: {self.strTrigger}")
+                # print(f"Sent: {self.strTrigger}")
             except Exception as ex:
                 print(f"Failed to send trigger: {ex}")
 
