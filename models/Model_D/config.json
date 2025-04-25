@@ -26,13 +26,13 @@
             "value_weight": "0.491"
         },
         "vision_master": {
-            "comport_vision_master": "COM13",
+            "comport_vision_master": "COM9",
             "baudrate_vision_master": "9600",
             "string_trigger": "TRIGGER"
         },
         "scanner": {
-            "comport_scanner": "COM11",
-            "baudrate_scanner": "9600"
+            "comport_scanner": "",
+            "baudrate_scanner": ""
         },
         "io": {
             "comport_io": "COM15",

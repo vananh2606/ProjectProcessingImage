@@ -117,7 +117,7 @@ from libs.database_lite import *
 from cameras import HIK, SODA, Webcam, get_camera_devices
 from libs.camera_thread import CameraThread
 from libs.light_controller import LCPController, DCPController
-from libs.weight_controller import WeightController
+from libs.serial_controller import SerialController
 from libs.vision_controller import VisionController
 from libs.io_controller import IOController, OutPorts, InPorts, PortState, IOType
 
@@ -337,6 +337,9 @@ class MainWindow(QMainWindow):
         self.vision_master_controller = None
         self.dataVM = None
 
+        # scanner Controller
+        self.scanner_controller = None
+
         # IO Controller
         self.io_controller = None
 
@@ -398,6 +401,7 @@ class MainWindow(QMainWindow):
         self.ui.btn_open_weight.setProperty("class", "success")
         self.ui.btn_open_vision_master.setProperty("class", "success")
         self.ui.btn_trigger_vision_master.setProperty("class", "primary")
+        self.ui.btn_open_scanner.setProperty("class", "success")
         self.ui.btn_open_io.setProperty("class", "success")
         self.ui.btn_connect_server.setProperty("class", "success")
         self.ui.btn_send_client.setProperty("class", "primary")
@@ -503,6 +507,7 @@ class MainWindow(QMainWindow):
         self.ui.btn_open_weight.clicked.connect(self.on_click_open_weight)
         self.ui.btn_open_vision_master.clicked.connect(self.on_click_open_vision_master)
         self.ui.btn_trigger_vision_master.clicked.connect(self.on_click_trigger_vision_master)
+        self.ui.btn_open_scanner.clicked.connect(self.on_click_open_scanner)
         self.ui.btn_open_io.clicked.connect(self.on_click_open_io)
         self.ui.btn_connect_server.clicked.connect(self.on_click_connect_server)
         self.ui.btn_send_client.clicked.connect(self.on_click_send_client)
@@ -673,6 +678,10 @@ class MainWindow(QMainWindow):
                         "baudrate_vision_master": "9600",
                         "string_trigger": "TRIGGER",
                     },
+                    "scanner": {
+                        "comport_io": "COM11",
+                        "baudrate_io": "9600",
+                    },
                     "io": {
                         "comport_io": "COM10",
                         "baudrate_io": "19200",
@@ -827,7 +836,7 @@ class MainWindow(QMainWindow):
             )
 
             # Khởi tạo bộ điều khiển đèn với thông số từ giao diện
-            self.weight_controller = WeightController(com=com_port, baud=baud_rate)
+            self.weight_controller = SerialController(com=com_port, baud=baud_rate)
 
             return True
 
@@ -849,6 +858,22 @@ class MainWindow(QMainWindow):
 
         except Exception as e:
             self.ui_logger.error(f"Lỗi khi khởi tạo vision master: {str(e)}")
+            return False
+        
+    def init_scanner(self, com_port, baud_rate):
+        try:
+            # Ghi log thông số io
+            self.ui_logger.info(
+                f"Khởi tạo Scanner: COM={com_port}, Baud={baud_rate}"
+            )
+
+            # Khởi tạo bộ điều khiển đèn với thông số từ giao diện
+            self.scanner_controller = SerialController(com=com_port, baud=baud_rate)
+
+            return True
+
+        except Exception as e:
+            self.ui_logger.error(f"Lỗi khi khởi tạo Scanner: {str(e)}")
             return False
 
     def init_io(self, com_port, baud_rate):
@@ -1254,6 +1279,11 @@ class MainWindow(QMainWindow):
         self.init_vision_master(com_port_vision_master, baud_rate_vision_master, strTrigger)
 
         # Init IO Controller
+        com_port_scanner = config["modules"]["scanner"]["comport_scanner"]
+        baud_rate_scanner = int(config["modules"]["scanner"]["baudrate_scanner"])
+        self.init_scanner(com_port_scanner, baud_rate_scanner)
+
+        # Init IO Controller
         com_port_io = config["modules"]["io"]["comport_io"]
         baud_rate_io = int(config["modules"]["io"]["baudrate_io"])
         self.init_io(com_port_io, baud_rate_io)
@@ -1286,25 +1316,25 @@ class MainWindow(QMainWindow):
             t2.join()
 
         time.sleep(0.2)
-        if self.tcp_server is not None:
-            t3 = threading.Thread(target=self.connect_server_auto, daemon=True)
+        if self.weight_controller is not None:
+            t3 = threading.Thread(target=self.open_weight_controller_auto, daemon=True)
             t3.start()
             t3.join()
 
-        time.sleep(0.2)
-        if self.io_controller is not None:
-            t4 = threading.Thread(target=self.open_io_controller_auto, daemon=True)
+        if self.vision_master_controller is not None:
+            t4 = threading.Thread(target=self.open_vision_master_controller_auto, daemon=True)
             t4.start()
             t4.join()
 
         time.sleep(0.2)
-        if self.weight_controller is not None:
-            t5 = threading.Thread(target=self.open_weight_controller_auto, daemon=True)
+        if self.io_controller is not None:
+            t5 = threading.Thread(target=self.open_io_controller_auto, daemon=True)
             t5.start()
             t5.join()
 
-        if self.vision_master_controller is not None:
-            t6 = threading.Thread(target=self.open_vision_master_controller_auto, daemon=True)
+        time.sleep(0.2)
+        if self.tcp_server is not None:
+            t6 = threading.Thread(target=self.connect_server_auto, daemon=True)
             t6.start()
             t6.join()
 
@@ -1317,34 +1347,6 @@ class MainWindow(QMainWindow):
 
     def open_light_auto(self):
         self.light_controller.open()
-
-    def connect_server_auto(self):
-        self.tcp_server.start()
-        self.tcp_server.dataReceived.connect(self.wait_data_received_from_client)
-
-    def wait_data_received_from_client(self, host, address, data):
-        if data == "Check Weight":
-            self.b_trigger_weight_auto = True
-        elif data == "Check Optic":
-            self.b_trigger_optic_auto = True
-        elif data == "Check UnitBox":
-            self.b_trigger_unitbox_auto = True
-
-    def open_io_controller_auto(self):
-        self.io_controller.open()
-        self.io_controller.write_out(OutPorts.Out_4, PortState.On)
-        self.io_controller.inputSignal.connect(
-            self.wait_data_received_from_io_controller
-        )
-
-    def wait_data_received_from_io_controller(self, commands, states):
-        for command, state in zip(commands, states):
-            if command == 'In_1' and state == PortState.On:
-                self.b_trigger_weight_auto = True
-            elif command == 'In_2' and state == PortState.On:
-                self.b_trigger_optic_auto = True
-            elif command == 'In_3' and state == PortState.On:
-                self.b_trigger_unitbox_auto = True
     
     def open_weight_controller_auto(self):
         self.weight_controller.open()
@@ -1393,6 +1395,34 @@ class MainWindow(QMainWindow):
             # self.ui_logger.info(f"Data Vision Master: {self.dataVM}")
         except Exception as e:
             self.ui_logger.error(f"Lỗi xử lý chuỗi value vision master: {e}")
+
+    def open_io_controller_auto(self):
+        self.io_controller.open()
+        self.io_controller.write_out(OutPorts.Out_4, PortState.On)
+        self.io_controller.inputSignal.connect(
+            self.wait_data_received_from_io_controller
+        )
+
+    def wait_data_received_from_io_controller(self, commands, states):
+        for command, state in zip(commands, states):
+            if command == 'In_1' and state == PortState.On:
+                self.b_trigger_weight_auto = True
+            elif command == 'In_2' and state == PortState.On:
+                self.b_trigger_optic_auto = True
+            elif command == 'In_3' and state == PortState.On:
+                self.b_trigger_unitbox_auto = True
+
+    def connect_server_auto(self):
+        self.tcp_server.start()
+        self.tcp_server.dataReceived.connect(self.wait_data_received_from_client)
+
+    def wait_data_received_from_client(self, host, address, data):
+        if data == "Check Weight":
+            self.b_trigger_weight_auto = True
+        elif data == "Check Optic":
+            self.b_trigger_optic_auto = True
+        elif data == "Check UnitBox":
+            self.b_trigger_unitbox_auto = True
 
     def loop_auto(self):
         # Load configuration once at the beginning
@@ -2517,6 +2547,12 @@ class MainWindow(QMainWindow):
             "string_trigger": self.ui.line_string_trigger.text(),
         }
 
+        # Lưu thiết lập liên quan đến scanner
+        config["modules"]["scanner"] = {
+            "comport_scanner": self.ui.combo_comport_scanner.currentText(),
+            "baudrate_scanner": self.ui.combo_baudrate_scanner.currentText(),
+        }
+
         # Lưu thiết lập liên quan đến io
         config["modules"]["io"] = {
             "comport_io": self.ui.combo_comport_io.currentText(),
@@ -2712,6 +2748,19 @@ class MainWindow(QMainWindow):
                         self.ui.combo_baudrate_vision_master, vision_master_config.get("baudrate_vision_master", "9600")
                     )
                     self.ui.line_string_trigger.setText(str(vision_master_config.get("string_trigger", "TRIGGER")))
+
+                # Áp dụng cấu hình scanner
+                if "scanner" in modules:
+                    scanner_config = modules["scanner"]
+                    comports, baudrates = self.find_comports_and_baurates()
+                    self.add_combox_item(self.ui.combo_comport_scanner, comports)
+                    self.add_combox_item(self.ui.combo_baudrate_scanner, baudrates)
+                    self.set_combobox_text(
+                        self.ui.combo_comport_scanner, scanner_config.get("comport_scanner", "COM11")
+                    )
+                    self.set_combobox_text(
+                        self.ui.combo_baudrate_scanner, scanner_config.get("baudrate_scanner", "9600")
+                    )
 
                 # Áp dụng cấu hình io
                 if "io" in modules:
@@ -3038,7 +3087,7 @@ class MainWindow(QMainWindow):
 
             # Chọn và tải model mới
             self.set_combobox_text(self.ui.combo_model, model_name)
-            self.set_combobox_text(self.ui.combo_model_setting, model_name)
+            # self.set_combobox_text(self.ui.combo_model_setting, model_name)
 
             # Tải model mới (không cần gọi lại vì đã thiết lập currentIndex sẽ trigger on_change_model)
             self.ui_logger.info(f"Đã thêm và tải model mới: {model_name}")
@@ -3472,6 +3521,60 @@ class MainWindow(QMainWindow):
 
         except Exception as e:
             self.ui_logger.error(f"Error handling light change: {str(e)}")
+
+    def on_click_open_scanner(self):
+        if self.ui.btn_open_scanner.text() == "Open":
+            self.open_scanner()
+        else:
+            self.close_scanner()
+
+    def open_scanner(self):
+        try:
+            # Lấy thông số từ giao diện
+            comport_scanner = self.ui.combo_comport_scanner.currentText()
+            baudrate_scanner = int(self.ui.combo_baudrate_scanner.currentText())
+            self.init_scanner(comport_scanner, baudrate_scanner)
+
+            # Mở kết nối với bộ điều khiển
+            status = self.scanner_controller.open()
+
+            self.scanner_controller.dataReceived.connect(self.handle_message_scanner)
+
+            self.ui.btn_open_scanner.setText("Close")
+            self.ui.btn_open_scanner.setProperty("class", "danger")
+            update_style(self.ui.btn_open_scanner)
+
+            if status:
+                self.ui_logger.info("Scanner controller connected successfully")
+            else:
+                self.ui_logger.warning("Failed to connect to Scanner controller")
+
+        except Exception as e:
+            self.ui_logger.error(f"Error Open Scanner: {e}")
+
+    def close_scanner(self):
+        try:
+            # Đóng kết nối với bộ điều khiển
+            status = self.scanner_controller.close()
+
+            self.ui.btn_open_scanner.setText("Open")
+            self.ui.btn_open_scanner.setProperty("class", "success")
+            update_style(self.ui.btn_open_scanner)
+
+            self.ui.line_message_scanner.setText("")
+
+            if status:
+                self.ui_logger.info("Scanner controller disconnected successfully")
+            else:
+                self.ui_logger.warning("Failed to disconnect from Scanner controller")
+        except Exception as e:
+            self.ui_logger.error(f"Error Close Scanner: {e}")
+
+    def handle_message_scanner(self, data: str):
+        try:
+            self.ui.line_message_scanner.setText(data)
+        except Exception as e:
+            self.ui_logger.error(f"Lỗi xử lý chuỗi value scanner: {e}")
 
     def on_click_open_io(self):
         if self.ui.btn_open_io.text() == "Open":

@@ -4,7 +4,7 @@ import time
 
 from PyQt5.QtCore import pyqtSignal, QObject
 
-class WeightController(QObject):
+class SerialController(QObject):
     dataReceived = pyqtSignal(str)
     def __init__(self, com="COM1", baud=9600):
         super().__init__()
@@ -20,7 +20,7 @@ class WeightController(QObject):
         try:
             self.comport = Serial(port=self._port, baudrate=self._baudrate, timeout=1)
             
-            print(f"Weight Controller Connected {self._port}")
+            print(f"Serial Controller Connected {self._port}")
             
             self.running = True
             self.read_thread = threading.Thread(target=self.read_data, daemon=True)
@@ -35,10 +35,10 @@ class WeightController(QObject):
         try:
             if self.comport is not None:
                 self.comport.close()
-                print("Closed Weight Controller")
+                print("Closed Serial Controller")
             return True
         except Exception as e:
-            print(f"Failed to close Weight Controller")
+            print(f"Failed to close Serial Controller")
             return False
         
     def read_data(self):
@@ -46,6 +46,7 @@ class WeightController(QObject):
             try:
                 if self.comport.in_waiting > 0:
                     data = self.comport.readline().decode('utf-8').strip()
+                    print(data)
                     self.dataReceived.emit(data)
                 else:
                     time.sleep(0.05)  # avoid busy loop
@@ -54,11 +55,11 @@ class WeightController(QObject):
                 time.sleep(1)  # Longer delay after error
                 break
 
-def testWeightController():
-    weightController = WeightController(com="COM10", baud=9600)
-    print(weightController.open())
+def testSerialController():
+    serialController = SerialController(com="COM16", baud=9600)
+    print(serialController.open())
     time.sleep(10)
 
 if __name__ == "__main__":
-    testWeightController()
+    testSerialController()
 
