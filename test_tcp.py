@@ -14,7 +14,7 @@ print(f"Server đang lắng nghe trên {HOST}:{PORT}...")
     
 try:
     while True:
-        client_socket.sendall(b"Check")
+        client_socket.sendall(b"Check Optic")
         # data = client_socket.recv(1024).decode()
         # print(f"Nhận từ client: {data}")
         # response = f"Server nhận: {data}"

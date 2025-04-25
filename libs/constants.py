@@ -53,6 +53,10 @@ FILENAME_FORMAT = "%Y%m%d_%H%M%S.jpg"
 DATETIME_FORMAT = "%Y/%m/%d %H:%M:%S"
 FOLDER_DATE_FORMAT = "%Y-%m-%d"
 
+# Vision Master
+InputBarCodePath = r"A:\ProjectPython\ProjectProcessingImage\resources\UnitBox\Input"
+OutputBarCodePath = r"A:\ProjectPython\ProjectProcessingImage\resources\UnitBox\Output\OutputBarCode.jpg"
+
 # CONFIG
 IMAGE_PATH_COLUMN = 4
 FONT_CONFIG_PATH = "resources/fonts/font.json"

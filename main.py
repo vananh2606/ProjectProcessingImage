@@ -279,8 +279,7 @@ class MorphType(enum.Enum):
 
 
 class MainWindow(QMainWindow):
-    signalWeightAuto = pyqtSignal(object)
-    signalResultOpticAuto = pyqtSignal(object)
+    signalResultAuto = pyqtSignal(object, str)
 
     signalResultTeaching = pyqtSignal(object)
 
@@ -410,6 +409,7 @@ class MainWindow(QMainWindow):
         self.ui.label_result.setProperty("class", "waiting")
         self.ui.label_value_weight.setProperty("class", "waiting")
         self.ui.label_weight.setProperty("class", "waiting")
+        self.ui.label_model_code.setProperty("class", "waiting")
 
         # IO
         self.ui.btn_output_1.setProperty("class", "success")
@@ -538,8 +538,7 @@ class MainWindow(QMainWindow):
         self.ui.table_widget_database.itemSelectionChanged.connect(self.on_item_table_data_selection_changed)
 
         # Kết nối tín hiệu kết quả
-        self.signalWeightAuto.connect(self.handle_weight_auto)
-        self.signalResultOpticAuto.connect(self.handle_result_optic_auto)
+        self.signalResultAuto.connect(self.handle_result_optic_auto)
         self.signalResultTeaching.connect(self.handle_result_teaching)
 
         # Kết nối tín hiệu thay đổi Label
@@ -1462,6 +1461,10 @@ class MainWindow(QMainWindow):
         self.ui.label_weight.setProperty("class", "waiting")
         update_style(self.ui.label_weight)
 
+        self.ui.label_model_code.setText("Model Code")
+        self.ui.label_model_code.setProperty("class", "waiting")
+        update_style(self.ui.label_model_code)
+
     def handle_wait_trigger_auto(self):
         if self.b_trigger_weight_auto:
             self.ui_logger.debug("Step Auto: Wait Trigger Weight")
@@ -1534,6 +1537,32 @@ class MainWindow(QMainWindow):
         try: 
             self.start_elappsed_time()
             self.ui_logger.debug("Step Auto: Processing Weight")
+            src = self.current_image_camera1
+            
+            color_type = config["modules"]["processing"]["color"]
+            gray = cv.cvtColor(src, ColorType.from_label(color_type).value)
+
+            blur_type = config["modules"]["processing"]["blur"]["type_blur"]
+            kernel_blur = config["modules"]["processing"]["blur"]["kernel_size_blur"]
+            blur = BlurType.from_label(blur_type).value(gray, (kernel_blur, kernel_blur), 0)
+
+            threshold_type = config["modules"]["processing"]["threshold"]["type_threshold"]
+            value_threshold = config["modules"]["processing"]["threshold"]["value_threshold"]
+            _, thresh = cv.threshold(blur, value_threshold, 255, ThresholdType.from_label(threshold_type).value)
+
+            morph_type = config["modules"]["processing"]["morphological"]["type_morph"]
+            iteration = config["modules"]["processing"]["morphological"]["iteration"]
+            kernel_size = config["modules"]["processing"]["morphological"]["kernel_size_morph"]
+            kernel = cv.getStructuringElement(cv.MORPH_RECT, (kernel_size, kernel_size))
+            binary = cv.morphologyEx(thresh, MorphType.from_label(morph_type).value, kernel, iterations=iteration)
+            
+            # # Find contours
+            # cnts, _ = cv.findContours(
+            #     binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE
+            # )
+
+            # # Draw contours
+            # cv.drawContours(dst, cnts, -1, (0, 255, 0), 2)
 
             self.weight = float(self.ui.label_value_weight_auto.text())
             min_weight = float(config["modules"]["weight"]["min_weight"])
@@ -1543,7 +1572,6 @@ class MainWindow(QMainWindow):
             else:
                 msg = "FAIL"
 
-            src = self.current_image_camera1
             dst = src.copy()
             # dst = cv.putText(dst, "Weight", )
 
@@ -1554,7 +1582,7 @@ class MainWindow(QMainWindow):
                 model_name=self.ui.combo_model.currentText(),
                 result=msg,
                 src=src,
-                binary=None,
+                binary=binary,
                 dst=dst,
                 code_sn="",
                 weight=str(self.weight),
@@ -1562,7 +1590,7 @@ class MainWindow(QMainWindow):
                 config=config,
             )
 
-            self.signalWeightAuto.emit(self.final_result)
+            self.signalResultAuto.emit(self.final_result, "Camera1")
 
             self.current_step_auto = STEP_OUTPUT_WEIGHT_AUTO
             elapsed_time = self.get_elappsed_time()
@@ -1748,7 +1776,7 @@ class MainWindow(QMainWindow):
             )
 
             # Phát tín hiệu kết quả auto
-            self.signalResultOpticAuto.emit(self.final_result)
+            self.signalResultAuto.emit(self.final_result, "Camera2")
 
             self.current_step_auto = STEP_OUTPUT_OPTIC_AUTO
             elapsed_time = self.get_elappsed_time()
@@ -1882,14 +1910,13 @@ class MainWindow(QMainWindow):
             # # Draw contours
             # cv.drawContours(dst, cnts, -1, (0, 255, 0), 2)
 
-            # Đường dẫn thư mục lưu ảnh barcode
-            InputBarCodePath = r"A:\ProjectPython\ProjectProcessingImage\resources\UnitBox\Input"
-
             # Xoá tất cả các file trong thư mục
             for filename in os.listdir(InputBarCodePath):
                 file_path = os.path.join(InputBarCodePath, filename)
                 if os.path.isfile(file_path):
                     os.remove(file_path)
+            if os.path.exists(OutputBarCodePath):
+                os.remove(OutputBarCodePath)
 
             # Giả sử src là ảnh barcode mà bạn đã xử lý
             filename = "BarCode.jpg"  # Thêm đuôi file để đảm bảo có thể mở được
@@ -1902,18 +1929,24 @@ class MainWindow(QMainWindow):
             # Send Trigger Vission Master
             self.vision_master_controller.send_trigger()
 
-            time.sleep(0.5)
+            while not os.path.exists(OutputBarCodePath):
+                time.sleep(0.5)  # Chờ 100ms rồi kiểm tra lại
+
+            dst = cv.imread(OutputBarCodePath)
+
             # Ghi lỗi
+            # self.ui_logger.debug("Data Vision Master: " + str(self.dataVM))
             parts = self.dataVM.strip().split(";")
             if all(p == parts[0] for p in parts) == True and len(parts) == 5:
                 msg = "PASS"
+                self.ui.label_model_code.setText(parts[0])
+                self.ui.label_model_code.setProperty("class", "pass")
+                update_style(self.ui.label_model_code)
             elif all(p == parts[0] for p in parts) == False or len(parts) != 5:
                 msg = "FAIL"
-
-            time.sleep(1)
-            # Đường dẫn thư mục load ảnh outputbarcode
-            OutputBarCodePath = r"A:\ProjectPython\ProjectProcessingImage\resources\UnitBox\Output\OutputBarCode.jpg"
-            dst = cv.imread(OutputBarCodePath)
+                self.ui.label_model_code.setText("DECODE FAIL")
+                self.ui.label_model_code.setProperty("class", "fail")
+                update_style(self.ui.label_model_code)
 
             # Tạo kết quả cuối cùng cho auto
             self.final_result = RESULT(
@@ -1931,7 +1964,7 @@ class MainWindow(QMainWindow):
             )
 
             # Phát tín hiệu kết quả auto
-            self.signalResultOpticAuto.emit(self.final_result)
+            self.signalResultAuto.emit(self.final_result, "Camera2")
 
             self.current_step_auto = STEP_OUTPUT_UNITBOX_AUTO
             elapsed_time = self.get_elappsed_time()
@@ -2331,25 +2364,17 @@ class MainWindow(QMainWindow):
             self.current_step_teaching = STEP_WAIT_TRIGGER_TEACHING
             self.b_trigger_teaching = False
 
-    def handle_weight_auto(self, result):
-        try:
-            # Hiển thị ảnh kết quả
-            if result.src is not None:
-                self.canvas_camera1_auto.load_pixmap(ndarray2pixmap(result.src))
-
-        except Exception as e:
-            self.ui_logger.error(f"Lỗi khi xử lý kết quả weight auto: {str(e)}")
-        finally:
-            # Giải phóng bộ nhớ
-            gc.collect()
-    def handle_result_optic_auto(self, result):
+    def handle_result_optic_auto(self, result, canvas:str):
         """
         Xử lý kết quả từ luồng auto.
         """
         try:
             # Hiển thị ảnh kết quả
             if result.src is not None:
-                self.canvas_camera2_auto.load_pixmap(ndarray2pixmap(result.src))
+                if canvas == "Camera1":
+                    self.canvas_camera1_auto.load_pixmap(ndarray2pixmap(result.src))
+                elif canvas == "Camera2":
+                    self.canvas_camera2_auto.load_pixmap(ndarray2pixmap(result.src))
 
             if result.binary is not None:
                 self.canvas_binary.load_pixmap(ndarray2pixmap(result.binary))

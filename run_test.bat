@@ -1,2 +1,2 @@
-python test.py
+python test_tcp.py
 pause
