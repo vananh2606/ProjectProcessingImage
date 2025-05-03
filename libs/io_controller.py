@@ -210,9 +210,10 @@ class IOController(QObject):
 if __name__ == "__main__":
     import random
 
-    io = IOController(com="COM9", baud=19200)
+    io = IOController(com="COM15", baud=19200)
     print(io.open())
-    time.sleep(10)
+    time.sleep(0.5)
+    io.write_out(OutPorts.Out_1, PortState.Off)
     # while True:
     #     msg = ["PASS", "FAIL", ""][random.randint(0, 2)]
 

@@ -4,7 +4,7 @@
         "camera": {
             "type": "HIK",
             "id": "DA5691963",
-            "feature": "Gray"
+            "feature": "Black"
         },
         "lighting": {
             "controller_light": "DCP",
@@ -26,9 +26,13 @@
             "value_weight": "0.491"
         },
         "vision_master": {
-            "comport_vision_master": "",
-            "baudrate_vision_master": "",
-            "string trigger": ""
+            "comport_vision_master": "COM13",
+            "baudrate_vision_master": "9600",
+            "string_trigger": "TRIGGER"
+        },
+        "scanner": {
+            "comport_scanner": "COM11",
+            "baudrate_scanner": "50"
         },
         "io": {
             "comport_io": "COM15",

@@ -2,15 +2,15 @@
     "shapes": {},
     "modules": {
         "camera": {
-            "type": "Webcam",
-            "id": "0",
-            "feature": ""
+            "type": "HIK",
+            "id": "DA5691963",
+            "feature": "White"
         },
         "lighting": {
             "controller_light": "DCP",
-            "comport_light": "COM10",
+            "comport_light": "COM14",
             "baudrate_light": "19200",
-            "delay": 100,
+            "delay": 200,
             "channels": [
                 100,
                 10,
@@ -18,16 +18,25 @@
                 10
             ]
         },
-        "io": {
-            "comport_io": "COM9",
-            "baudrate_io": "19200"
-        },
         "weight": {
             "comport_weight": "COM10",
             "baudrate_weight": "9600",
             "min_weight": "0.100",
             "max_weight": "0.300",
-            "value_weight": "0.229"
+            "value_weight": "0.491"
+        },
+        "vision_master": {
+            "comport_vision_master": "COM13",
+            "baudrate_vision_master": "9600",
+            "string_trigger": "TRIGGER"
+        },
+        "scanner": {
+            "comport_scanner": "COM11",
+            "baudrate_scanner": "50"
+        },
+        "io": {
+            "comport_io": "COM15",
+            "baudrate_io": "19200"
         },
         "server": {
             "host": "127.0.0.1",
@@ -40,13 +49,13 @@
             "auto_start": true
         },
         "model_ai": {
-            "model_path": "yolov8n",
-            "confidence": "0.25"
+            "model_path": "best_plus",
+            "confidence": "0.75"
         },
         "processing": {
             "color": "GRAY",
             "blur": {
-                "type_blur": "Average Blur",
+                "type_blur": "Gaussian Blur",
                 "kernel_size_blur": 5
             },
             "threshold": {
@@ -67,6 +76,7 @@
                     "feature": ""
                 },
                 "lighting": {
+                    "delay": 200,
                     "channels": [
                         10,
                         10,
@@ -79,9 +89,10 @@
                 "device": {
                     "type": "HIK",
                     "id": "DA5691963",
-                    "feature": "Black"
+                    "feature": "Gray"
                 },
                 "lighting": {
+                    "delay": 200,
                     "channels": [
                         10,
                         10,

@@ -383,6 +383,7 @@ class MainWindow(QMainWindow):
         self.ui.table_widget_database.setEditTriggers(QTableWidget.NoEditTriggers)
 
         # Button
+        self.ui.btn_auto_scanner.setProperty("class", "primary")
         self.ui.btn_start.setProperty("class", "success")
         self.ui.btn_stop.setProperty("class", "danger")
         self.ui.btn_reset.setProperty("class", "primary")
@@ -403,6 +404,8 @@ class MainWindow(QMainWindow):
         self.ui.btn_trigger_vision_master.setProperty("class", "primary")
         self.ui.btn_open_scanner.setProperty("class", "success")
         self.ui.btn_open_io.setProperty("class", "success")
+        self.ui.btn_open_all_io.setProperty("class", "primary")
+        self.ui.btn_close_all_io.setProperty("class", "primary")
         self.ui.btn_connect_server.setProperty("class", "success")
         self.ui.btn_send_client.setProperty("class", "primary")
         self.ui.btn_create_database.setProperty("class", "primary")
@@ -485,10 +488,12 @@ class MainWindow(QMainWindow):
         self.ui.tabWidgetCameraConfig.addTab(self.camera_dlg_2, "Camera2")
 
         # Model
+        self.ui.combo_model_setting.setEditable(True)
         self.initialize_models()
 
     def connectUi(self):
         # Button
+        self.ui.btn_auto_scanner.clicked.connect(self.on_click_auto_scanner)
         self.ui.btn_start.clicked.connect(self.on_click_start)
         self.ui.btn_stop.clicked.connect(self.on_click_stop)
         self.ui.btn_reset.clicked.connect(self.on_click_reset)
@@ -509,6 +514,8 @@ class MainWindow(QMainWindow):
         self.ui.btn_trigger_vision_master.clicked.connect(self.on_click_trigger_vision_master)
         self.ui.btn_open_scanner.clicked.connect(self.on_click_open_scanner)
         self.ui.btn_open_io.clicked.connect(self.on_click_open_io)
+        self.ui.btn_open_all_io.clicked.connect(self.on_click_open_all_io)
+        self.ui.btn_close_all_io.clicked.connect(self.on_click_close_all_io)
         self.ui.btn_connect_server.clicked.connect(self.on_click_connect_server)
         self.ui.btn_send_client.clicked.connect(self.on_click_send_client)
         self.ui.btn_create_database.clicked.connect(self.create_database)
@@ -1146,6 +1153,72 @@ class MainWindow(QMainWindow):
             raise self.ui_logger.error("Biến phải là kiểu bool!")
         self._b_stop_teaching = boolean
 
+    def on_click_auto_scanner(self):
+        """
+        Xử lý sự kiện khi nhấn nút Open Auto.
+        Hiển thị dialog để chọn cổng COM và test scanner.
+        """
+        try:
+            from libs.auto_scanner_dlg import AutoScannerDlg
+            
+            # Tạo và hiển thị dialog
+            dialog = AutoScannerDlg(self)
+            dialog.scannerResult.connect(self.handle_scanner_result)
+            
+            # Hiển thị dialog và chờ kết quả
+            result = dialog.exec_()
+            
+            # Disconnect signal để tránh memory leak
+            dialog.scannerResult.disconnect()
+            
+        except Exception as e:
+            self.ui_logger.error(f"Error in auto scanner: {str(e)}")
+
+    def handle_scanner_result(self, scanned_model):
+        """
+        Xử lý kết quả từ scanner.
+        Kiểm tra xem model đã quét có trong combo_model không.
+        """
+        try:
+            self.ui.label_code_sn.setText(scanned_model)
+            self.ui_logger.info(f"Scanned model: {scanned_model}")
+            
+            # Kiểm tra xem model đã quét có trong danh sách model không
+            model_index = self.ui.combo_model.findText(scanned_model)
+            
+            if model_index >= 0:
+                # Model tồn tại, load nó
+                self.ui_logger.info(f"Model {scanned_model} load thành công.")
+                self.ui.combo_model.setCurrentIndex(model_index)
+                
+                # Thông báo thành công
+                QMessageBox.information(self, "Success", f"Model {scanned_model} load thành công.")
+            else:
+                # Model không tồn tại, hiển thị cảnh báo
+                self.ui_logger.warning(f"Model {scanned_model} không tồn tại.")
+                
+                reply = QMessageBox.question(
+                    self,
+                    "Model Not Found",
+                    f"Model {scanned_model} không tồn tại trong danh sách. Bạn có muốn tạo model {scanned_model} vào danh sách không?",
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.No
+                )
+                
+                if reply == QMessageBox.Yes:
+                    # Tạo model mới với tên đã quét
+                    success = self.add_model(scanned_model)
+                    if success:
+                        self.ui_logger.info(f"Model {scanned_model} tạo thành công.")
+                        QMessageBox.information(self, "Success", f"Model {scanned_model} tạo thành công.")
+                    else:
+                        self.ui_logger.error(f"Lỗi khi tạo model {scanned_model}.")
+                        QMessageBox.critical(self, "Error", f"Lỗi khi tạo model {scanned_model}.")
+        
+        except Exception as e:
+            self.ui_logger.error(f"Error handling scanner result: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Error handling scanner result: {str(e)}")
+
     def on_click_start(self):
         """
         Xử lý sự kiện khi nhấn nút Start.
@@ -1214,11 +1287,11 @@ class MainWindow(QMainWindow):
             self.ui_logger.error(f"Error stop auto: {str(e)}")
 
     def release_loop_auto(self):
-        self.io_controller.write_out(OutPorts.Out_4, PortState.Off)  
-        time.sleep(0.05)
-        self.io_controller.write_out(OutPorts.Out_3, PortState.Off)  
+        self.io_controller.write_out(OutPorts.Out_1, PortState.Off)  
         time.sleep(0.05)
         self.io_controller.write_out(OutPorts.Out_2, PortState.Off)  
+        time.sleep(0.05)
+        self.io_controller.write_out(OutPorts.Out_3, PortState.Off)  
         time.sleep(0.05)
 
         self.camera1.close_camera()
@@ -1398,7 +1471,7 @@ class MainWindow(QMainWindow):
 
     def open_io_controller_auto(self):
         self.io_controller.open()
-        self.io_controller.write_out(OutPorts.Out_4, PortState.On)
+        self.io_controller.write_out(OutPorts.Out_1, PortState.On)
         self.io_controller.inputSignal.connect(
             self.wait_data_received_from_io_controller
         )
@@ -1639,27 +1712,7 @@ class MainWindow(QMainWindow):
             self.ui_logger.debug("Step Auto: Output Weight")
 
             if self.final_result is not None:
-                if self.final_result.result == "PASS":
-                    self.signalChangeLabelResult.emit("Pass")
-                    self.io_controller.write_out(OutPorts.Out_3, PortState.Off)
-                    time.sleep(0.05)
-                    self.io_controller.write_out(OutPorts.Out_2, PortState.Off)
-                    time.sleep(0.05)
-                    self.io_controller.write_out(OutPorts.Out_4, PortState.On) 
-                elif self.final_result.result  == "FAIL": 
-                    self.signalChangeLabelResult.emit("Fail")
-                    self.io_controller.write_out(OutPorts.Out_4, PortState.Off)
-                    time.sleep(0.05)
-                    self.io_controller.write_out(OutPorts.Out_2, PortState.Off)
-                    time.sleep(0.05)
-                    self.io_controller.write_out(OutPorts.Out_3, PortState.On)  
-                else:
-                    self.signalChangeLabelResult.emit("Wait")
-                    self.io_controller.write_out(OutPorts.Out_4, PortState.Off)
-                    time.sleep(0.05)
-                    self.io_controller.write_out(OutPorts.Out_3, PortState.Off)
-                    time.sleep(0.05)
-                    self.io_controller.write_out(OutPorts.Out_2, PortState.On)  
+                self.write_label_result(self.final_result.result) 
 
                 # Ghi log database
                 self.write_log_database(self.final_result, config)
@@ -1825,27 +1878,7 @@ class MainWindow(QMainWindow):
             self.ui_logger.debug("Step Auto: Output Optic")
 
             if self.final_result is not None:
-                if self.final_result.result == "PASS":
-                    self.signalChangeLabelResult.emit("Pass")
-                    self.io_controller.write_out(OutPorts.Out_3, PortState.Off)
-                    time.sleep(0.05)
-                    self.io_controller.write_out(OutPorts.Out_2, PortState.Off)
-                    time.sleep(0.05)
-                    self.io_controller.write_out(OutPorts.Out_4, PortState.On) 
-                elif self.final_result.result  == "FAIL": 
-                    self.signalChangeLabelResult.emit("Fail")
-                    self.io_controller.write_out(OutPorts.Out_4, PortState.Off)
-                    time.sleep(0.05)
-                    self.io_controller.write_out(OutPorts.Out_2, PortState.Off)
-                    time.sleep(0.05)
-                    self.io_controller.write_out(OutPorts.Out_3, PortState.On)  
-                else:
-                    self.signalChangeLabelResult.emit("Wait")
-                    self.io_controller.write_out(OutPorts.Out_4, PortState.Off)
-                    time.sleep(0.05)
-                    self.io_controller.write_out(OutPorts.Out_3, PortState.Off)
-                    time.sleep(0.05)
-                    self.io_controller.write_out(OutPorts.Out_2, PortState.On)  
+                self.write_label_result(self.final_result.result) 
 
                 # Ghi log database
                 self.write_log_database(self.final_result, config)
@@ -2014,27 +2047,7 @@ class MainWindow(QMainWindow):
             self.ui_logger.debug("Step Auto: Output UnitBox")
 
             if self.final_result is not None:
-                if self.final_result.result == "PASS":
-                    self.signalChangeLabelResult.emit("Pass")
-                    self.io_controller.write_out(OutPorts.Out_3, PortState.Off)
-                    time.sleep(0.05)
-                    self.io_controller.write_out(OutPorts.Out_2, PortState.Off)
-                    time.sleep(0.05)
-                    self.io_controller.write_out(OutPorts.Out_4, PortState.On) 
-                elif self.final_result.result  == "FAIL": 
-                    self.signalChangeLabelResult.emit("Fail")
-                    self.io_controller.write_out(OutPorts.Out_4, PortState.Off)
-                    time.sleep(0.05)
-                    self.io_controller.write_out(OutPorts.Out_2, PortState.Off)
-                    time.sleep(0.05)
-                    self.io_controller.write_out(OutPorts.Out_3, PortState.On)  
-                else:
-                    self.signalChangeLabelResult.emit("Wait")
-                    self.io_controller.write_out(OutPorts.Out_4, PortState.Off)
-                    time.sleep(0.05)
-                    self.io_controller.write_out(OutPorts.Out_3, PortState.Off)
-                    time.sleep(0.05)
-                    self.io_controller.write_out(OutPorts.Out_2, PortState.On)  
+                self.write_label_result(self.final_result.result)   
 
                 # Ghi log database
                 self.write_log_database(self.final_result, config)
@@ -2072,6 +2085,29 @@ class MainWindow(QMainWindow):
             self.b_trigger_weight_auto = False
             self.b_trigger_optic_auto = False
             self.b_trigger_unitbox_auto = False
+
+    def write_label_result(self, result: str):
+        if result == "PASS":
+            self.signalChangeLabelResult.emit("Pass")
+            self.io_controller.write_out(OutPorts.Out_1, PortState.On) 
+            time.sleep(0.05)
+            self.io_controller.write_out(OutPorts.Out_2, PortState.Off)
+            time.sleep(0.05)
+            self.io_controller.write_out(OutPorts.Out_3, PortState.Off)
+        elif result  == "FAIL": 
+            self.signalChangeLabelResult.emit("Fail")
+            self.io_controller.write_out(OutPorts.Out_1, PortState.Off) 
+            time.sleep(0.05)
+            self.io_controller.write_out(OutPorts.Out_2, PortState.On)
+            time.sleep(0.05)
+            self.io_controller.write_out(OutPorts.Out_3, PortState.Off) 
+        else:
+            self.signalChangeLabelResult.emit("Wait")
+            self.io_controller.write_out(OutPorts.Out_1, PortState.Off) 
+            time.sleep(0.05)
+            self.io_controller.write_out(OutPorts.Out_2, PortState.Off)
+            time.sleep(0.05)
+            self.io_controller.write_out(OutPorts.Out_3, PortState.On)
 
     def write_log_database(self, result: RESULT, config: dict):
         try:
@@ -2331,10 +2367,17 @@ class MainWindow(QMainWindow):
 
                 # Tạo kết quả cuối cùng cho teaching
                 self.final_result = RESULT(
+                    step="Teaching",
+                    time_check=time.strftime(DATETIME_FORMAT),
+                    model_name=self.ui.combo_model.currentText(),
+                    result="",
                     src=src,
                     binary=binary,
                     dst=dst,
-                    config=self.get_config(),
+                    code_sn="",
+                    weight="",
+                    error_type=None,
+                    config="",
                 )
 
                 # Phát tín hiệu kết quả teaching
@@ -2407,10 +2450,10 @@ class MainWindow(QMainWindow):
                     self.canvas_camera2_auto.load_pixmap(ndarray2pixmap(result.src))
 
             if result.binary is not None:
-                self.canvas_binary.load_pixmap(ndarray2pixmap(result.binary))
+                self.canvas_binary.load_pixmap(ndarray2pixmap(result.binary), True)
 
             if result.dst is not None:
-                self.canvas_dst.load_pixmap(ndarray2pixmap(result.dst))
+                self.canvas_dst.load_pixmap(ndarray2pixmap(result.dst), True)
 
         except Exception as e:
             self.ui_logger.error(f"Lỗi khi xử lý kết quả optic auto: {str(e)}")
@@ -2424,7 +2467,7 @@ class MainWindow(QMainWindow):
         """
         try:
             self.ui_logger.info(
-                f"Nhận kết quả teaching: {result.code}, kết quả: {result.result}"
+                f"Nhận kết quả teaching: {result.step}, kết quả: {result.result}"
             )
 
             # Cập nhật UI với kết quả
@@ -2432,10 +2475,10 @@ class MainWindow(QMainWindow):
 
             # Hiển thị ảnh kết quả
             if result.binary is not None:
-                self.canvas_binary.load_pixmap(ndarray2pixmap(result.binary))
+                self.canvas_binary.load_pixmap(ndarray2pixmap(result.binary), True)
 
             if result.dst is not None:
-                self.canvas_dst.load_pixmap(ndarray2pixmap(result.dst))
+                self.canvas_dst.load_pixmap(ndarray2pixmap(result.dst), True)
 
         except Exception as e:
             self.ui_logger.error(f"Lỗi khi xử lý kết quả teaching: {str(e)}")
@@ -2696,6 +2739,8 @@ class MainWindow(QMainWindow):
                         lighting_config.get("controller_light", "DCP"),
                     )
                     comports, baudrates = self.find_comports_and_baurates()
+                    self.ui.combo_comport_light.setEditable(True)
+                    self.ui.combo_baudrate_light.setEditable(True)
                     self.add_combox_item(self.ui.combo_comport_light, comports)
                     self.add_combox_item(self.ui.combo_baudrate_light, baudrates)
                     self.set_combobox_text(
@@ -2722,6 +2767,8 @@ class MainWindow(QMainWindow):
                 if "weight" in modules:
                     weight_config = modules["weight"]
                     comports, baudrates = self.find_comports_and_baurates()
+                    self.ui.combo_comport_weight.setEditable(True)
+                    self.ui.combo_baudrate_weight.setEditable(True)
                     self.add_combox_item(self.ui.combo_comport_weight, comports)
                     self.add_combox_item(self.ui.combo_baudrate_weight, baudrates)
                     self.set_combobox_text(
@@ -2737,8 +2784,9 @@ class MainWindow(QMainWindow):
                 # Áp dụng cấu hình vision master
                 if "vision_master" in modules:
                     vision_master_config = modules["vision_master"]
-                    comports = ["COM9", "COM10", "COM11", "COM12", "COM13", "COM14", "COM15"]
-                    baudrates = ["9600", "19200", "38400", "57600", "115200"]
+                    comports, baudrates = self.find_comports_and_baurates()
+                    self.ui.combo_comport_vision_master.setEditable(True)
+                    self.ui.combo_baudrate_vision_master.setEditable(True)
                     self.add_combox_item(self.ui.combo_comport_vision_master, comports)
                     self.add_combox_item(self.ui.combo_baudrate_vision_master, baudrates)
                     self.set_combobox_text(
@@ -2753,6 +2801,8 @@ class MainWindow(QMainWindow):
                 if "scanner" in modules:
                     scanner_config = modules["scanner"]
                     comports, baudrates = self.find_comports_and_baurates()
+                    self.ui.combo_comport_scanner.setEditable(True)
+                    self.ui.combo_baudrate_scanner.setEditable(True)
                     self.add_combox_item(self.ui.combo_comport_scanner, comports)
                     self.add_combox_item(self.ui.combo_baudrate_scanner, baudrates)
                     self.set_combobox_text(
@@ -2766,6 +2816,8 @@ class MainWindow(QMainWindow):
                 if "io" in modules:
                     io_config = modules["io"]
                     comports, baudrates = self.find_comports_and_baurates()
+                    self.ui.combo_comport_io.setEditable(True)
+                    self.ui.combo_baudrate_io.setEditable(True)
                     self.add_combox_item(self.ui.combo_comport_io, comports)
                     self.add_combox_item(self.ui.combo_baudrate_io, baudrates)
                     self.set_combobox_text(
@@ -3100,7 +3152,7 @@ class MainWindow(QMainWindow):
     def on_click_delete(self):
         self.delete_model()
 
-    def delete_model(self, model_name=None):
+    def delete_model(self, model_name=None, show_confirm=True):
         """
         Xóa một model.
         Nếu xóa model hiện tại, sẽ tải model khác hoặc áp dụng cấu hình mặc định.
@@ -3108,6 +3160,8 @@ class MainWindow(QMainWindow):
         Args:
             model_name (str, optional): Tên của model cần xóa.
                 Nếu None, sẽ xóa model hiện tại được chọn trong combobox.
+            show_confirm (bool, optional): Có hiển thị hộp thoại xác nhận không.
+                Mặc định là True.
 
         Returns:
             bool: True nếu xóa thành công, False nếu thất bại.
@@ -3117,27 +3171,25 @@ class MainWindow(QMainWindow):
             if model_name is None:
                 model_name = self.ui.combo_model_setting.currentText()
 
-            # Hiển thị hộp thoại xác nhận
-            reply = QMessageBox.question(
-                self,
-                "Xác nhận xóa",
-                f"Bạn có chắc chắn muốn xóa model {model_name}?",
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No,
-            )
+            # Hiển thị hộp thoại xác nhận nếu cần
+            if show_confirm:
+                reply = QMessageBox.question(
+                    self,
+                    "Xác nhận xóa",
+                    f"Bạn có chắc chắn muốn xóa model {model_name}?",
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.No,
+                )
 
-            if reply == QMessageBox.No:
-                self.ui_logger.info("Đã hủy xóa model")
-                return False
+                if reply == QMessageBox.No:
+                    self.ui_logger.info("Đã hủy xóa model")
+                    return False
 
             # Kiểm tra đường dẫn model
             model_path = os.path.join("models", model_name)
             if not os.path.exists(model_path):
                 self.ui_logger.error(f"Không tìm thấy model: {model_path}")
                 return False
-
-            # Kiểm tra xem đây có phải là model hiện tại không
-            is_current_model = model_name == self.ui.combo_model.currentText()
 
             # Xóa thư mục model và tất cả nội dung
             shutil.rmtree(model_path)
@@ -3152,14 +3204,8 @@ class MainWindow(QMainWindow):
                 self.ui.combo_model_setting.removeItem(index)
 
             # Nếu xóa model hiện tại, cần tải model khác hoặc áp dụng cấu hình mặc định
-            if is_current_model:
-                if self.ui.combo_model.count() > 0:
-                    # Tải model đầu tiên nếu có
-                    self.load_model(self.ui.combo_model.itemText(0))
-                else:
-                    # Áp dụng cấu hình mặc định nếu không còn model nào
-                    self.apply_default_config()
-
+            self.initialize_models()
+                
             self.ui_logger.info(f"Đã xóa model: {model_name}")
             return True
 
@@ -3167,8 +3213,50 @@ class MainWindow(QMainWindow):
             self.ui_logger.error(f"Lỗi khi xóa model {model_name}: {str(e)}")
             return False
 
+
     def on_click_save(self):
-        self.save_model()
+        """
+        Xử lý sự kiện khi nhấn nút Save.
+        Lưu cấu hình hiện tại vào model, nếu tên model thay đổi thì xóa model cũ.
+        """
+        # Lấy tên model ban đầu và tên model hiện tại (có thể đã được chỉnh sửa)
+        original_model_name = self.ui.combo_model_setting.itemText(self.ui.combo_model_setting.currentIndex())
+        current_model_name = self.ui.combo_model_setting.currentText()
+        
+        # Kiểm tra xem tên model có thay đổi không
+        if original_model_name != current_model_name and original_model_name:
+            # Hỏi người dùng có muốn ghi đè model không
+            reply = QMessageBox.question(
+                self,
+                "Xác nhận đổi tên Model",
+                f"Bạn đã đổi tên model từ '{original_model_name}' thành '{current_model_name}'. "
+                f"Model '{original_model_name}' sẽ bị xóa. Bạn có muốn tiếp tục?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No,
+            )
+            
+            if reply == QMessageBox.Yes:
+                # Lưu model mới
+                saved = self.save_model(current_model_name)
+                # Xóa model cũ
+                self.delete_model(original_model_name, show_confirm=False)
+                if saved:
+                    # Cập nhật danh sách model
+                    if self.ui.combo_model.findText(current_model_name) == -1:
+                        self.ui.combo_model.addItem(current_model_name)
+                    if self.ui.combo_model_setting.findText(current_model_name) == -1:
+                        self.ui.combo_model_setting.addItem(current_model_name)
+                    
+                    # Chọn model mới
+                    self.set_combobox_text(self.ui.combo_model_setting, current_model_name)
+                    
+                    # Tải model mới
+                    self.load_model(current_model_name)
+        else:
+            # Nếu tên không thay đổi, chỉ cần lưu model
+            self.save_model(current_model_name)
+            # Tải model để áp dụng các thay đổi
+            self.load_model(current_model_name)
 
     def save_model(self, model_name=None):
         """
@@ -3185,11 +3273,17 @@ class MainWindow(QMainWindow):
             # Nếu không có tên model, lấy từ combobox
             if model_name is None:
                 model_name = self.ui.combo_model_setting.currentText()
+            
+            # Đảm bảo tên model không trống
+            if not model_name.strip():
+                self.ui_logger.error("Tên model không được để trống")
+                QMessageBox.warning(self, "Lỗi", "Tên model không được để trống")
+                return False
 
             reply = QMessageBox.question(
                 self,
                 "Xác nhận lưu Model",
-                f"Lưu model {model_name} thành công",
+                f"Lưu model {model_name}?",
                 QMessageBox.Yes | QMessageBox.No,
                 QMessageBox.No,
             )
@@ -3216,10 +3310,12 @@ class MainWindow(QMainWindow):
                 json.dump(config, f, indent=4, ensure_ascii=False)
 
             self.ui_logger.info(f"Đã lưu model {model_name} thành công")
+            QMessageBox.information(self, "Thành công", f"Đã lưu model {model_name} thành công")
             return True
 
         except Exception as e:
             self.ui_logger.error(f"Lỗi khi lưu model {model_name}: {str(e)}")
+            QMessageBox.critical(self, "Lỗi", f"Lỗi khi lưu model {model_name}: {str(e)}")
             return False
 
     def on_click_open_folder(self):
@@ -3772,6 +3868,24 @@ class MainWindow(QMainWindow):
         button.setText("On")
         button.setProperty("class", "success")
         update_style(button)
+
+    def on_click_open_all_io(self):
+        self.on_output(self.ui.btn_output_1, OutPorts.Out_1)
+        time.sleep(0.5)
+        self.on_output(self.ui.btn_output_2, OutPorts.Out_2)
+        time.sleep(0.5)
+        self.on_output(self.ui.btn_output_3, OutPorts.Out_3)
+        time.sleep(0.5)
+        self.on_output(self.ui.btn_output_4, OutPorts.Out_4)
+
+    def on_click_close_all_io(self):
+        self.off_output(self.ui.btn_output_1, OutPorts.Out_1)
+        time.sleep(0.5)
+        self.off_output(self.ui.btn_output_2, OutPorts.Out_2)
+        time.sleep(0.5)
+        self.off_output(self.ui.btn_output_3, OutPorts.Out_3)
+        time.sleep(0.5)
+        self.off_output(self.ui.btn_output_4, OutPorts.Out_4)
 
     def on_click_open_weight(self):
         if self.ui.btn_open_weight.text() == "Open":
