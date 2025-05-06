@@ -26,7 +26,7 @@ class Ui_FormCamera(object):
         self.tabWidget.setSizePolicy(sizePolicy)
         self.tabWidget.setDocumentMode(False)
         self.tabWidget.setTabsClosable(False)
-        self.tabWidget.setMovable(True)
+        self.tabWidget.setMovable(False)
         self.tabWidget.setTabBarAutoHide(False)
         self.tabWidget.setObjectName("tabWidget")
         self.tabCamera = QtWidgets.QWidget()

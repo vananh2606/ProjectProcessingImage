@@ -109,7 +109,7 @@ class LCPController:
 
 
 def test_DCPController():
-    dcp = DCPController(com="COM9")
+    dcp = DCPController(com="COM14")
     print(dcp.open())
     dcp.on_channel(0, 10)
     # dcp.set_light_value(0, 10)
@@ -119,7 +119,7 @@ def test_DCPController():
 
 
 def test_LCPController():
-    lcp = LCPController(com="COM9")
+    lcp = LCPController(com="COM14")
     print(lcp.open())
     lcp.on_channel(0)
     lcp.set_light_value(0, 100)

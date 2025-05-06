@@ -46,7 +46,7 @@ class SerialController(QObject):
             try:
                 if self.comport.in_waiting > 0:
                     data = self.comport.readline().decode('utf-8').strip()
-                    print(data)
+                    # print(data)
                     self.dataReceived.emit(data)
                 else:
                     time.sleep(0.05)  # avoid busy loop
@@ -56,7 +56,7 @@ class SerialController(QObject):
                 break
 
 def testSerialController():
-    serialController = SerialController(com="COM16", baud=9600)
+    serialController = SerialController(com="COM10", baud=9600)
     print(serialController.open())
     time.sleep(10)
 

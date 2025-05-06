@@ -17,6 +17,7 @@ from logger import Logger
 from canvas import WindowCanvas, Canvas
 from shape import Shape
 from ui_utils import load_style_sheet, update_style, add_scroll, ndarray2pixmap
+from libs.constants import *
 
 class AutoScannerDlg(QDialog):
     scannerResult = pyqtSignal(str)
@@ -48,8 +49,8 @@ class AutoScannerDlg(QDialog):
         try:
             default_config = {
                 "scanner":{
-                    "comport_scanner": "COM11",
-                    "baudrate_scanner": '9600',
+                    "comport_scanner": COMPORT_SCANNER,
+                    "baudrate_scanner": BAUDRATE_SCANNER,
                 },
             }
             

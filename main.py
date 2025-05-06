@@ -36,9 +36,10 @@ from PyQt5.QtWidgets import (
     QProgressBar
 )
 from PyQt5.QtCore import Qt, QThread, QTimer, QFile, pyqtSignal, QSize, QPointF
-from PyQt5.QtGui import QImage, QPixmap, QIcon, QColor
+from PyQt5.QtGui import QImage, QPixmap, QIcon, QColor, QBrush, QFont
 from functools import partial
 from collections import namedtuple
+from typing import List
 
 from ui.MainWindowUI import Ui_MainWindow
 from libs.loading import LoadingDialog
@@ -339,6 +340,7 @@ class MainWindow(QMainWindow):
 
         # scanner Controller
         self.scanner_controller = None
+        self.listCodeSN = []
 
         # IO Controller
         self.io_controller = None
@@ -384,6 +386,7 @@ class MainWindow(QMainWindow):
 
         # Button
         self.ui.btn_auto_scanner.setProperty("class", "primary")
+        self.ui.btn_clear_list.setProperty("class", "primary")
         self.ui.btn_start.setProperty("class", "success")
         self.ui.btn_stop.setProperty("class", "danger")
         self.ui.btn_reset.setProperty("class", "primary")
@@ -494,6 +497,7 @@ class MainWindow(QMainWindow):
     def connectUi(self):
         # Button
         self.ui.btn_auto_scanner.clicked.connect(self.on_click_auto_scanner)
+        self.ui.btn_clear_list.clicked.connect(self.on_click_clear_list)
         self.ui.btn_start.clicked.connect(self.on_click_start)
         self.ui.btn_stop.clicked.connect(self.on_click_stop)
         self.ui.btn_reset.clicked.connect(self.on_click_reset)
@@ -1203,7 +1207,7 @@ class MainWindow(QMainWindow):
                     f"Model {scanned_model} không tồn tại trong danh sách. Bạn có muốn tạo model {scanned_model} vào danh sách không?",
                     QMessageBox.Yes | QMessageBox.No,
                     QMessageBox.No
-                )
+                )                    
                 
                 if reply == QMessageBox.Yes:
                     # Tạo model mới với tên đã quét
@@ -1218,6 +1222,17 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.ui_logger.error(f"Error handling scanner result: {str(e)}")
             QMessageBox.critical(self, "Error", f"Error handling scanner result: {str(e)}")
+
+    def on_click_clear_list(self):
+        self.clear_list()
+
+    def clear_list(self, list_widget_code_sn=None):
+        self.listCodeSN = []
+        if list_widget_code_sn is None:
+            list_widget_code_sn = self.ui.list_widget_code_sn
+
+        list_widget_code_sn.clear()
+        self.ui.label_count.setText(f"Count: 0")
 
     def on_click_start(self):
         """
@@ -1243,20 +1258,21 @@ class MainWindow(QMainWindow):
     def setup_auto(self):
         if self.ui.btn_start_teaching.text() == "Stop Teaching":
             self.stop_teaching()
-
         if self.ui.btn_start_camera.text() == "Stop":
             self.stop_camera()
             self.close_camera()
-
         if self.ui.btn_open_camera.text() == "Close":
             self.close_camera()
-
         if self.ui.btn_open_light.text() == "Close":
             self.close_light()
-
+        if self.ui.btn_open_weight.text() == "Close":
+            self.close_weight()
+        if self.ui.btn_open_vision_master == "Close":
+            self.close_vision_master()
+        if self.ui.btn_open_scanner == "Close":
+            self.close_scanner()
         if self.ui.btn_open_io.text() == "Close":
             self.close_io()
-
         if self.ui.btn_connect_server.text() == "Disconnect":
             self.disconnect_server()
 
@@ -1272,8 +1288,6 @@ class MainWindow(QMainWindow):
         Dừng luồng auto.
         """
         try:
-            self.ui_logger.info("Đang dừng hệ thống Auto")
-
             # Cập nhật UI
             self.ui.btn_start.setEnabled(True)
             self.ui.combo_model.setEnabled(True)
@@ -1299,18 +1313,22 @@ class MainWindow(QMainWindow):
         self.camera1 = None
         self.camera2 = None
 
+        self.clear_list()
+
         if self.camera_thread is not None:
             self.close_camera()
         if self.light_controller is not None:
             self.close_light()
-        if self.tcp_server is not None:
-            self.disconnect_server()
-        if self.io_controller is not None:
-            self.close_io()
         if self.weight_controller is not None:
             self.close_weight()
         if self.vision_master_controller is not None:
             self.close_vision_master()
+        if self.scanner_controller is not None:
+            self.close_scanner()
+        if self.io_controller is not None:
+            self.close_io()
+        if self.tcp_server is not None:
+            self.disconnect_server()
         # self.ui.btn_start_teaching.setEnabled(True)
         self.ui.btn_open_camera.setEnabled(True)
         # self.ui.btn_open_light.setEnabled(True)
@@ -1351,7 +1369,7 @@ class MainWindow(QMainWindow):
         strTrigger = config["modules"]["vision_master"]["string_trigger"]
         self.init_vision_master(com_port_vision_master, baud_rate_vision_master, strTrigger)
 
-        # Init IO Controller
+        # Init Scanner
         com_port_scanner = config["modules"]["scanner"]["comport_scanner"]
         baud_rate_scanner = int(config["modules"]["scanner"]["baudrate_scanner"])
         self.init_scanner(com_port_scanner, baud_rate_scanner)
@@ -1399,17 +1417,22 @@ class MainWindow(QMainWindow):
             t4.start()
             t4.join()
 
-        time.sleep(0.2)
-        if self.io_controller is not None:
-            t5 = threading.Thread(target=self.open_io_controller_auto, daemon=True)
+        if self.scanner_controller is not None:
+            t5 = threading.Thread(target=self.open_scanner_controller_auto, daemon=True)
             t5.start()
             t5.join()
 
         time.sleep(0.2)
-        if self.tcp_server is not None:
-            t6 = threading.Thread(target=self.connect_server_auto, daemon=True)
+        if self.io_controller is not None:
+            t6 = threading.Thread(target=self.open_io_controller_auto, daemon=True)
             t6.start()
             t6.join()
+
+        time.sleep(0.2)
+        if self.tcp_server is not None:
+            t7 = threading.Thread(target=self.connect_server_auto, daemon=True)
+            t7.start()
+            t7.join()
 
         time.sleep(0.2)
         threading.Thread(target=self.loop_auto, daemon=True).start()
@@ -1468,6 +1491,62 @@ class MainWindow(QMainWindow):
             # self.ui_logger.info(f"Data Vision Master: {self.dataVM}")
         except Exception as e:
             self.ui_logger.error(f"Lỗi xử lý chuỗi value vision master: {e}")
+
+    def open_scanner_controller_auto(self):
+        self.scanner_controller.open()
+        self.scanner_controller.dataReceived.connect(self.wait_data_received_from_scanner_controller)
+
+    def wait_data_received_from_scanner_controller(self, data):
+        try:
+            self.listCodeSN.append(data)
+            self.add_list_to_listwidget(self.listCodeSN, list_widget_code_sn=self.ui.list_widget_code_sn)
+            # self.ui_logger.info(f"Data Scanner: {self.dataScanner}")
+        except Exception as e:
+            self.ui_logger.error(f"Lỗi xử lý chuỗi value scanner: {e}")
+    
+    def add_list_to_listwidget(self, listCodeSN: List, list_widget_code_sn=None):
+        """
+        Thêm một list Python có sẵn vào QListWidget.
+        
+        Args:
+            list (list): Danh sách cần thêm vào QListWidget
+            list_widget (QListWidget, optional): QListWidget cần thêm vào.
+                Nếu None, mặc định sẽ dùng list_widget_code_sn
+        
+        Returns:
+            int: Số lượng phần tử đã thêm vào
+        """
+        try:
+            # Sử dụng list_widget_code_sn nếu không chỉ định list_widget
+            if list_widget_code_sn is None:
+                list_widget_code_sn = self.ui.list_widget_code_sn
+
+            list_widget_code_sn.clear()
+            self.ui_logger.debug(f"List CODE SN: {listCodeSN[-5:][::-1]}")
+                
+            # Kiểm tra xem đã thêm trùng lặp chưa
+            count_added = 0
+            
+            for item_text in listCodeSN:
+                # Chuyển đổi sang chuỗi nếu không phải
+                if not isinstance(item_text, str):
+                    item_text = str(item_text)
+                        
+                list_widget_code_sn.insertItem(0, item_text)
+                count_added += 1
+
+            for i in range(min(5, list_widget_code_sn.count())):
+                list_widget_code_sn.item(i).setForeground(QBrush(QColor(0,0,255)))
+                list_widget_code_sn.item(i).setFont(QFont('Arial', 10, QFont.Bold))
+                    
+            # Cuộn xuống cuối danh sách
+            if count_added > 0:
+                list_widget_code_sn.scrollToTop()
+                
+            self.ui.label_count.setText(f"Count: {str(count_added)}")
+                
+        except Exception as e:
+            self.ui_logger.error(f"Lỗi khi thêm listCodeSN vào list_widget_code_sn: {str(e)}")
 
     def open_io_controller_auto(self):
         self.io_controller.open()
@@ -1619,6 +1698,8 @@ class MainWindow(QMainWindow):
             # Lấy ảnh hiện tại từ camera
             if self.camera1 is not None:
                 self.current_image_camera1 = self.camera1.grab_camera()
+                if self.current_image_camera1 is None:
+                    self.ui_logger.warning("Image not found")
 
             # Tắt đèn
             if self.light_controller is not None:
@@ -1675,8 +1756,17 @@ class MainWindow(QMainWindow):
             else:
                 msg = "FAIL"
 
+            if len(self.listCodeSN) != 0:
+                code_sn = str(self.listCodeSN[-1])
+            else: 
+                code_sn = "List Code SN is Empty"
+
             dst = src.copy()
-            # dst = cv.putText(dst, "Weight", )
+
+            time_check = time.strftime(DATETIME_FORMAT)
+            model_name = self.ui.combo_model.currentText()
+
+            dst = self.put_text_dst(dst, time_check, model_name, code_sn)
 
             # Tạo kết quả cuối cùng cho auto
             self.final_result = RESULT(
@@ -1687,7 +1777,7 @@ class MainWindow(QMainWindow):
                 src=src,
                 binary=binary,
                 dst=dst,
-                code_sn="",
+                code_sn=code_sn,
                 weight=str(self.weight),
                 error_type=None,
                 config=config,
@@ -1757,6 +1847,8 @@ class MainWindow(QMainWindow):
             # Lấy ảnh hiện tại từ camera
             if self.camera2 is not None:
                 self.current_image_camera2 = self.camera2.grab_camera()
+                if self.current_image_camera2 is None:
+                    self.ui_logger.warning("Image not found")
 
             # Tắt đèn
             if self.light_controller is not None:
@@ -1809,12 +1901,17 @@ class MainWindow(QMainWindow):
             # # Draw contours
             # cv.drawContours(dst, cnts, -1, (0, 255, 0), 2)
 
+            if len(self.listCodeSN) != 0:
+                code_sn = ', '.join(self.listCodeSN[-5:][::-1])
+            else: 
+                code_sn = "List Code SN is Empty"
+
             # Thực hiện phát hiện
             results = self.model_ai.detect(src, conf=float(config["modules"]["model_ai"]["confidence"]), imgsz=640)
             
             # Vẽ kết quả
             dst = plot_results(results, dst, self.model_ai.label_map, self.model_ai.color_map)
-
+            
             count_empty = 0
             count_optic = 0
 
@@ -1843,6 +1940,11 @@ class MainWindow(QMainWindow):
             # else:
             #     msg = "WAIT"
 
+            time_check = time.strftime(DATETIME_FORMAT)
+            model_name = self.ui.combo_model.currentText()
+
+            dst = self.put_text_dst(dst, time_check, model_name, code_sn)
+
             # Tạo kết quả cuối cùng cho auto
             self.final_result = RESULT(
                 step="OPTIC",
@@ -1852,7 +1954,7 @@ class MainWindow(QMainWindow):
                 src=src,
                 binary=binary,
                 dst=dst,
-                code_sn="",
+                code_sn=code_sn,
                 weight="",
                 error_type=None,
                 config=config,
@@ -1923,6 +2025,8 @@ class MainWindow(QMainWindow):
             # Lấy ảnh hiện tại từ camera
             if self.camera2 is not None:
                 self.current_image_camera2 = self.camera2.grab_camera()
+                if self.current_image_camera2 is None:
+                        self.ui_logger.warning("Image not found")
 
             # Tắt đèn
             if self.light_controller is not None:
@@ -1973,6 +2077,11 @@ class MainWindow(QMainWindow):
             # # Draw contours
             # cv.drawContours(dst, cnts, -1, (0, 255, 0), 2)
 
+            if len(self.listCodeSN) != 0:
+                code_sn = ', '.join(self.listCodeSN[-5:][::-1])
+            else: 
+                code_sn = "List Code SN is Empty"
+
             # Xoá tất cả các file trong thư mục
             for filename in os.listdir(InputBarCodePath):
                 file_path = os.path.join(InputBarCodePath, filename)
@@ -1993,8 +2102,9 @@ class MainWindow(QMainWindow):
             self.vision_master_controller.send_trigger()
 
             while not os.path.exists(OutputBarCodePath):
-                time.sleep(0.5)  # Chờ 100ms rồi kiểm tra lại
+                time.sleep(0.01)  # Chờ 100ms rồi kiểm tra lại
 
+            time.sleep(0.1)
             dst = cv.imread(OutputBarCodePath)
 
             # Ghi lỗi
@@ -2011,16 +2121,21 @@ class MainWindow(QMainWindow):
                 self.ui.label_model_code.setProperty("class", "fail")
                 update_style(self.ui.label_model_code)
 
+            time_check = time.strftime(DATETIME_FORMAT)
+            model_name = self.ui.combo_model.currentText()
+
+            dst = self.put_text_dst(dst, time_check, model_name, code_sn)
+            
             # Tạo kết quả cuối cùng cho auto
             self.final_result = RESULT(
                 step="UNITBOX",
                 time_check=time.strftime(DATETIME_FORMAT),
-                model_name=self.ui.combo_model.currentText(),
+                model_name=model_name,
                 result=msg,
                 src=src,
                 binary=binary,
                 dst=dst,
-                code_sn="",
+                code_sn=code_sn,
                 weight="",
                 error_type=None,
                 config=config,
@@ -2085,6 +2200,12 @@ class MainWindow(QMainWindow):
             self.b_trigger_weight_auto = False
             self.b_trigger_optic_auto = False
             self.b_trigger_unitbox_auto = False
+
+    def put_text_dst(self, image, time_check, model_name, code_sn):
+        image = cv.putText(image, time_check, (100, 200), cv.FONT_HERSHEY_SIMPLEX, fontScale=3, color=(0, 255, 0), thickness=10, lineType=cv.LINE_4)
+        image = cv.putText(image, model_name, (100, 400), cv.FONT_HERSHEY_SIMPLEX, fontScale=3, color=(0, 255, 0), thickness=10, lineType=cv.LINE_4)
+        dst = cv.putText(image, code_sn, (100, 600), cv.FONT_HERSHEY_SIMPLEX, fontScale=3, color=(0, 255, 0), thickness=10, lineType=cv.LINE_4)
+        return dst
 
     def write_label_result(self, result: str):
         if result == "PASS":
@@ -2475,10 +2596,10 @@ class MainWindow(QMainWindow):
 
             # Hiển thị ảnh kết quả
             if result.binary is not None:
-                self.canvas_binary.load_pixmap(ndarray2pixmap(result.binary), True)
+                self.canvas_binary.load_pixmap(ndarray2pixmap(result.binary))
 
             if result.dst is not None:
-                self.canvas_dst.load_pixmap(ndarray2pixmap(result.dst), True)
+                self.canvas_dst.load_pixmap(ndarray2pixmap(result.dst))
 
         except Exception as e:
             self.ui_logger.error(f"Lỗi khi xử lý kết quả teaching: {str(e)}")
@@ -3716,6 +3837,7 @@ class MainWindow(QMainWindow):
     def close_io(self):
         try:
             # Đóng kết nối với bộ điều khiển
+            # self.on_click_close_all_io()
             status = self.io_controller.close()
 
             self.ui.btn_output_1.setEnabled(False)
@@ -4212,6 +4334,11 @@ class MainWindow(QMainWindow):
             if hasattr(self, 'camera_thread') and self.camera_thread is not None:
                 self.camera_thread.stop_camera()
                 self.camera_thread.wait()  # Wait for thread to finish
+
+            if self.ui.btn_start.isEnabled() == False:
+                self.on_click_stop()
+
+            self.ui_logger.info("Exit")
                 
             event.accept()
         else:

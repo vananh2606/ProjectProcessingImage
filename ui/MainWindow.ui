@@ -33,7 +33,7 @@
        <number>0</number>
       </property>
       <property name="movable">
-       <bool>true</bool>
+       <bool>false</bool>
       </property>
       <widget class="QWidget" name="tab_auto">
        <attribute name="title">
@@ -589,7 +589,7 @@
               <number>0</number>
              </property>
              <property name="movable">
-              <bool>true</bool>
+              <bool>false</bool>
              </property>
              <property name="tabBarAutoHide">
               <bool>false</bool>
@@ -2354,8 +2354,22 @@
     <number>2</number>
    </attribute>
    <widget class="QWidget" name="dockWidgetContentsListCodeSN">
-    <layout class="QVBoxLayout" name="verticalLayout">
-     <item>
+    <layout class="QGridLayout" name="gridLayout_12" columnstretch="2,1">
+     <item row="0" column="0">
+      <widget class="QLabel" name="label_count">
+       <property name="text">
+        <string>Count: 0</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QPushButton" name="btn_clear_list">
+       <property name="text">
+        <string>Clear</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0" colspan="2">
       <widget class="QListWidget" name="list_widget_code_sn"/>
      </item>
     </layout>

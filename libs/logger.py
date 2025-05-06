@@ -112,7 +112,9 @@ class Logger(logging.Logger):
                 maxBytes=self.maxBytes,
                 backupCount=self.backupCount,
                 encoding="utf-8",
+                delay=True
             )
+            
             file_handler.setLevel(level)
             file_handler.setFormatter(formatter)
             self.addHandler(file_handler)
