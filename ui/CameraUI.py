@@ -167,7 +167,7 @@ class Ui_FormCamera(object):
 
     def retranslateUi(self, FormCamera):
         _translate = QtCore.QCoreApplication.translate
-        FormCamera.setWindowTitle(_translate("FormCamera", "Form"))
+        FormCamera.setWindowTitle(_translate("FormCamera", "CameraConfig"))
         self.label_camera.setText(_translate("FormCamera", "Camera"))
         self.label_id_after.setText(_translate("FormCamera", "ID"))
         self.label_feature.setText(_translate("FormCamera", "Feature"))

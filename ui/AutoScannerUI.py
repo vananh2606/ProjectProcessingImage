@@ -51,7 +51,7 @@ class Ui_AutoScanner(object):
 
     def retranslateUi(self, AutoScanner):
         _translate = QtCore.QCoreApplication.translate
-        AutoScanner.setWindowTitle(_translate("AutoScanner", "Form"))
+        AutoScanner.setWindowTitle(_translate("AutoScanner", "AutoScanner"))
         self.label_com_scanner.setText(_translate("AutoScanner", "COM & BAUD"))
         self.label_message_scanner.setText(_translate("AutoScanner", "Model"))
         self.btn_apply.setText(_translate("AutoScanner", "Apply"))

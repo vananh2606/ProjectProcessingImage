@@ -122,6 +122,10 @@ from libs.serial_controller import SerialController
 from libs.vision_controller import VisionController
 from libs.io_controller import IOController, OutPorts, InPorts, PortState, IOType
 
+from libs.auto_scanner_dlg import AutoScannerDlg
+from libs.pop_up_dlg import PopUpDlg
+
+
 app = QApplication(sys.argv)
 load_style_sheet("resources/themes/dark_theme.qss", QApplication.instance())
 
@@ -281,8 +285,9 @@ class MorphType(enum.Enum):
 
 class MainWindow(QMainWindow):
     signalResultAuto = pyqtSignal(object, str)
-
     signalResultTeaching = pyqtSignal(object)
+
+    signalShowPopup = pyqtSignal(str, str, str)
 
     signalChangeLabelResult = pyqtSignal(str)
     signalChangeLight = pyqtSignal(object)
@@ -370,6 +375,8 @@ class MainWindow(QMainWindow):
 
         # Result
         self.final_result: RESULT = None
+        self.popup_result = "FAIL"
+        self.flag_popup = "False"
 
         # Database
         self.database_path = ""
@@ -554,8 +561,9 @@ class MainWindow(QMainWindow):
         self.ui.table_widget_database.itemSelectionChanged.connect(self.on_item_table_data_selection_changed)
 
         # Kết nối tín hiệu kết quả
-        self.signalResultAuto.connect(self.handle_result_optic_auto)
+        self.signalResultAuto.connect(self.handle_result_auto)
         self.signalResultTeaching.connect(self.handle_result_teaching)
+        self.signalShowPopup.connect(self.show_popup)
 
         # Kết nối tín hiệu thay đổi Label
         self.signalChangeLabelResult.connect(self.handle_change_label_result)
@@ -604,7 +612,7 @@ class MainWindow(QMainWindow):
         for i in range(0, 100):
             QTimer.singleShot(dt*i, lambda value=i: self.status_progress_bar.setValue(value+1))
     def finish_progress(self):
-        self.status_label.setText("Status Label")
+        self.status_label.setText("Completed")
         self.status_progress_bar.setValue(0)
         self.status_progress_bar.setTextVisible(False)
         
@@ -1162,9 +1170,7 @@ class MainWindow(QMainWindow):
         Xử lý sự kiện khi nhấn nút Open Auto.
         Hiển thị dialog để chọn cổng COM và test scanner.
         """
-        try:
-            from libs.auto_scanner_dlg import AutoScannerDlg
-            
+        try: 
             # Tạo và hiển thị dialog
             dialog = AutoScannerDlg(self)
             dialog.scannerResult.connect(self.handle_scanner_result)
@@ -1244,14 +1250,14 @@ class MainWindow(QMainWindow):
 
             self.ui_logger.info("Bắt đầu khởi động hệ thống Auto")
 
+            self.setup_auto()
+            self.start_loop_auto()
+
             # Cập nhật UI
             self.ui.btn_start.setEnabled(False)
             self.ui.combo_model.setEnabled(False)
             self.ui.btn_stop.setEnabled(True)
-
-            self.setup_auto()
-            self.start_loop_auto()
-
+            # self.finishProgress.emit()
         except Exception as e:
             self.ui_logger.error(f"Error start auto: {str(e)}")
 
@@ -1282,6 +1288,34 @@ class MainWindow(QMainWindow):
         # self.ui.btn_open_io.setEnabled(False)
         # self.ui.btn_connect_server.setEnabled(False)
 
+    def on_click_reset(self):
+        """
+        Xử lý sự kiện khi nhấn nút Reset.
+        Dừng tất cả các luồng và thiết lập lại trạng thái.
+        """
+        try:
+            self.ui_logger.info("Đang reset hệ thống")
+
+            # Dừng luồng auto
+            self.b_stop_auto = True
+            self.b_trigger_weight_auto = False
+            self.b_trigger_optic_auto = False
+            self.b_trigger_unitbox_auto = False
+
+            # Cập nhật UI
+            self.ui.btn_start.setEnabled(True)
+            self.ui.combo_model.setEnabled(True)
+            self.ui.btn_stop.setEnabled(False)
+
+            self.stop_loop_auto()
+            self.release_loop_auto()
+
+            # Khôi phục cấu hình mặc định
+            # self.apply_default_config()
+
+        except Exception as e:
+            self.ui_logger.error(f"Error reset: {str(e)}")
+
     def on_click_stop(self):
         """
         Xử lý sự kiện khi nhấn nút Stop.
@@ -1296,7 +1330,6 @@ class MainWindow(QMainWindow):
             self.stop_loop_auto()
             self.release_loop_auto()
 
-            self.finishProgress.emit()
         except Exception as e:
             self.ui_logger.error(f"Error stop auto: {str(e)}")
 
@@ -1308,12 +1341,14 @@ class MainWindow(QMainWindow):
         self.io_controller.write_out(OutPorts.Out_3, PortState.Off)  
         time.sleep(0.05)
 
-        self.camera1.close_camera()
-        self.camera2.close_camera()
-        self.camera1 = None
-        self.camera2 = None
-
         self.clear_list()
+
+        if self.camera1 is not None:
+            self.camera1.close_camera()
+            self.camera1 = None
+        if self.camera2 is not None:
+            self.camera2.close_camera()
+            self.camera2 = None
 
         if self.camera_thread is not None:
             self.close_camera()
@@ -1485,7 +1520,7 @@ class MainWindow(QMainWindow):
 
     def wait_data_received_from_vision_master_controller(self, data):
         try:
-            dataVM = [item for item in data.split(";") if len(item) >=  13]
+            dataVM = [item for item in data.split(";") if len(item) ==  14]
             list_model_code = ';'.join(dataVM)
             self.dataVM = list_model_code
             # self.ui_logger.info(f"Data Vision Master: {self.dataVM}")
@@ -1498,8 +1533,9 @@ class MainWindow(QMainWindow):
 
     def wait_data_received_from_scanner_controller(self, data):
         try:
-            self.listCodeSN.append(data)
-            self.add_list_to_listwidget(self.listCodeSN, list_widget_code_sn=self.ui.list_widget_code_sn)
+            if len(data) >=  10:
+                self.listCodeSN.append(data)
+                self.add_list_to_listwidget(self.listCodeSN, list_widget_code_sn=self.ui.list_widget_code_sn)
             # self.ui_logger.info(f"Data Scanner: {self.dataScanner}")
         except Exception as e:
             self.ui_logger.error(f"Lỗi xử lý chuỗi value scanner: {e}")
@@ -1706,6 +1742,7 @@ class MainWindow(QMainWindow):
                 for i, value in enumerate(channels):
                     if value > 0:
                         self.light_controller.off_channel(i)
+
             self.current_step_auto = STEP_PROCESSING_WEIGHT_AUTO
             elapsed_time = self.get_elappsed_time()
             self.ui_logger.info(f"Auto preprocess weight time: {elapsed_time:.3f} seconds")
@@ -1723,38 +1760,27 @@ class MainWindow(QMainWindow):
             self.ui_logger.debug("Step Auto: Processing Weight")
             src = self.current_image_camera1
             
-            color_type = config["modules"]["processing"]["color"]
-            gray = cv.cvtColor(src, ColorType.from_label(color_type).value)
+            binary = self.processing_binary(src, config)
 
-            blur_type = config["modules"]["processing"]["blur"]["type_blur"]
-            kernel_blur = config["modules"]["processing"]["blur"]["kernel_size_blur"]
-            blur = BlurType.from_label(blur_type).value(gray, (kernel_blur, kernel_blur), 0)
-
-            threshold_type = config["modules"]["processing"]["threshold"]["type_threshold"]
-            value_threshold = config["modules"]["processing"]["threshold"]["value_threshold"]
-            _, thresh = cv.threshold(blur, value_threshold, 255, ThresholdType.from_label(threshold_type).value)
-
-            morph_type = config["modules"]["processing"]["morphological"]["type_morph"]
-            iteration = config["modules"]["processing"]["morphological"]["iteration"]
-            kernel_size = config["modules"]["processing"]["morphological"]["kernel_size_morph"]
-            kernel = cv.getStructuringElement(cv.MORPH_RECT, (kernel_size, kernel_size))
-            binary = cv.morphologyEx(thresh, MorphType.from_label(morph_type).value, kernel, iterations=iteration)
-            
-            # # Find contours
-            # cnts, _ = cv.findContours(
-            #     binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE
-            # )
-
-            # # Draw contours
-            # cv.drawContours(dst, cnts, -1, (0, 255, 0), 2)
-
+            # Ghi lỗi
             self.weight = float(self.ui.label_value_weight_auto.text())
             min_weight = float(config["modules"]["weight"]["min_weight"])
             max_weight = float(config["modules"]["weight"]["max_weight"])
             if self.weight > min_weight and self.weight < max_weight:
                 msg = "PASS"
             else:
-                msg = "FAIL"
+
+                message = f"Xác nhận lại Weight"
+                comport = config["modules"]["scanner"]["comport_scanner"]
+                baudrate = str(config["modules"]["scanner"]["baudrate_scanner"])
+            
+                self.signalShowPopup.emit(message, comport, baudrate)
+                while True:
+                    if not self.flag_popup:
+                        break
+                    time.sleep(0.01)
+                msg = self.popup_result
+                self.flag_popup = True
 
             if len(self.listCodeSN) != 0:
                 code_sn = str(self.listCodeSN[-1])
@@ -1874,32 +1900,9 @@ class MainWindow(QMainWindow):
 
             src = self.current_image_camera2
 
-            color_type = config["modules"]["processing"]["color"]
-            gray = cv.cvtColor(src, ColorType.from_label(color_type).value)
-
-            blur_type = config["modules"]["processing"]["blur"]["type_blur"]
-            kernel_blur = config["modules"]["processing"]["blur"]["kernel_size_blur"]
-            blur = BlurType.from_label(blur_type).value(gray, (kernel_blur, kernel_blur), 0)
-
-            threshold_type = config["modules"]["processing"]["threshold"]["type_threshold"]
-            value_threshold = config["modules"]["processing"]["threshold"]["value_threshold"]
-            _, thresh = cv.threshold(blur, value_threshold, 255, ThresholdType.from_label(threshold_type).value)
-
-            morph_type = config["modules"]["processing"]["morphological"]["type_morph"]
-            iteration = config["modules"]["processing"]["morphological"]["iteration"]
-            kernel_size = config["modules"]["processing"]["morphological"]["kernel_size_morph"]
-            kernel = cv.getStructuringElement(cv.MORPH_RECT, (kernel_size, kernel_size))
-            binary = cv.morphologyEx(thresh, MorphType.from_label(morph_type).value, kernel, iterations=iteration)
+            binary = self.processing_binary(src, config)
 
             dst = src.copy()
-
-            # # Find contours
-            # cnts, _ = cv.findContours(
-            #     binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE
-            # )
-
-            # # Draw contours
-            # cv.drawContours(dst, cnts, -1, (0, 255, 0), 2)
 
             if len(self.listCodeSN) != 0:
                 code_sn = ', '.join(self.listCodeSN[-5:][::-1])
@@ -1908,37 +1911,38 @@ class MainWindow(QMainWindow):
 
             # Thực hiện phát hiện
             results = self.model_ai.detect(src, conf=float(config["modules"]["model_ai"]["confidence"]), imgsz=640)
+
             
-            # Vẽ kết quả
-            dst = plot_results(results, dst, self.model_ai.label_map, self.model_ai.color_map)
-            
+            # Ghi lỗi
             count_empty = 0
             count_optic = 0
-
             for dnn in results:
                 if dnn.class_index == 0:
                     count_empty += 1
                 elif dnn.class_index == 1:
                     count_optic += 1
-
             self.ui.label_value_empty.setText(str(count_empty))
             self.ui.label_value_optic.setText(str(count_optic))
             self.ui.label_value_total.setText(str(count_optic + count_empty))
-
-            # Ghi lỗi
             if count_optic + count_empty != 5 or count_empty > 0:
-                msg = "FAIL"
+
+                message = f"Xác nhận lại Optic"
+                comport = config["modules"]["scanner"]["comport_scanner"]
+                baudrate = str(config["modules"]["scanner"]["baudrate_scanner"])
+            
+                self.signalShowPopup.emit(message, comport, baudrate)
+                print(self.flag_popup)
+                while True:
+                    if not self.flag_popup:
+                        break
+                    time.sleep(0.01)
+                msg = self.popup_result
+                self.flag_popup = True
+
             elif count_optic == 5:
                 msg = "PASS"
-
-
-            # random_result = random.randint(0, 2)
-            # if random_result == 0:
-            #     msg = "PASS"
-            # elif random_result == 1: 
-            #     msg = "FAIL"
-            # else:
-            #     msg = "WAIT"
+                        
+            dst = plot_results(results, dst, self.model_ai.label_map, self.model_ai.color_map)
 
             time_check = time.strftime(DATETIME_FORMAT)
             model_name = self.ui.combo_model.currentText()
@@ -2052,30 +2056,7 @@ class MainWindow(QMainWindow):
 
             src = self.current_image_camera2
             
-            color_type = config["modules"]["processing"]["color"]
-            gray = cv.cvtColor(src, ColorType.from_label(color_type).value)
-
-            blur_type = config["modules"]["processing"]["blur"]["type_blur"]
-            kernel_blur = config["modules"]["processing"]["blur"]["kernel_size_blur"]
-            blur = BlurType.from_label(blur_type).value(gray, (kernel_blur, kernel_blur), 0)
-
-            threshold_type = config["modules"]["processing"]["threshold"]["type_threshold"]
-            value_threshold = config["modules"]["processing"]["threshold"]["value_threshold"]
-            _, thresh = cv.threshold(blur, value_threshold, 255, ThresholdType.from_label(threshold_type).value)
-
-            morph_type = config["modules"]["processing"]["morphological"]["type_morph"]
-            iteration = config["modules"]["processing"]["morphological"]["iteration"]
-            kernel_size = config["modules"]["processing"]["morphological"]["kernel_size_morph"]
-            kernel = cv.getStructuringElement(cv.MORPH_RECT, (kernel_size, kernel_size))
-            binary = cv.morphologyEx(thresh, MorphType.from_label(morph_type).value, kernel, iterations=iteration)
-            
-            # # Find contours
-            # cnts, _ = cv.findContours(
-            #     binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE
-            # )
-
-            # # Draw contours
-            # cv.drawContours(dst, cnts, -1, (0, 255, 0), 2)
+            binary = self.processing_binary(src, config)
 
             if len(self.listCodeSN) != 0:
                 code_sn = ', '.join(self.listCodeSN[-5:][::-1])
@@ -2105,21 +2086,32 @@ class MainWindow(QMainWindow):
                 time.sleep(0.01)  # Chờ 100ms rồi kiểm tra lại
 
             time.sleep(0.1)
-            dst = cv.imread(OutputBarCodePath)
 
             # Ghi lỗi
-            # self.ui_logger.debug("Data Vision Master: " + str(self.dataVM))
             parts = self.dataVM.strip().split(";")
             if all(p == parts[0] for p in parts) == True and len(parts) == 5:
-                msg = "PASS"
                 self.ui.label_model_code.setText(parts[0])
                 self.ui.label_model_code.setProperty("class", "pass")
                 update_style(self.ui.label_model_code)
+                msg = "PASS"
             elif all(p == parts[0] for p in parts) == False or len(parts) != 5:
-                msg = "FAIL"
                 self.ui.label_model_code.setText("DECODE FAIL")
                 self.ui.label_model_code.setProperty("class", "fail")
                 update_style(self.ui.label_model_code)
+
+                message = f"Xác nhận lại UnitBox"
+                comport = config["modules"]["scanner"]["comport_scanner"]
+                baudrate = str(config["modules"]["scanner"]["baudrate_scanner"])
+            
+                self.signalShowPopup.emit(message, comport, baudrate)
+                while True:
+                    if not self.flag_popup:
+                        break
+                    time.sleep(0.01)
+                msg = self.popup_result
+                self.flag_popup = True
+
+            dst = cv.imread(OutputBarCodePath)
 
             time_check = time.strftime(DATETIME_FORMAT)
             model_name = self.ui.combo_model.currentText()
@@ -2201,13 +2193,73 @@ class MainWindow(QMainWindow):
             self.b_trigger_optic_auto = False
             self.b_trigger_unitbox_auto = False
 
+    def show_popup(self, message, comport, baudrate):
+        try:
+            # Create and display dialog
+            dialog = PopUpDlg(message=message, comport=comport, baudrate=baudrate)
+            
+            # Connect scanner data if available
+            if self.scanner_controller is not None:
+                self.scanner_controller.dataReceived.connect(dialog.wait_data_received_from_scanner_controller)
+            
+            print(f"Flag: {self.flag_popup}")
+            # Show dialog and wait for result
+            result = dialog.popUp()
+            print(f"Employee: {dialog.ui.line_mnv.text()}, Result: {result}")
+
+            self.popup_result = result
+            self.flag_popup = False
+            print(f"Flag: {self.flag_popup}")
+            
+        except Exception as e:
+            self.ui_logger.error(f"Error showing popup: {str(e)}")
+
+    def handle_confirm_result(self, employee_code, is_pass):
+        """
+        Handle confirmation result from popup dialog
+        """
+        try:
+            result = "PASS" if is_pass else "FAIL"
+            self.ui_logger.info(f"Confirmation from employee {employee_code}: {result}")
+                
+        except Exception as e:
+            self.ui_logger.error(f"Error handling confirmation result: {str(e)}")
+
+    def processing_binary(self, src, config):
+        color_type = config["modules"]["processing"]["color"]
+        gray = cv.cvtColor(src, ColorType.from_label(color_type).value)
+
+        blur_type = config["modules"]["processing"]["blur"]["type_blur"]
+        kernel_blur = config["modules"]["processing"]["blur"]["kernel_size_blur"]
+        blur = BlurType.from_label(blur_type).value(gray, (kernel_blur, kernel_blur), 0)
+
+        threshold_type = config["modules"]["processing"]["threshold"]["type_threshold"]
+        value_threshold = config["modules"]["processing"]["threshold"]["value_threshold"]
+        _, thresh = cv.threshold(blur, value_threshold, 255, ThresholdType.from_label(threshold_type).value)
+
+        morph_type = config["modules"]["processing"]["morphological"]["type_morph"]
+        iteration = config["modules"]["processing"]["morphological"]["iteration"]
+        kernel_size = config["modules"]["processing"]["morphological"]["kernel_size_morph"]
+        kernel = cv.getStructuringElement(cv.MORPH_RECT, (kernel_size, kernel_size))
+        binary = cv.morphologyEx(thresh, MorphType.from_label(morph_type).value, kernel, iterations=iteration)
+        
+        # # Find contours
+        # cnts, _ = cv.findContours(
+        #     binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE
+        # )
+
+        # # Draw contours
+        # cv.drawContours(dst, cnts, -1, (0, 255, 0), 2)
+        return binary
+    
     def put_text_dst(self, image, time_check, model_name, code_sn):
-        image = cv.putText(image, time_check, (100, 200), cv.FONT_HERSHEY_SIMPLEX, fontScale=3, color=(0, 255, 0), thickness=10, lineType=cv.LINE_4)
-        image = cv.putText(image, model_name, (100, 400), cv.FONT_HERSHEY_SIMPLEX, fontScale=3, color=(0, 255, 0), thickness=10, lineType=cv.LINE_4)
-        dst = cv.putText(image, code_sn, (100, 600), cv.FONT_HERSHEY_SIMPLEX, fontScale=3, color=(0, 255, 0), thickness=10, lineType=cv.LINE_4)
+        image = cv.putText(image, time_check, (100, 100), cv.FONT_HERSHEY_SIMPLEX, fontScale=2, color=(0, 255, 0), thickness=10, lineType=cv.LINE_4)
+        image = cv.putText(image, model_name, (100, 250), cv.FONT_HERSHEY_SIMPLEX, fontScale=2, color=(0, 255, 0), thickness=10, lineType=cv.LINE_4)
+        dst = cv.putText(image, code_sn, (100, 400), cv.FONT_HERSHEY_SIMPLEX, fontScale=2, color=(0, 255, 0), thickness=10, lineType=cv.LINE_4)
         return dst
 
     def write_label_result(self, result: str):
+        print(f"Resutl: {result}")
         if result == "PASS":
             self.signalChangeLabelResult.emit("Pass")
             self.io_controller.write_out(OutPorts.Out_1, PortState.On) 
@@ -2282,30 +2334,6 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.ui_logger.error(f"Error scan log dir: {str(e)}")
 
-    def on_click_reset(self):
-        """
-        Xử lý sự kiện khi nhấn nút Reset.
-        Dừng tất cả các luồng và thiết lập lại trạng thái.
-        """
-        try:
-            self.ui_logger.info("Đang reset hệ thống")
-
-            # Dừng luồng auto
-            self.b_stop_auto = True
-            self.b_trigger_weight_auto = False
-            self.b_trigger_optic_auto = False
-            self.b_trigger_unitbox_auto = False
-
-            # Cập nhật UI
-            self.ui.btn_start.setEnabled(True)
-            self.ui.btn_stop.setEnabled(False)
-
-            # Khôi phục cấu hình mặc định
-            self.apply_default_config()
-
-        except Exception as e:
-            self.ui_logger.error(f"Error reset: {str(e)}")
-
     def on_click_start_teaching(self):
         """
         Xử lý sự kiện khi nhấn nút Start Teaching.
@@ -2369,8 +2397,6 @@ class MainWindow(QMainWindow):
             if self.b_stop_teaching:
                 self.ui_logger.info("Teaching thread stopped")
                 break
-
-            enumerate
 
             # Xử lý theo từng bước
             if self.current_step_teaching == STEP_WAIT_TRIGGER_TEACHING:
@@ -2558,7 +2584,7 @@ class MainWindow(QMainWindow):
             self.current_step_teaching = STEP_WAIT_TRIGGER_TEACHING
             self.b_trigger_teaching = False
 
-    def handle_result_optic_auto(self, result, canvas:str):
+    def handle_result_auto(self, result, canvas:str):
         """
         Xử lý kết quả từ luồng auto.
         """
@@ -4139,7 +4165,7 @@ class MainWindow(QMainWindow):
 
     def handle_change_value_vision_master(self, data: str):
         try:
-            dataVM = [item for item in data.split(";") if len(item) >=  13]
+            dataVM = [item for item in data.split(";") if len(item) ==  14]
             self.ui_logger.debug(f"Vision Master: {dataVM}")
         except Exception as e:
             self.ui_logger.error(f"Lỗi xử lý chuỗi value vision master: {e}")
