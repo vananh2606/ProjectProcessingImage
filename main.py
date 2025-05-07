@@ -376,7 +376,7 @@ class MainWindow(QMainWindow):
         # Result
         self.final_result: RESULT = None
         self.popup_result = "FAIL"
-        self.flag_popup = "False"
+        self.flag_popup = True
 
         # Database
         self.database_path = ""
@@ -1775,9 +1775,7 @@ class MainWindow(QMainWindow):
                 baudrate = str(config["modules"]["scanner"]["baudrate_scanner"])
             
                 self.signalShowPopup.emit(message, comport, baudrate)
-                while True:
-                    if not self.flag_popup:
-                        break
+                while self.flag_popup:
                     time.sleep(0.01)
                 msg = self.popup_result
                 self.flag_popup = True
@@ -1931,10 +1929,7 @@ class MainWindow(QMainWindow):
                 baudrate = str(config["modules"]["scanner"]["baudrate_scanner"])
             
                 self.signalShowPopup.emit(message, comport, baudrate)
-                print(self.flag_popup)
-                while True:
-                    if not self.flag_popup:
-                        break
+                while self.flag_popup:
                     time.sleep(0.01)
                 msg = self.popup_result
                 self.flag_popup = True
@@ -2104,9 +2099,7 @@ class MainWindow(QMainWindow):
                 baudrate = str(config["modules"]["scanner"]["baudrate_scanner"])
             
                 self.signalShowPopup.emit(message, comport, baudrate)
-                while True:
-                    if not self.flag_popup:
-                        break
+                while self.flag_popup:
                     time.sleep(0.01)
                 msg = self.popup_result
                 self.flag_popup = True
@@ -2202,14 +2195,12 @@ class MainWindow(QMainWindow):
             if self.scanner_controller is not None:
                 self.scanner_controller.dataReceived.connect(dialog.wait_data_received_from_scanner_controller)
             
-            print(f"Flag: {self.flag_popup}")
             # Show dialog and wait for result
             result = dialog.popUp()
             print(f"Employee: {dialog.ui.line_mnv.text()}, Result: {result}")
 
             self.popup_result = result
             self.flag_popup = False
-            print(f"Flag: {self.flag_popup}")
             
         except Exception as e:
             self.ui_logger.error(f"Error showing popup: {str(e)}")
