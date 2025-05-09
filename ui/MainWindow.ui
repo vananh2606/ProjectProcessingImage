@@ -248,7 +248,7 @@
            <item row="1" column="2">
             <widget class="QLabel" name="label_value_weight_auto">
              <property name="text">
-              <string>0.200</string>
+              <string>0</string>
              </property>
              <property name="alignment">
               <set>Qt::AlignCenter</set>

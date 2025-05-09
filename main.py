@@ -1395,8 +1395,10 @@ class MainWindow(QMainWindow):
         self.init_weight(com_port_weight, baud_rate_weight)
         min_weight = config["modules"]["weight"]["min_weight"]
         max_weight = config["modules"]["weight"]["max_weight"]
+        value_weight = config["modules"]["weight"]["value_weight"]
         self.ui.label_value_min.setText(min_weight)
         self.ui.label_value_max.setText(max_weight)
+        self.ui.label_value_weight_auto.setText(value_weight)
 
         # Init Vision Master
         com_port_vision_master = config["modules"]["vision_master"]["comport_vision_master"]
