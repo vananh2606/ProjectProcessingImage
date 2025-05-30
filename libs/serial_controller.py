@@ -55,9 +55,24 @@ class SerialController(QObject):
                 time.sleep(1)  # Longer delay after error
                 break
 
+    def send_data(self, data: str):
+        try:
+            if self.is_open():
+                self.comport.write((data + '\n').encode('utf-8'))
+                print(f"Sent: {data + '\n'}")
+                return True
+            else:
+                print("Port is not open.")
+                return False
+        except Exception as ex:
+            print(f"Error sending data: {ex}")
+            return False
+
+
 def testSerialController():
-    serialController = SerialController(com="COM10", baud=9600)
+    serialController = SerialController(com="COM16", baud=9600)
     print(serialController.open())
+    serialController.send_data("Hello")
     time.sleep(10)
 
 if __name__ == "__main__":

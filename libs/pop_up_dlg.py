@@ -45,6 +45,8 @@ class PopUpDlg(QDialog):
         self.ui.btn_pass.setProperty("class", "success")
         self.ui.btn_fail.setProperty("class", "danger")
 
+        self.ui.line_mnv.setReadOnly(True)
+
     def connectUI(self):
         """Connect UI signals to slots"""
         self.ui.btn_pass.clicked.connect(self.on_click_pass)

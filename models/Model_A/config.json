@@ -34,6 +34,10 @@
             "comport_scanner": "COM11",
             "baudrate_scanner": "9600"
         },
+        "out_com": {
+            "comport_out_com": "COM16",
+            "baudrate_out_com": "9600"
+        },
         "io": {
             "comport_io": "COM15",
             "baudrate_io": "19200"

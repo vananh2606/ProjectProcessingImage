@@ -343,9 +343,12 @@ class MainWindow(QMainWindow):
         self.vision_master_controller = None
         self.dataVM = None
 
-        # scanner Controller
+        # Scanner Controller
         self.scanner_controller = None
         self.listCodeSN = []
+
+        # Out COM
+        self.out_com_controller = None
 
         # IO Controller
         self.io_controller = None
@@ -413,6 +416,8 @@ class MainWindow(QMainWindow):
         self.ui.btn_open_vision_master.setProperty("class", "success")
         self.ui.btn_trigger_vision_master.setProperty("class", "primary")
         self.ui.btn_open_scanner.setProperty("class", "success")
+        self.ui.btn_open_out_com.setProperty("class", "success")
+        self.ui.btn_send_data_out_com.setProperty("class", "primary")
         self.ui.btn_open_io.setProperty("class", "success")
         self.ui.btn_open_all_io.setProperty("class", "primary")
         self.ui.btn_close_all_io.setProperty("class", "primary")
@@ -524,6 +529,8 @@ class MainWindow(QMainWindow):
         self.ui.btn_open_vision_master.clicked.connect(self.on_click_open_vision_master)
         self.ui.btn_trigger_vision_master.clicked.connect(self.on_click_trigger_vision_master)
         self.ui.btn_open_scanner.clicked.connect(self.on_click_open_scanner)
+        self.ui.btn_open_out_com.clicked.connect(self.on_click_open_out_com)
+        self.ui.btn_send_data_out_com.clicked.connect(self.on_click_send_data_out_com)
         self.ui.btn_open_io.clicked.connect(self.on_click_open_io)
         self.ui.btn_open_all_io.clicked.connect(self.on_click_open_all_io)
         self.ui.btn_close_all_io.clicked.connect(self.on_click_close_all_io)
@@ -698,8 +705,12 @@ class MainWindow(QMainWindow):
                         "string_trigger": "TRIGGER",
                     },
                     "scanner": {
-                        "comport_io": "COM11",
-                        "baudrate_io": "9600",
+                        "comport_scanner": "COM11",
+                        "baudrate_scanner": "9600",
+                    },
+                    "out_com": {
+                        "comport_out_com": "COM16",
+                        "baudrate_out_com": "9600",
                     },
                     "io": {
                         "comport_io": "COM10",
@@ -894,6 +905,21 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.ui_logger.error(f"Lỗi khi khởi tạo Scanner: {str(e)}")
             return False
+        
+    def init_out_com(self, com_port, baud_rate):
+        try:
+            # Ghi log thông số io
+            self.ui_logger.info(
+                f"Khởi tạo Out COM: COM={com_port}, Baud={baud_rate}"
+            )
+
+            # Khởi tạo bộ điều khiển đèn với thông số từ giao diện
+            self.out_com_controller = SerialController(com=com_port, baud=baud_rate)
+
+            return True
+
+        except Exception as e:
+            self.ui_logger.error(f"Lỗi khi khởi tạo Scanner: {str(e)}")
 
     def init_io(self, com_port, baud_rate):
         try:
@@ -1360,6 +1386,8 @@ class MainWindow(QMainWindow):
             self.close_vision_master()
         if self.scanner_controller is not None:
             self.close_scanner()
+        if self.out_com_controller is not None:
+            self.close_out_com()
         if self.io_controller is not None:
             self.close_io()
         if self.tcp_server is not None:
@@ -1411,6 +1439,11 @@ class MainWindow(QMainWindow):
         baud_rate_scanner = int(config["modules"]["scanner"]["baudrate_scanner"])
         self.init_scanner(com_port_scanner, baud_rate_scanner)
 
+        # Init Out COM
+        com_port_out_com = config["modules"]["out_com"]["comport_out_com"]
+        baud_rate_out_com = int(config["modules"]["out_com"]["baudrate_out_com"])
+        self.init_out_com(com_port_out_com, baud_rate_out_com)
+
         # Init IO Controller
         com_port_io = config["modules"]["io"]["comport_io"]
         baud_rate_io = int(config["modules"]["io"]["baudrate_io"])
@@ -1459,17 +1492,22 @@ class MainWindow(QMainWindow):
             t5.start()
             t5.join()
 
-        time.sleep(0.2)
-        if self.io_controller is not None:
-            t6 = threading.Thread(target=self.open_io_controller_auto, daemon=True)
+        if self.out_com_controller is not None:
+            t6 = threading.Thread(target=self.open_out_com_controller_auto, daemon=True)
             t6.start()
             t6.join()
 
         time.sleep(0.2)
-        if self.tcp_server is not None:
-            t7 = threading.Thread(target=self.connect_server_auto, daemon=True)
+        if self.io_controller is not None:
+            t7 = threading.Thread(target=self.open_io_controller_auto, daemon=True)
             t7.start()
             t7.join()
+
+        time.sleep(0.2)
+        if self.tcp_server is not None:
+            t8 = threading.Thread(target=self.connect_server_auto, daemon=True)
+            t8.start()
+            t8.join()
 
         time.sleep(0.2)
         threading.Thread(target=self.loop_auto, daemon=True).start()
@@ -1585,6 +1623,9 @@ class MainWindow(QMainWindow):
                 
         except Exception as e:
             self.ui_logger.error(f"Lỗi khi thêm listCodeSN vào list_widget_code_sn: {str(e)}")
+
+    def open_out_com_controller_auto(self):
+        self.out_com_controller.open()
 
     def open_io_controller_auto(self):
         self.io_controller.open()
@@ -1828,6 +1869,10 @@ class MainWindow(QMainWindow):
             self.ui_logger.debug("Step Auto: Output Weight")
 
             if self.final_result is not None:
+                if self.final_result.result == "PASS":
+                    data = self.final_result.code_sn
+                    self.out_com_controller.send_data(data)
+
                 self.write_label_result(self.final_result.result) 
 
                 # Ghi log database
@@ -2736,6 +2781,12 @@ class MainWindow(QMainWindow):
             "baudrate_scanner": self.ui.combo_baudrate_scanner.currentText(),
         }
 
+        # Lưu thiết lập liên quan đến out_com
+        config["modules"]["out_com"] = {
+            "comport_out_com": self.ui.combo_comport_out_com.currentText(),
+            "baudrate_out_com": self.ui.combo_baudrate_out_com.currentText(),
+        }
+
         # Lưu thiết lập liên quan đến io
         config["modules"]["io"] = {
             "comport_io": self.ui.combo_comport_io.currentText(),
@@ -2950,6 +3001,21 @@ class MainWindow(QMainWindow):
                     )
                     self.set_combobox_text(
                         self.ui.combo_baudrate_scanner, scanner_config.get("baudrate_scanner", "9600")
+                    )
+
+                # Áp dụng cấu hình out_com
+                if "out_com" in modules:
+                    out_com_config = modules["out_com"]
+                    comports, baudrates = self.find_comports_and_baurates()
+                    self.ui.combo_comport_out_com.setEditable(True)
+                    self.ui.combo_baudrate_out_com.setEditable(True)
+                    self.add_combox_item(self.ui.combo_comport_out_com, comports)
+                    self.add_combox_item(self.ui.combo_baudrate_out_com, baudrates)
+                    self.set_combobox_text(
+                        self.ui.combo_comport_out_com, out_com_config.get("comport_out_com", "COM16")
+                    )
+                    self.set_combobox_text(
+                        self.ui.combo_baudrate_out_com, out_com_config.get("baudrate_out_com", "9600")
                     )
 
                 # Áp dụng cấu hình io
@@ -3811,6 +3877,57 @@ class MainWindow(QMainWindow):
             self.ui.line_message_scanner.setText(data)
         except Exception as e:
             self.ui_logger.error(f"Lỗi xử lý chuỗi value scanner: {e}")
+
+    def on_click_open_out_com(self):
+        if self.ui.btn_open_out_com.text() == "Open":
+            self.open_out_com()
+        else:
+            self.close_out_com()
+
+    def open_out_com(self):
+        try:
+            # Lấy thông số từ giao diện
+            comport_out_com = self.ui.combo_comport_out_com.currentText()
+            baudrate_out_com = int(self.ui.combo_baudrate_out_com.currentText())
+            self.init_out_com(comport_out_com, baudrate_out_com)
+
+            # Mở kết nối với bộ điều khiển
+            status = self.out_com_controller.open()
+
+            self.ui.btn_open_out_com.setText("Close")
+            self.ui.btn_open_out_com.setProperty("class", "danger")
+            update_style(self.ui.btn_open_out_com)
+
+            if status:
+                self.ui_logger.info("Out COM controller connected successfully")
+            else:
+                self.ui_logger.warning("Failed to connect to Out COM controller")
+
+        except Exception as e:
+            self.ui_logger.error(f"Error Open Out COM: {e}")
+
+    def close_out_com(self):
+        try:
+            # Đóng kết nối với bộ điều khiển
+            status = self.out_com_controller.close()
+
+            self.ui.btn_open_out_com.setText("Open")
+            self.ui.btn_open_out_com.setProperty("class", "success")
+            update_style(self.ui.btn_open_out_com)
+
+            if status:
+                self.ui_logger.info("Out COM controller disconnected successfully")
+            else:
+                self.ui_logger.warning("Failed to disconnect from Out COM controller")
+        except Exception as e:
+            self.ui_logger.error(f"Error Close Out COM: {e}")
+
+    def on_click_send_data_out_com(self):
+        try:
+            data = self.ui.line_data_out_com.text()
+            self.out_com_controller.send_data(data)
+        except Exception as e:
+            self.ui_logger.error(f"Error Send Data Out COM: {e}")
 
     def on_click_open_io(self):
         if self.ui.btn_open_io.text() == "Open":
