@@ -58,8 +58,8 @@ DATETIME_FORMAT = "%Y/%m/%d %H:%M:%S"
 FOLDER_DATE_FORMAT = "%Y-%m-%d"
 
 # Vision Master
-InputBarCodePath = r"A:\ProjectPython\ProjectProcessingImage\resources\UnitBox\Input"
-OutputBarCodePath = r"A:\ProjectPython\ProjectProcessingImage\resources\UnitBox\Output\OutputBarCode.jpg"
+InputBarCodePath = "resources/UnitBox/Input"
+OutputBarCodePath = "resources/UnitBox/Output/OutputBarCode.jpg"
 
 # CONFIG
 IMAGE_PATH_COLUMN = 4

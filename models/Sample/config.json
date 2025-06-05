@@ -1,0 +1,116 @@
+{
+    "shapes": {},
+    "modules": {
+        "camera": {
+            "type": "Webcam",
+            "id": "0",
+            "feature": ""
+        },
+        "lighting": {
+            "controller_light": "DCP",
+            "comport_light": "COM15",
+            "baudrate_light": "19200",
+            "delay": 100,
+            "channels": [
+                10,
+                10,
+                10,
+                10
+            ]
+        },
+        "weight": {
+            "comport_weight": "COM14",
+            "baudrate_weight": "9600",
+            "min_weight": "0.036",
+            "max_weight": "0.042",
+            "value_weight": "0.2"
+        },
+        "vision_master": {
+            "comport_vision_master": "COM20",
+            "baudrate_vision_master": "9600",
+            "string_trigger": "TRIGGER"
+        },
+        "scanner": {
+            "comport_scanner": "COM17",
+            "baudrate_scanner": "9600"
+        },
+        "out_com": {
+            "comport_out_com": "COM21",
+            "baudrate_out_com": "9600"
+        },
+        "io": {
+            "comport_io": "COM16",
+            "baudrate_io": "19200"
+        },
+        "server": {
+            "host": "127.0.0.1",
+            "port": "8080"
+        },
+        "system": {
+            "log_dir": "log_database",
+            "log_size": "10",
+            "database_path": "database.db",
+            "auto_start": false
+        },
+        "model_ai": {
+            "model_path": "best_plus",
+            "confidence": "0.75"
+        },
+        "processing": {
+            "color": "GRAY",
+            "blur": {
+                "type_blur": "Gaussian Blur",
+                "kernel_size_blur": 5
+            },
+            "threshold": {
+                "type_threshold": "Thresh Binary",
+                "value_threshold": 127
+            },
+            "morphological": {
+                "type_morph": "Erode",
+                "iteration": 1,
+                "kernel_size_morph": 3
+            }
+        },
+        "camera_config": {
+            "camera1": {
+                "device": {
+                    "type": "HIK",
+                    "id": "DA5691956",
+                    "feature": "Camera_1"
+                },
+                "lighting": {
+                    "delay": 200,
+                    "channels": [
+                        10,
+                        10,
+                        10,
+                        10
+                    ]
+                }
+            },
+            "camera2": {
+                "device": {
+                    "type": "HIK",
+                    "id": "DA5691962",
+                    "feature": "Camera_2"
+                },
+                "lighting": {
+                    "delay": 200,
+                    "channels": [
+                        10,
+                        10,
+                        10,
+                        10
+                    ]
+                }
+            }
+        }
+    },
+    "font": {
+        "radius": 20,
+        "thickness": 3,
+        "font_size": 25,
+        "min_size": 10
+    }
+}

@@ -331,6 +331,13 @@
                <verstretch>1</verstretch>
               </sizepolicy>
              </property>
+             <property name="font">
+              <font>
+               <pointsize>12</pointsize>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
              <property name="frameShape">
               <enum>QFrame::Box</enum>
              </property>
@@ -764,66 +771,11 @@
               <attribute name="title">
                <string>Lighting</string>
               </attribute>
-              <layout class="QGridLayout" name="gridLayoutLighting">
-               <property name="leftMargin">
-                <number>5</number>
-               </property>
-               <property name="topMargin">
-                <number>5</number>
-               </property>
-               <property name="rightMargin">
-                <number>5</number>
-               </property>
-               <property name="bottomMargin">
-                <number>5</number>
-               </property>
-               <property name="horizontalSpacing">
-                <number>10</number>
-               </property>
-               <property name="verticalSpacing">
-                <number>5</number>
-               </property>
-               <item row="2" column="1" colspan="2">
-                <widget class="QSpinBox" name="spin_delay">
-                 <property name="maximum">
-                  <number>1000000000</number>
-                 </property>
-                 <property name="value">
-                  <number>100</number>
-                 </property>
-                </widget>
-               </item>
-               <item row="5" column="1" colspan="2">
-                <widget class="QSpinBox" name="spin_channel_1">
-                 <property name="maximum">
-                  <number>1000</number>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="2">
-                <widget class="QComboBox" name="combo_baudrate_light"/>
-               </item>
-               <item row="6" column="0">
-                <widget class="QLabel" name="label_channel_2">
-                 <property name="text">
-                  <string>Channel 2</string>
-                 </property>
-                </widget>
-               </item>
+              <layout class="QGridLayout" name="gridLayout_2">
                <item row="0" column="0">
                 <widget class="QLabel" name="label_controller_light">
                  <property name="text">
                   <string>Controller</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="1">
-                <widget class="QComboBox" name="combo_comport_light">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>0</height>
-                  </size>
                  </property>
                 </widget>
                </item>
@@ -837,19 +789,25 @@
                  </property>
                 </widget>
                </item>
-               <item row="5" column="0">
-                <widget class="QLabel" name="label_channel_1">
+               <item row="1" column="0">
+                <widget class="QLabel" name="label_com_light">
                  <property name="text">
-                  <string>Channel 1</string>
+                  <string>COM &amp; BAUD</string>
                  </property>
                 </widget>
                </item>
-               <item row="7" column="1" colspan="2">
-                <widget class="QSpinBox" name="spin_channel_3">
-                 <property name="maximum">
-                  <number>1000</number>
+               <item row="1" column="1">
+                <widget class="QComboBox" name="combo_comport_light">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>0</height>
+                  </size>
                  </property>
                 </widget>
+               </item>
+               <item row="1" column="2">
+                <widget class="QComboBox" name="combo_baudrate_light"/>
                </item>
                <item row="2" column="0">
                 <widget class="QLabel" name="label_delay">
@@ -858,42 +816,73 @@
                  </property>
                 </widget>
                </item>
-               <item row="6" column="1" colspan="2">
-                <widget class="QSpinBox" name="spin_channel_2">
+               <item row="2" column="1" colspan="2">
+                <widget class="QSpinBox" name="spin_delay">
                  <property name="maximum">
-                  <number>1000</number>
+                  <number>1000000000</number>
+                 </property>
+                 <property name="value">
+                  <number>100</number>
                  </property>
                 </widget>
                </item>
-               <item row="4" column="0">
+               <item row="3" column="0">
                 <widget class="QLabel" name="label_channel_0">
                  <property name="text">
                   <string>Channel 0</string>
                  </property>
                 </widget>
                </item>
-               <item row="7" column="0">
-                <widget class="QLabel" name="label_channel_3">
-                 <property name="text">
-                  <string>Channel 3</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="4" column="1" colspan="2">
+               <item row="3" column="1" colspan="2">
                 <widget class="QSpinBox" name="spin_channel_0">
                  <property name="maximum">
                   <number>1000</number>
                  </property>
                 </widget>
                </item>
-               <item row="1" column="0">
-                <widget class="QLabel" name="label_com_light">
+               <item row="4" column="0">
+                <widget class="QLabel" name="label_channel_1">
                  <property name="text">
-                  <string>COM &amp; BAUD</string>
+                  <string>Channel 1</string>
                  </property>
                 </widget>
                </item>
-               <item row="8" column="1" colspan="2">
+               <item row="4" column="1" colspan="2">
+                <widget class="QSpinBox" name="spin_channel_1">
+                 <property name="maximum">
+                  <number>1000</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="0">
+                <widget class="QLabel" name="label_channel_2">
+                 <property name="text">
+                  <string>Channel 2</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="1" colspan="2">
+                <widget class="QSpinBox" name="spin_channel_2">
+                 <property name="maximum">
+                  <number>1000</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="6" column="0">
+                <widget class="QLabel" name="label_channel_3">
+                 <property name="text">
+                  <string>Channel 3</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="6" column="1" colspan="2">
+                <widget class="QSpinBox" name="spin_channel_3">
+                 <property name="maximum">
+                  <number>1000</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="7" column="1" colspan="2">
                 <widget class="QPushButton" name="btn_open_light">
                  <property name="minimumSize">
                   <size>
@@ -908,296 +897,350 @@
                </item>
               </layout>
              </widget>
-             <widget class="QWidget" name="tabWeight">
+             <widget class="QWidget" name="tabSerial">
               <attribute name="title">
-               <string>Weight</string>
+               <string>Serial</string>
               </attribute>
-              <layout class="QGridLayout" name="gridLayout_7">
-               <item row="0" column="1">
-                <widget class="QComboBox" name="combo_comport_weight">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>0</height>
-                  </size>
+              <layout class="QVBoxLayout" name="verticalLayout">
+               <item>
+                <widget class="QToolBox" name="toolBox">
+                 <property name="currentIndex">
+                  <number>0</number>
                  </property>
-                </widget>
-               </item>
-               <item row="0" column="0">
-                <widget class="QLabel" name="label_com_weight">
-                 <property name="text">
-                  <string>COM &amp; BAUD</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="0" column="2">
-                <widget class="QComboBox" name="combo_baudrate_weight"/>
-               </item>
-               <item row="3" column="0">
-                <widget class="QLabel" name="label_status_and">
-                 <property name="text">
-                  <string>Status Weight</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="3" column="1" colspan="2">
-                <widget class="QPushButton" name="btn_open_weight">
-                 <property name="text">
-                  <string>Open</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="0">
-                <widget class="QLabel" name="label_min_max">
-                 <property name="text">
-                  <string>MIN &amp; MAX</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="1">
-                <widget class="QLineEdit" name="line_min_weight">
-                 <property name="alignment">
-                  <set>Qt::AlignCenter</set>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="2">
-                <widget class="QLineEdit" name="line_max_weight">
-                 <property name="alignment">
-                  <set>Qt::AlignCenter</set>
-                 </property>
-                </widget>
-               </item>
-               <item row="2" column="0">
-                <widget class="QLabel" name="label_value_weight">
-                 <property name="text">
-                  <string>VALUE</string>
-                 </property>
-                 <property name="alignment">
-                  <set>Qt::AlignCenter</set>
-                 </property>
-                </widget>
-               </item>
-               <item row="2" column="1" colspan="2">
-                <widget class="QLineEdit" name="line_value_weight">
-                 <property name="alignment">
-                  <set>Qt::AlignCenter</set>
-                 </property>
-                </widget>
-               </item>
-              </layout>
-             </widget>
-             <widget class="QWidget" name="tabVisionMaster">
-              <attribute name="title">
-               <string>Vision Master</string>
-              </attribute>
-              <layout class="QGridLayout" name="gridLayout_11">
-               <item row="0" column="0">
-                <widget class="QLabel" name="label_com_vision_master">
-                 <property name="text">
-                  <string>COM &amp; BAUD</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="0" column="1">
-                <widget class="QComboBox" name="combo_comport_vision_master">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="0">
-                <widget class="QLabel" name="label_string_trigger">
-                 <property name="text">
-                  <string>String Trigger</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="0" column="2">
-                <widget class="QComboBox" name="combo_baudrate_vision_master"/>
-               </item>
-               <item row="3" column="0">
-                <widget class="QLabel" name="label_status__vision_master">
-                 <property name="text">
-                  <string>Vision Master</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="3" column="1">
-                <widget class="QPushButton" name="btn_open_vision_master">
-                 <property name="text">
-                  <string>Open</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="3" column="2">
-                <widget class="QPushButton" name="btn_trigger_vision_master">
-                 <property name="text">
-                  <string>Trigger</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="1" colspan="2">
-                <widget class="QLineEdit" name="line_string_trigger"/>
-               </item>
-              </layout>
-             </widget>
-             <widget class="QWidget" name="tabScaner">
-              <attribute name="title">
-               <string>Scaner</string>
-              </attribute>
-              <layout class="QGridLayout" name="gridLayout_19">
-               <item row="0" column="0">
-                <widget class="QLabel" name="label_com_scanner">
-                 <property name="text">
-                  <string>COM &amp; BAUD</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="0" column="1">
-                <widget class="QComboBox" name="combo_comport_scanner">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                </widget>
-               </item>
-               <item row="0" column="2">
-                <widget class="QComboBox" name="combo_baudrate_scanner"/>
-               </item>
-               <item row="1" column="0">
-                <widget class="QLabel" name="label_message_scanner">
-                 <property name="text">
-                  <string>Message</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="3" column="0">
-                <widget class="QLabel" name="label_status_scanner">
-                 <property name="text">
-                  <string>Status Scaner</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="1" colspan="2">
-                <widget class="QLineEdit" name="line_message_scanner"/>
-               </item>
-               <item row="3" column="1" colspan="2">
-                <widget class="QPushButton" name="btn_open_scanner">
-                 <property name="text">
-                  <string>Open</string>
-                 </property>
-                </widget>
-               </item>
-              </layout>
-             </widget>
-             <widget class="QWidget" name="tabOutCOM">
-              <attribute name="title">
-               <string>Out COM</string>
-              </attribute>
-              <layout class="QGridLayout" name="gridLayout_13">
-               <item row="0" column="0">
-                <widget class="QLabel" name="label_com_out_com">
-                 <property name="text">
-                  <string>COM &amp; BAUD</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="0" column="1">
-                <widget class="QComboBox" name="combo_comport_out_com">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                </widget>
-               </item>
-               <item row="0" column="2">
-                <widget class="QComboBox" name="combo_baudrate_out_com"/>
-               </item>
-               <item row="1" column="0">
-                <widget class="QPushButton" name="btn_send_data_out_com">
-                 <property name="text">
-                  <string>Send Data</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="2" column="0">
-                <widget class="QLabel" name="label_status_out_com">
-                 <property name="text">
-                  <string>Status Out COM</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="1" colspan="2">
-                <widget class="QLineEdit" name="line_data_out_com"/>
-               </item>
-               <item row="2" column="1" colspan="2">
-                <widget class="QPushButton" name="btn_open_out_com">
-                 <property name="text">
-                  <string>Open</string>
-                 </property>
-                </widget>
-               </item>
-              </layout>
-             </widget>
-             <widget class="QWidget" name="tabIO">
-              <attribute name="title">
-               <string>IO</string>
-              </attribute>
-              <layout class="QGridLayout" name="gridLayout_2">
-               <item row="0" column="1">
-                <widget class="QComboBox" name="combo_comport_io">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                </widget>
-               </item>
-               <item row="0" column="0">
-                <widget class="QLabel" name="label_com_io">
-                 <property name="text">
-                  <string>COM &amp; BAUD</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="2" column="0">
-                <widget class="QLabel" name="label_status_io">
-                 <property name="text">
-                  <string>Status IO</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="2" column="1" colspan="2">
-                <widget class="QPushButton" name="btn_open_io">
-                 <property name="text">
-                  <string>Open</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="0" column="2">
-                <widget class="QComboBox" name="combo_baudrate_io"/>
-               </item>
-               <item row="1" column="1">
-                <widget class="QPushButton" name="btn_open_all_io">
-                 <property name="text">
-                  <string>Open All</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="2">
-                <widget class="QPushButton" name="btn_close_all_io">
-                 <property name="text">
-                  <string>Close All</string>
-                 </property>
+                 <widget class="QWidget" name="pageWeight">
+                  <property name="geometry">
+                   <rect>
+                    <x>0</x>
+                    <y>0</y>
+                    <width>236</width>
+                    <height>119</height>
+                   </rect>
+                  </property>
+                  <attribute name="label">
+                   <string>Weight</string>
+                  </attribute>
+                  <layout class="QGridLayout" name="gridLayout_7">
+                   <item row="0" column="0">
+                    <widget class="QLabel" name="label_com_weight">
+                     <property name="text">
+                      <string>COM &amp; BAUD</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="1">
+                    <widget class="QComboBox" name="combo_comport_weight">
+                     <property name="minimumSize">
+                      <size>
+                       <width>0</width>
+                       <height>0</height>
+                      </size>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="2">
+                    <widget class="QComboBox" name="combo_baudrate_weight"/>
+                   </item>
+                   <item row="1" column="0">
+                    <widget class="QLabel" name="label_min_max">
+                     <property name="text">
+                      <string>MIN &amp; MAX</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="1">
+                    <widget class="QLineEdit" name="line_min_weight">
+                     <property name="alignment">
+                      <set>Qt::AlignCenter</set>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="2">
+                    <widget class="QLineEdit" name="line_max_weight">
+                     <property name="alignment">
+                      <set>Qt::AlignCenter</set>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="2" column="0">
+                    <widget class="QLabel" name="label_value_weight">
+                     <property name="text">
+                      <string>VALUE</string>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignCenter</set>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="2" column="1" colspan="2">
+                    <widget class="QLineEdit" name="line_value_weight">
+                     <property name="alignment">
+                      <set>Qt::AlignCenter</set>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="3" column="0">
+                    <widget class="QLabel" name="label_status_and">
+                     <property name="text">
+                      <string>Status Weight</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="3" column="1" colspan="2">
+                    <widget class="QPushButton" name="btn_open_weight">
+                     <property name="text">
+                      <string>Open</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                 <widget class="QWidget" name="pageVisionMaster">
+                  <property name="geometry">
+                   <rect>
+                    <x>0</x>
+                    <y>0</y>
+                    <width>245</width>
+                    <height>93</height>
+                   </rect>
+                  </property>
+                  <attribute name="label">
+                   <string>Vision Master</string>
+                  </attribute>
+                  <layout class="QGridLayout" name="gridLayout_11">
+                   <item row="0" column="0">
+                    <widget class="QLabel" name="label_com_vision_master">
+                     <property name="text">
+                      <string>COM &amp; BAUD</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="1">
+                    <widget class="QComboBox" name="combo_comport_vision_master">
+                     <property name="minimumSize">
+                      <size>
+                       <width>0</width>
+                       <height>0</height>
+                      </size>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="2">
+                    <widget class="QComboBox" name="combo_baudrate_vision_master"/>
+                   </item>
+                   <item row="1" column="0">
+                    <widget class="QLabel" name="label_string_trigger">
+                     <property name="text">
+                      <string>String Trigger</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="1" colspan="2">
+                    <widget class="QLineEdit" name="line_string_trigger"/>
+                   </item>
+                   <item row="2" column="0">
+                    <widget class="QLabel" name="label_status__vision_master">
+                     <property name="text">
+                      <string>Vision Master</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="2" column="1">
+                    <widget class="QPushButton" name="btn_open_vision_master">
+                     <property name="text">
+                      <string>Open</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="2" column="2">
+                    <widget class="QPushButton" name="btn_trigger_vision_master">
+                     <property name="text">
+                      <string>Trigger</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                 <widget class="QWidget" name="pageScanner">
+                  <property name="geometry">
+                   <rect>
+                    <x>0</x>
+                    <y>0</y>
+                    <width>235</width>
+                    <height>93</height>
+                   </rect>
+                  </property>
+                  <attribute name="label">
+                   <string>Scanner</string>
+                  </attribute>
+                  <layout class="QGridLayout" name="gridLayout_13">
+                   <item row="0" column="0">
+                    <widget class="QLabel" name="label_com_scanner">
+                     <property name="text">
+                      <string>COM &amp; BAUD</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="1">
+                    <widget class="QComboBox" name="combo_comport_scanner">
+                     <property name="minimumSize">
+                      <size>
+                       <width>0</width>
+                       <height>0</height>
+                      </size>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="2">
+                    <widget class="QComboBox" name="combo_baudrate_scanner"/>
+                   </item>
+                   <item row="1" column="0">
+                    <widget class="QLabel" name="label_message_scanner">
+                     <property name="text">
+                      <string>Message</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="1" colspan="2">
+                    <widget class="QLineEdit" name="line_message_scanner"/>
+                   </item>
+                   <item row="2" column="0">
+                    <widget class="QLabel" name="label_status_scanner">
+                     <property name="text">
+                      <string>Status Scaner</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="2" column="1" colspan="2">
+                    <widget class="QPushButton" name="btn_open_scanner">
+                     <property name="text">
+                      <string>Open</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                 <widget class="QWidget" name="pageOutCom">
+                  <property name="geometry">
+                   <rect>
+                    <x>0</x>
+                    <y>0</y>
+                    <width>246</width>
+                    <height>96</height>
+                   </rect>
+                  </property>
+                  <attribute name="label">
+                   <string>Out COM</string>
+                  </attribute>
+                  <layout class="QGridLayout" name="gridLayout_19">
+                   <item row="0" column="0">
+                    <widget class="QLabel" name="label_com_out_com">
+                     <property name="text">
+                      <string>COM &amp; BAUD</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="1">
+                    <widget class="QComboBox" name="combo_comport_out_com">
+                     <property name="minimumSize">
+                      <size>
+                       <width>0</width>
+                       <height>0</height>
+                      </size>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="2">
+                    <widget class="QComboBox" name="combo_baudrate_out_com"/>
+                   </item>
+                   <item row="1" column="0">
+                    <widget class="QPushButton" name="btn_send_data_out_com">
+                     <property name="text">
+                      <string>Send Data</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="1" colspan="2">
+                    <widget class="QLineEdit" name="line_data_out_com"/>
+                   </item>
+                   <item row="2" column="0">
+                    <widget class="QLabel" name="label_status_out_com">
+                     <property name="text">
+                      <string>Status Out COM</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="2" column="1" colspan="2">
+                    <widget class="QPushButton" name="btn_open_out_com">
+                     <property name="text">
+                      <string>Open</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                 <widget class="QWidget" name="pageIO">
+                  <property name="geometry">
+                   <rect>
+                    <x>0</x>
+                    <y>0</y>
+                    <width>243</width>
+                    <height>96</height>
+                   </rect>
+                  </property>
+                  <attribute name="label">
+                   <string>IO</string>
+                  </attribute>
+                  <layout class="QGridLayout" name="gridLayout_21">
+                   <item row="0" column="0">
+                    <widget class="QLabel" name="label_com_io">
+                     <property name="text">
+                      <string>COM &amp; BAUD</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="1">
+                    <widget class="QComboBox" name="combo_comport_io">
+                     <property name="minimumSize">
+                      <size>
+                       <width>0</width>
+                       <height>0</height>
+                      </size>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="2">
+                    <widget class="QComboBox" name="combo_baudrate_io"/>
+                   </item>
+                   <item row="1" column="1">
+                    <widget class="QPushButton" name="btn_open_all_io">
+                     <property name="text">
+                      <string>Open All</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="2">
+                    <widget class="QPushButton" name="btn_close_all_io">
+                     <property name="text">
+                      <string>Close All</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="2" column="0">
+                    <widget class="QLabel" name="label_status_io">
+                     <property name="text">
+                      <string>Status IO</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="2" column="1" colspan="2">
+                    <widget class="QPushButton" name="btn_open_io">
+                     <property name="text">
+                      <string>Open</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
                 </widget>
                </item>
               </layout>
@@ -1928,37 +1971,11 @@
           <property name="title">
            <string>Data Filter</string>
           </property>
-          <layout class="QGridLayout" name="gridLayoutDataFilter" rowstretch="0,0,0,0,0,0,0,0" columnstretch="2,3">
+          <layout class="QGridLayout" name="gridLayoutDataFilter" rowstretch="0,0,0,0,0,0,0,0,0" columnstretch="2,3">
            <item row="6" column="0">
             <widget class="QLabel" name="label_keyword">
              <property name="text">
               <string>Keyword:</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-             </property>
-            </widget>
-           </item>
-           <item row="6" column="1">
-            <widget class="QLineEdit" name="line_keyword"/>
-           </item>
-           <item row="4" column="0">
-            <widget class="QLabel" name="label_result_type">
-             <property name="layoutDirection">
-              <enum>Qt::LeftToRight</enum>
-             </property>
-             <property name="text">
-              <string>Result:</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="0">
-            <widget class="QLabel" name="label_error_type">
-             <property name="text">
-              <string>Error Type:</string>
              </property>
              <property name="alignment">
               <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -1995,10 +2012,43 @@
              </item>
             </widget>
            </item>
+           <item row="6" column="1">
+            <widget class="QLineEdit" name="line_keyword"/>
+           </item>
+           <item row="4" column="0">
+            <widget class="QLabel" name="label_result_type">
+             <property name="layoutDirection">
+              <enum>Qt::LeftToRight</enum>
+             </property>
+             <property name="text">
+              <string>Result:</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+             </property>
+            </widget>
+           </item>
            <item row="7" column="1">
             <widget class="QPushButton" name="btn_connect_database">
              <property name="text">
               <string>Connect</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="0">
+            <widget class="QLabel" name="label_error_type">
+             <property name="text">
+              <string>Error Type:</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_date_time_to">
+             <property name="text">
+              <string>To:</string>
              </property>
             </widget>
            </item>
@@ -2035,25 +2085,6 @@
              </item>
             </widget>
            </item>
-           <item row="1" column="0">
-            <widget class="QLabel" name="label_date_time_from">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>10</height>
-              </size>
-             </property>
-             <property name="text">
-              <string>From:</string>
-             </property>
-            </widget>
-           </item>
            <item row="1" column="1">
             <widget class="QDateTimeEdit" name="date_time_from">
              <property name="dateTime">
@@ -2081,51 +2112,22 @@
              </property>
             </widget>
            </item>
-           <item row="2" column="0">
-            <widget class="QLabel" name="label_date_time_to">
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_date_time_from">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>10</height>
+              </size>
+             </property>
              <property name="text">
-              <string>To:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="1">
-            <widget class="QDateTimeEdit" name="date_time_to">
-             <property name="dateTime">
-              <datetime>
-               <hour>0</hour>
-               <minute>0</minute>
-               <second>0</second>
-               <year>2050</year>
-               <month>1</month>
-               <day>1</day>
-              </datetime>
-             </property>
-             <property name="minimumDate">
-              <date>
-               <year>1755</year>
-               <month>1</month>
-               <day>1</day>
-              </date>
-             </property>
-             <property name="displayFormat">
-              <string>dd/MM/yyyy hh:mm:ss</string>
-             </property>
-             <property name="calendarPopup">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="7" column="0">
-            <widget class="QPushButton" name="btn_filter_data">
-             <property name="text">
-              <string>Filter</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="0">
-            <widget class="QLabel" name="label_step">
-             <property name="text">
-              <string>Step:</string>
+              <string>From:</string>
              </property>
             </widget>
            </item>
@@ -2157,6 +2159,54 @@
                <string>UNITBOX</string>
               </property>
              </item>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QDateTimeEdit" name="date_time_to">
+             <property name="dateTime">
+              <datetime>
+               <hour>0</hour>
+               <minute>0</minute>
+               <second>0</second>
+               <year>2050</year>
+               <month>1</month>
+               <day>1</day>
+              </datetime>
+             </property>
+             <property name="minimumDate">
+              <date>
+               <year>1755</year>
+               <month>1</month>
+               <day>1</day>
+              </date>
+             </property>
+             <property name="displayFormat">
+              <string>dd/MM/yyyy hh:mm:ss</string>
+             </property>
+             <property name="calendarPopup">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="label_step">
+             <property name="text">
+              <string>Step:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="0">
+            <widget class="QPushButton" name="btn_filter_data">
+             <property name="text">
+              <string>Filter</string>
+             </property>
+            </widget>
+           </item>
+           <item row="8" column="0" colspan="2">
+            <widget class="QPushButton" name="btn_export">
+             <property name="text">
+              <string>Export</string>
+             </property>
             </widget>
            </item>
           </layout>

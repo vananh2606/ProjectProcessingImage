@@ -66,7 +66,7 @@ class Logger(logging.Logger):
     def __init__(
         self,
         name,
-        log_file="logs\logfile.log",
+        log_file="logs",
         level=logging.DEBUG,
         enable_console=True,
         enable_file=True,
@@ -107,13 +107,24 @@ class Logger(logging.Logger):
 
         if enable_file:
             formatter = logging.Formatter(self.log_format)
-            file_handler = logging.handlers.RotatingFileHandler(
-                self.log_file,
-                maxBytes=self.maxBytes,
-                backupCount=self.backupCount,
-                encoding="utf-8",
-                delay=True
-            )
+            foder_date_format = "%Y-%m-%d"
+            foder_date = datetime.now().strftime(foder_date_format)
+            log_dir = os.path.join(self.log_file, foder_date)
+            # Thêm vào constructor
+            os.makedirs(log_dir, exist_ok=True)
+            file = os.path.join(log_dir, f"{name}.log")
+
+            # Thêm error handling
+            try:
+                file_handler = logging.handlers.RotatingFileHandler(
+                    file,
+                    maxBytes=self.maxBytes,
+                    backupCount=self.backupCount,
+                    encoding="utf-8",
+                    delay=True
+                )
+            except Exception as e:
+                print(f"Không thể tạo file log: {e}")
             
             file_handler.setLevel(level)
             file_handler.setFormatter(formatter)
@@ -146,7 +157,7 @@ class Logger(logging.Logger):
 
 def test_write_log():
     # Ví dụ sử dụng
-    logger = Logger(name="test_logger", log_file="logs/test.log")
+    logger = Logger(name="test_logger", log_file="logs")
     logger.debug("Đây là thông báo DEBUG")
     logger.info("Đây là thông báo INFO")
     logger.warning("Đây là thông báo WARNING")

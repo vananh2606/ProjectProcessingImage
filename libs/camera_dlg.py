@@ -27,8 +27,8 @@ class CameraDlg(QWidget):
         self.camera_thread = None
         self.current_image = None
 
-        self.project_name = "Project Name"
-        self.log_path = "logs\\logfile.log"
+        self.project_name = "ProjectName"
+        self.log_path = "logs"
         self.ui_logger = Logger(name=self.project_name, log_file=self.log_path)
 
         self.initUI()

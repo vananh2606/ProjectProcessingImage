@@ -44,6 +44,7 @@ class PopUpDlg(QDialog):
     def initUI(self):
         self.ui.btn_pass.setProperty("class", "success")
         self.ui.btn_fail.setProperty("class", "danger")
+        self.ui.label_message.setStyleSheet("color: red; font-size: 30px;")
 
         self.ui.line_mnv.setReadOnly(True)
 
@@ -55,8 +56,6 @@ class PopUpDlg(QDialog):
     def updateValues(self):
         """Update UI with the provided values"""
         self.ui.label_message.setText(self.message)
-        self.ui.label_comport_value.setText(self.comport)
-        self.ui.label_baudrate_value.setText(self.baudrate)
     
     def on_click_pass(self):
         """Handle Pass button click"""

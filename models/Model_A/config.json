@@ -8,7 +8,7 @@
         },
         "lighting": {
             "controller_light": "DCP",
-            "comport_light": "COM14",
+            "comport_light": "COM8",
             "baudrate_light": "19200",
             "delay": 200,
             "channels": [
@@ -19,7 +19,7 @@
             ]
         },
         "weight": {
-            "comport_weight": "COM10",
+            "comport_weight": "COM8",
             "baudrate_weight": "9600",
             "min_weight": "0.100",
             "max_weight": "0.300",
@@ -31,7 +31,7 @@
             "string_trigger": "TRIGGER"
         },
         "scanner": {
-            "comport_scanner": "COM11",
+            "comport_scanner": "COM16",
             "baudrate_scanner": "9600"
         },
         "out_com": {
@@ -39,7 +39,7 @@
             "baudrate_out_com": "9600"
         },
         "io": {
-            "comport_io": "COM15",
+            "comport_io": "COM8",
             "baudrate_io": "19200"
         },
         "server": {

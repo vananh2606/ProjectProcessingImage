@@ -2,11 +2,14 @@ import os
 import gc
 import sys
 import time
+from pathlib import Path
 import json
 import shutil
 import random
 import logging
 import enum
+import pandas as pd
+import xlsxwriter
 import serial
 import serial.tools
 import serial.tools.list_ports
@@ -41,6 +44,8 @@ from functools import partial
 from collections import namedtuple
 from typing import List
 
+sys.path.append("ui")
+sys.path.append("libs")
 from ui.MainWindowUI import Ui_MainWindow
 from libs.loading import LoadingDialog
 
@@ -323,8 +328,8 @@ class MainWindow(QMainWindow):
 
     def initParameters(self):
         # Logger and Log Signals
-        self.project_name = "Project Name"
-        self.log_path = "logs\\logfile.log"
+        self.project_name = "ProjectName"
+        self.log_path = "logs"
         self.ui_logger = Logger(name=self.project_name, log_file=self.log_path)
 
         # Camera
@@ -426,9 +431,11 @@ class MainWindow(QMainWindow):
         self.ui.btn_create_database.setProperty("class", "primary")
         self.ui.btn_connect_database.setProperty("class", "success")
         self.ui.btn_filter_data.setProperty("class", "primary")
+        self.ui.btn_export.setProperty("class", "primary")
 
         # Label
         self.ui.label_result.setProperty("class", "waiting")
+        self.ui.label_result.setStyleSheet("font-size: 40px;")
         self.ui.label_value_weight.setProperty("class", "waiting")
         self.ui.label_weight.setProperty("class", "waiting")
         self.ui.label_model_code.setProperty("class", "waiting")
@@ -475,6 +482,21 @@ class MainWindow(QMainWindow):
         self.ui.label_input_8.setProperty("class", "fail")
         self.ui.label_input_8.setText("Off")
 
+        # ComboBox
+        self.ui.combo_model_setting.setEditable(True)
+        self.ui.combo_comport_light.setEditable(True)
+        self.ui.combo_baudrate_light.setEditable(True)
+        self.ui.combo_comport_weight.setEditable(True)
+        self.ui.combo_baudrate_weight.setEditable(True)
+        self.ui.combo_comport_vision_master.setEditable(True)
+        self.ui.combo_baudrate_vision_master.setEditable(True)
+        self.ui.combo_comport_scanner.setEditable(True)
+        self.ui.combo_baudrate_scanner.setEditable(True)
+        self.ui.combo_comport_out_com.setEditable(True)
+        self.ui.combo_baudrate_out_com.setEditable(True)
+        self.ui.combo_comport_io.setEditable(True)
+        self.ui.combo_baudrate_io.setEditable(True)
+
         # Canvas
         self.canvas_src = Canvas()
         self.ui.verticalLayoutImageSRC.addWidget(WindowCanvas(self.canvas_src))
@@ -503,7 +525,6 @@ class MainWindow(QMainWindow):
         self.ui.tabWidgetCameraConfig.addTab(self.camera_dlg_2, "Camera2")
 
         # Model
-        self.ui.combo_model_setting.setEditable(True)
         self.initialize_models()
 
     def connectUi(self):
@@ -539,6 +560,7 @@ class MainWindow(QMainWindow):
         self.ui.btn_create_database.clicked.connect(self.create_database)
         self.ui.btn_connect_database.clicked.connect(self.on_click_connect_database)
         self.ui.btn_filter_data.clicked.connect(self.filter_data)
+        self.ui.btn_export.clicked.connect(self.export_to_excel)
 
         # IO
         self.ui.btn_output_1.clicked.connect(self.on_click_output_1)
@@ -558,6 +580,10 @@ class MainWindow(QMainWindow):
         self.ui.combo_type_camera.currentIndexChanged.connect(
             self.on_change_camera_type
         )
+
+        # DockWidget
+        self.ui.dockWidgetImageBinary.setVisible(False)
+        self.ui.dockWidgetViewlLog.setVisible(False)
 
         # ListWidget
         self.ui.list_widget_image.itemSelectionChanged.connect(
@@ -684,97 +710,118 @@ class MainWindow(QMainWindow):
             default_config = {
                 "shapes": {},
                 "modules": {
-                    "camera": {"type": "Webcam", "id": "0", "feature": ""},
+                    "camera": {
+                        "type": "Webcam",
+                        "id": "0",
+                        "feature": ""
+                    },
                     "lighting": {
-                        "controller_light": "LCP",
-                        "comport_light": "COM9",
+                        "controller_light": "DCP",
+                        "comport_light": "COM15",
                         "baudrate_light": "19200",
                         "delay": 100,
-                        "channels": [10, 10, 10, 10],
+                        "channels": [
+                            10,
+                            10,
+                            10,
+                            10
+                        ]
                     },
                     "weight": {
-                        "comport_weight": "COM10",
-                        "baudrate_weight": "19200",
-                        "min_weight": "0.1",
-                        "max_weight": "0.3",
-                        "value_weight": "0.2",
+                        "comport_weight": "COM14",
+                        "baudrate_weight": "9600",
+                        "min_weight": "0.036",
+                        "max_weight": "0.042",
+                        "value_weight": "0.2"
                     },
                     "vision_master": {
-                        "comport_vision_master": "COM10",
+                        "comport_vision_master": "COM20",
                         "baudrate_vision_master": "9600",
-                        "string_trigger": "TRIGGER",
+                        "string_trigger": "TRIGGER"
                     },
                     "scanner": {
-                        "comport_scanner": "COM11",
-                        "baudrate_scanner": "9600",
+                        "comport_scanner": "COM17",
+                        "baudrate_scanner": "9600"
                     },
                     "out_com": {
-                        "comport_out_com": "COM16",
-                        "baudrate_out_com": "9600",
+                        "comport_out_com": "COM21",
+                        "baudrate_out_com": "9600"
                     },
                     "io": {
-                        "comport_io": "COM10",
-                        "baudrate_io": "19200",
+                        "comport_io": "COM16",
+                        "baudrate_io": "19200"
                     },
-                    "server": {"host": "127.0.0.1", "port": "8080"},
+                    "server": {
+                        "host": "127.0.0.1",
+                        "port": "8080"
+                    },
                     "system": {
                         "log_dir": "log_database",
                         "log_size": "10",
                         "database_path": "database.db",
-                        "auto_start": False,
+                        "auto_start": false
                     },
                     "model_ai": {
-                        "model_path": "yolov8n",
-                        "confidence": "0.25",
+                        "model_path": "best_plus",
+                        "confidence": "0.75"
                     },
                     "processing": {
                         "color": "GRAY",
                         "blur": {
                             "type_blur": "Gaussian Blur",
-                            "kernel_size_blur": 5,
+                            "kernel_size_blur": 5
                         },
                         "threshold": {
                             "type_threshold": "Thresh Binary",
-                            "value_threshold": 127,
+                            "value_threshold": 127
                         },
                         "morphological": {
                             "type_morph": "Erode",
-                            # "type_morph": "Dilate",
                             "iteration": 1,
-                            "kernel_size_morph": 3,
-                        },
+                            "kernel_size_morph": 3
+                        }
                     },
-                    "camera_config":{
-                        "camera1":{
-                            "device":{
-                                "type":"Webcam",
-                                "id":"0",
-                                "feature":""
+                    "camera_config": {
+                        "camera1": {
+                            "device": {
+                                "type": "HIK",
+                                "id": "DA5691956",
+                                "feature": "Camera_1"
                             },
-                            "lighting":{	
+                            "lighting": {
                                 "delay": 200,
-                                "channels": [10, 10, 10, 10]
+                                "channels": [
+                                    10,
+                                    10,
+                                    10,
+                                    10
+                                ]
                             }
-                        }, 
-                        "camera2":{
-                            "device":{
-                                "type":"Webcam",
-                                "id":"0",
-                                "feature":""
+                        },
+                        "camera2": {
+                            "device": {
+                                "type": "HIK",
+                                "id": "DA5691962",
+                                "feature": "Camera_2"
                             },
-                            "lighting":{	
+                            "lighting": {
                                 "delay": 200,
-                                "channels": [10, 10, 10, 10]
+                                "channels": [
+                                    10,
+                                    10,
+                                    10,
+                                    10
+                                ]
                             }
                         }
                     }
                 },
                 "font": {
-                    "radius": Shape.RADIUS,
-                    "thickness": Shape.THICKNESS,
-                    "font_size": Shape.FONT_SIZE,
-                    "min_size": Shape.MIN_SIZE,
-                },
+                    "radius": 20,
+                    "thickness": 3,
+                    "font_size": 25,
+                    "min_size": 10
+                }
             }
 
             # Áp dụng cấu hình mặc định
@@ -1573,10 +1620,17 @@ class MainWindow(QMainWindow):
 
     def wait_data_received_from_scanner_controller(self, data):
         try:
-            if len(data) >=  10:
-                self.listCodeSN.append(data)
-                self.add_list_to_listwidget(self.listCodeSN, list_widget_code_sn=self.ui.list_widget_code_sn)
-            # self.ui_logger.info(f"Data Scanner: {self.dataScanner}")
+            if data == "Check Weight":
+                self.b_trigger_weight_auto = True
+            elif data == "Check Optic":
+                self.b_trigger_optic_auto = True
+            elif data == "Check UnitBox":
+                self.b_trigger_unitbox_auto = True
+            else:
+                if len(data) >=  10:
+                    self.listCodeSN.append(data)
+                    self.add_list_to_listwidget(self.listCodeSN, list_widget_code_sn=self.ui.list_widget_code_sn)
+                # self.ui_logger.info(f"Data Scanner: {self.dataScanner}")
         except Exception as e:
             self.ui_logger.error(f"Lỗi xử lý chuỗi value scanner: {e}")
     
@@ -1812,8 +1866,10 @@ class MainWindow(QMainWindow):
             if self.weight > min_weight and self.weight < max_weight:
                 msg = "PASS"
             else:
-
-                message = f"Xác nhận lại Weight"
+                if self.weight < min_weight:
+                    message = f"Trọng lượng cân nhỏ hơn yêu cầu"
+                elif self.weight > max_weight:
+                    message = f"Trọng lượng cân lơn hơn yêu cầu"
                 comport = config["modules"]["scanner"]["comport_scanner"]
                 baudrate = str(config["modules"]["scanner"]["baudrate_scanner"])
             
@@ -1833,7 +1889,7 @@ class MainWindow(QMainWindow):
             time_check = time.strftime(DATETIME_FORMAT)
             model_name = self.ui.combo_model.currentText()
 
-            dst = self.put_text_dst(dst, time_check, model_name, code_sn)
+            dst = self.put_text_dst(dst, msg, time_check, model_name, code_sn)
 
             # Tạo kết quả cuối cùng cho auto
             self.final_result = RESULT(
@@ -1971,7 +2027,10 @@ class MainWindow(QMainWindow):
             self.ui.label_value_total.setText(str(count_optic + count_empty))
             if count_optic + count_empty != 5 or count_empty > 0:
 
-                message = f"Xác nhận lại Optic"
+                if count_optic < 5:
+                    message = f"Số lượng Optic bị thiếu"
+                elif count_optic > 5:
+                    message = f"Số lượng Optic bị thừa"
                 comport = config["modules"]["scanner"]["comport_scanner"]
                 baudrate = str(config["modules"]["scanner"]["baudrate_scanner"])
             
@@ -1989,7 +2048,7 @@ class MainWindow(QMainWindow):
             time_check = time.strftime(DATETIME_FORMAT)
             model_name = self.ui.combo_model.currentText()
 
-            dst = self.put_text_dst(dst, time_check, model_name, code_sn)
+            dst = self.put_text_dst(dst, msg, time_check, model_name, code_sn)
 
             # Tạo kết quả cuối cùng cho auto
             self.final_result = RESULT(
@@ -2127,7 +2186,7 @@ class MainWindow(QMainWindow):
             while not os.path.exists(OutputBarCodePath):
                 time.sleep(0.01)  # Chờ 100ms rồi kiểm tra lại
 
-            time.sleep(0.1)
+            time.sleep(0.05)
 
             # Ghi lỗi
             parts = self.dataVM.strip().split(";")
@@ -2141,7 +2200,12 @@ class MainWindow(QMainWindow):
                 self.ui.label_model_code.setProperty("class", "fail")
                 update_style(self.ui.label_model_code)
 
-                message = f"Xác nhận lại UnitBox"
+                if all(p == parts[0] for p in parts) == False:
+                    message = f"Sai code trong UnitBox"
+                elif len(parts) < 5:
+                    message = f"Thiếu code trong UnitBox"
+                elif len(parts) > 5:
+                    message = f"Thừa code trong UnitBox"
                 comport = config["modules"]["scanner"]["comport_scanner"]
                 baudrate = str(config["modules"]["scanner"]["baudrate_scanner"])
             
@@ -2156,7 +2220,7 @@ class MainWindow(QMainWindow):
             time_check = time.strftime(DATETIME_FORMAT)
             model_name = self.ui.combo_model.currentText()
 
-            dst = self.put_text_dst(dst, time_check, model_name, code_sn)
+            dst = self.put_text_dst(dst, msg, time_check, model_name, code_sn)
             
             # Tạo kết quả cuối cùng cho auto
             self.final_result = RESULT(
@@ -2290,10 +2354,14 @@ class MainWindow(QMainWindow):
         # cv.drawContours(dst, cnts, -1, (0, 255, 0), 2)
         return binary
     
-    def put_text_dst(self, image, time_check, model_name, code_sn):
-        image = cv.putText(image, time_check, (100, 100), cv.FONT_HERSHEY_SIMPLEX, fontScale=2, color=(0, 255, 0), thickness=10, lineType=cv.LINE_4)
-        image = cv.putText(image, model_name, (100, 250), cv.FONT_HERSHEY_SIMPLEX, fontScale=2, color=(0, 255, 0), thickness=10, lineType=cv.LINE_4)
-        dst = cv.putText(image, code_sn, (100, 400), cv.FONT_HERSHEY_SIMPLEX, fontScale=2, color=(0, 255, 0), thickness=10, lineType=cv.LINE_4)
+    def put_text_dst(self, image, result, time_check, model_name, code_sn):
+        if result == "PASS":
+            image = cv.putText(image, "OK", (100, 500), cv.FONT_HERSHEY_SIMPLEX, fontScale=10, color=(0, 255, 0), thickness=15, lineType=cv.LINE_AA)
+        elif result == "FAIL":
+            image = cv.putText(image, "NG", (100, 500), cv.FONT_HERSHEY_SIMPLEX, fontScale=10, color=(0, 0, 255), thickness=15, lineType=cv.LINE_AA)
+        image = cv.putText(image, time_check, (100, 2500), cv.FONT_HERSHEY_SIMPLEX, fontScale=3, color=(0, 255, 0), thickness=8, lineType=cv.LINE_4)
+        image = cv.putText(image, model_name, (100, 2750), cv.FONT_HERSHEY_SIMPLEX, fontScale=3, color=(0, 255, 0), thickness=8, lineType=cv.LINE_4)
+        dst = cv.putText(image, code_sn, (100, 3000), cv.FONT_HERSHEY_SIMPLEX, fontScale=2.5, color=(0, 255, 0), thickness=8, lineType=cv.LINE_4)
         return dst
 
     def write_label_result(self, result: str):
@@ -2340,8 +2408,11 @@ class MainWindow(QMainWindow):
                 os.makedirs(image_folder, exist_ok=True)
 
                 filename = result.result + "_" + time.strftime(FILENAME_FORMAT)
-                image_path = f"{image_folder}\\{filename}"
-                cv.imwrite(image_path, result.src)
+
+                image_folder_input = f"{image_folder}\\input"
+                os.makedirs(image_folder_input, exist_ok=True)
+                image_path_input = os.path.join(image_folder_input, filename.replace(".jpg", "_input.jpg"))
+                cv.imwrite(image_path_input, result.src)
 
                 if result.dst is not None:
                     image_folder_output = f"{image_folder}\\output"
@@ -2354,7 +2425,7 @@ class MainWindow(QMainWindow):
                 database_path = os.path.join(log_dir, modules["system"]["database_path"])
                 conn = create_db(database_path)
 
-                values = (result.step, result.time_check, result.model_name, result.result, image_path, result.code_sn, result.weight, result.error_type)
+                values = (result.step, result.time_check, result.model_name, result.result, image_path_input, result.code_sn, result.weight, result.error_type)
                 sql = "INSERT INTO history (step, time_check, model_name, result, img_path, code_sn, weight, error_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
                 insert(conn, sql, values)
         except Exception as e:
@@ -2630,9 +2701,9 @@ class MainWindow(QMainWindow):
             # Hiển thị ảnh kết quả
             if result.src is not None:
                 if canvas == "Camera1":
-                    self.canvas_camera1_auto.load_pixmap(ndarray2pixmap(result.src))
+                    self.canvas_camera1_auto.load_pixmap(ndarray2pixmap(result.src), True)
                 elif canvas == "Camera2":
-                    self.canvas_camera2_auto.load_pixmap(ndarray2pixmap(result.src))
+                    self.canvas_camera2_auto.load_pixmap(ndarray2pixmap(result.src), True)
 
             if result.binary is not None:
                 self.canvas_binary.load_pixmap(ndarray2pixmap(result.binary), True)
@@ -2930,8 +3001,7 @@ class MainWindow(QMainWindow):
                         lighting_config.get("controller_light", "DCP"),
                     )
                     comports, baudrates = self.find_comports_and_baurates()
-                    self.ui.combo_comport_light.setEditable(True)
-                    self.ui.combo_baudrate_light.setEditable(True)
+                    
                     self.add_combox_item(self.ui.combo_comport_light, comports)
                     self.add_combox_item(self.ui.combo_baudrate_light, baudrates)
                     self.set_combobox_text(
@@ -2958,8 +3028,6 @@ class MainWindow(QMainWindow):
                 if "weight" in modules:
                     weight_config = modules["weight"]
                     comports, baudrates = self.find_comports_and_baurates()
-                    self.ui.combo_comport_weight.setEditable(True)
-                    self.ui.combo_baudrate_weight.setEditable(True)
                     self.add_combox_item(self.ui.combo_comport_weight, comports)
                     self.add_combox_item(self.ui.combo_baudrate_weight, baudrates)
                     self.set_combobox_text(
@@ -2976,8 +3044,6 @@ class MainWindow(QMainWindow):
                 if "vision_master" in modules:
                     vision_master_config = modules["vision_master"]
                     comports, baudrates = self.find_comports_and_baurates()
-                    self.ui.combo_comport_vision_master.setEditable(True)
-                    self.ui.combo_baudrate_vision_master.setEditable(True)
                     self.add_combox_item(self.ui.combo_comport_vision_master, comports)
                     self.add_combox_item(self.ui.combo_baudrate_vision_master, baudrates)
                     self.set_combobox_text(
@@ -2992,8 +3058,6 @@ class MainWindow(QMainWindow):
                 if "scanner" in modules:
                     scanner_config = modules["scanner"]
                     comports, baudrates = self.find_comports_and_baurates()
-                    self.ui.combo_comport_scanner.setEditable(True)
-                    self.ui.combo_baudrate_scanner.setEditable(True)
                     self.add_combox_item(self.ui.combo_comport_scanner, comports)
                     self.add_combox_item(self.ui.combo_baudrate_scanner, baudrates)
                     self.set_combobox_text(
@@ -3007,8 +3071,6 @@ class MainWindow(QMainWindow):
                 if "out_com" in modules:
                     out_com_config = modules["out_com"]
                     comports, baudrates = self.find_comports_and_baurates()
-                    self.ui.combo_comport_out_com.setEditable(True)
-                    self.ui.combo_baudrate_out_com.setEditable(True)
                     self.add_combox_item(self.ui.combo_comport_out_com, comports)
                     self.add_combox_item(self.ui.combo_baudrate_out_com, baudrates)
                     self.set_combobox_text(
@@ -3022,8 +3084,6 @@ class MainWindow(QMainWindow):
                 if "io" in modules:
                     io_config = modules["io"]
                     comports, baudrates = self.find_comports_and_baurates()
-                    self.ui.combo_comport_io.setEditable(True)
-                    self.ui.combo_baudrate_io.setEditable(True)
                     self.add_combox_item(self.ui.combo_comport_io, comports)
                     self.add_combox_item(self.ui.combo_baudrate_io, baudrates)
                     self.set_combobox_text(
@@ -3214,6 +3274,8 @@ class MainWindow(QMainWindow):
     def find_comports_and_baurates(self):
         comports = serial.tools.list_ports.comports()
         comports = [port for port, _, _ in comports]
+        comports.append("COM21")
+        comports.append("COM22")
 
         baudrates = list(map(str, serial.Serial.BAUDRATES))
 
@@ -4399,19 +4461,19 @@ class MainWindow(QMainWindow):
         it = self.ui.table_widget_database.item(row, IMAGE_PATH_COLUMN)
 
         if it is not None:
-            img_path = it.text()
+            img_path_input = it.text()
 
-            if not os.path.exists(img_path):
-                self.ui_logger.error("File not found %s" % img_path)
+            if not os.path.exists(img_path_input):
+                self.ui_logger.error("File not found %s" % img_path_input)
                 self.canvas_input.clear_pixmap()
             else:
-                src = cv.imread(img_path)
+                src = cv.imread(img_path_input)
                 self.canvas_input.load_pixmap(ndarray2pixmap(src), True)
 
-            basename = os.path.basename(img_path)
-            dirname = os.path.dirname(img_path)
+            dirname = Path(Path(img_path_input).parent).parent
+            basename = Path(img_path_input).name
 
-            img_path_output = os.path.join(dirname, "output", basename.replace(".jpg", "_output.jpg"))
+            img_path_output = os.path.join(dirname, "output", basename.replace("_input.jpg", "_output.jpg"))
             if not os.path.exists(img_path_output):
                 self.ui_logger.error("File not found %s" % img_path_output)
                 self.canvas_output.clear_pixmap()
@@ -4454,6 +4516,29 @@ class MainWindow(QMainWindow):
         for i, r in enumerate(rows):
             for j in range(len(r)):
                 self.ui.table_widget_database.setItem(i, j, QTableWidgetItem(r[j]))
+
+    def export_to_excel(self):
+        try: 
+            path, _ = QFileDialog.getSaveFileName(self, "Lưu file Excel", "", "Excel Files (*.xlsx)")
+            if path:
+                data = []
+                for row in range(self.ui.table_widget_database.rowCount()):
+                    row_data = []
+                    for col in range(self.ui.table_widget_database.columnCount()):
+                        item = self.ui.table_widget_database.item(row, col)
+                        value = item.text() if item else ""
+                        
+                        row_data.append(value)
+                    data.append(row_data)
+
+                headers = [self.ui.table_widget_database.horizontalHeaderItem(i).text() 
+                        for i in range(self.ui.table_widget_database.columnCount())]
+                
+                df = pd.DataFrame(data, columns=headers)
+                df.to_excel(path, index=False, engine='xlsxwriter')
+
+        except Exception as e:
+            self.ui_logger.error(f"Error Export To Excel: {e}")
 
     def closeEvent(self, event):
         reply = QMessageBox.question(
